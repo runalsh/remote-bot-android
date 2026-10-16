@@ -1,7 +1,7 @@
 # Remote Bot for Telegram
 
 <p align="center">
-  <strong>Autonomous, open-source Android remote administration, surveillance, and automation tool powered by Telegram & SMS.</strong>
+  <strong>Autonomous, self-hosted Android remote administration, surveillance, and automation server powered by Telegram & SMS.</strong>
 </p>
 
 <p align="center">
@@ -13,237 +13,234 @@
   <img src="https://img.shields.io/badge/Language-Kotlin_2.0-purple.svg" alt="Kotlin" />
   <img src="https://img.shields.io/badge/UI-Jetpack_Compose_Material_3-blue.svg" alt="Compose" />
   <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
+  <img src="https://github.com/runalsh/remote-bot-android/actions/workflows/ci.yml/badge.svg" alt="CI Status" />
+  <img src="https://github.com/runalsh/remote-bot-android/actions/workflows/docker.yml/badge.svg" alt="Docker Status" />
 </p>
 
 ---
 
-## 📖 Overview
+## 📖 Table of Contents
 
-**Remote Bot for Telegram** transforms any Android smartphone, tablet, or TV box into a private, self-hosted remote management server. Control your device, forward notifications, manage telephony, track location, take photos, stream screen recordings, and run shell commands directly from your personal Telegram chat or via fallback SMS commands — without relying on proprietary cloud services or subscriptions.
-
-Designed for modern **Android 14 & 15 (Target SDK 35)** with full backwards compatibility down to **Android 8.0 (API 26)**.
-
----
-
-## ✨ Key Features & Capabilities
-
-### 📱 1. Communication & Channels
-* **Telegram Bot API**:
-  * **Long Polling Mode**: Direct polling with customizable Bot API root (supports self-hosted Telegram Bot API servers for 2 GB file transfers and DPI censorship circumvention).
-  * **FCM Push Wakeup Mode**: Ultra-low battery consumption mode. The background polling service sleeps and wakes up on-demand when an incoming command arrives.
-  * **Network & Proxy**: Built-in SOCKS5, HTTP, and WebSocket (WSS) proxy engine with real-time ping check.
-* **Offline SMS Bot (Dual Fallback)**:
-  * Works completely offline when mobile data or Wi-Fi is disabled.
-  * **Trigger Prefix**: Responds to `rb` prefix in any case (`rb`, `RB`, `Rb`, `rB`) with whitespace, newline, slash, or colon separators.
-  * **Mode 1 (PIN Protected)**: Execute commands from any phone number using your secret PIN (`rb 1234 /wifi on`).
-  * **Mode 2 (Trusted Numbers)**: Whitelist specific phone numbers to execute commands directly without entering a PIN.
+- [Overview & Philosophy](#-overview--philosophy)
+- [Key Features & Capabilities](#-key-features--capabilities)
+- [Project Documentation (`docs/`)](#-project-documentation-docs)
+- [Server Infrastructure & Docker (`server/`)](#-server-infrastructure--docker-server)
+- [Building from Source](#-building-from-source)
+- [Makefile Commands Cheatsheet](#-makefile-commands-cheatsheet)
+- [CI/CD & Quality Gates](#-cicd--quality-gates)
+- [License](#-license)
 
 ---
 
-### 📷 2. Camera, Audio & Screen Capture
-* **Camera (`/photo`, `/videorec`)**:
-  * Silent background photo capture with front or rear camera, flash toggle, and orientation rotation (`/photo front flash_off`).
-  * Background video recording with configurable duration (`/videorec back 30`).
-  * Real-time motion detection via CameraX ImageAnalysis (`/detectmotion`).
-  * MediaStore gallery exporter: send recent photos grouped in media albums (`/gallery 5`).
-* **Audio (`/rec`, `/tts`, `/playback`, `/volume`)**:
-  * High-quality background microphone recording saved to AAC/m4a (`/rec 60`).
-  * Text-to-Speech synthesis through the device's loudspeaker (`/tts Hello from Telegram`).
-  * Media player control for local tracks and voice notes (`/playback`).
-  * Stream volume adjustment (call, media, alarm, ringtone) (`/volume media 80`).
-  * Sound profile switching (`/ring_mode normal|silent|vibrate`).
-  * **Emergency Device Search (`/device_search`)**: Triggers maximum volume siren with interactive stop button.
-* **Screen Capture (`/screenshot`, `/screen_rec`)**:
-  * Autonomous hidden screenshot via Root (`/system/bin/screencap`) or Shizuku without user confirmation.
-  * Screen video recording (`/screen_rec 15`) delivered as MP4.
+## 🌟 Overview & Philosophy
+
+**Remote Bot for Telegram** transforms any Android device (smartphone, tablet, emulator, or TV box) into a private, self-hosted remote management and surveillance node. Interact with your device through a personal Telegram chat or fallback SMS commands when offline.
+
+### Core Principles:
+- 🔒 **Zero Telemetry & Absolute Privacy**: Connects directly to `api.telegram.org` or your private Bot API instance. No third-party servers, no analytics, no proprietary cloud databases.
+- ⚡ **Zero-Drain Dual Push Architecture**: Uses Google Firebase (FCM) and Huawei Mobile Services (HMS) data messages to wake the bot from Android Doze Mode only when an update arrives, saving battery life.
+- 📶 **Offline Resilience**: Automatically falls back to SMS commands and sends SMS notifications if mobile data/Wi-Fi is disconnected.
+- 🛡 **Security by Design**: Multi-user whitelisting, SMS PIN verification for destructive operations, and encrypted credential storage backed by Android Keystore.
+- 📱 **Modern Android Standards**: Built for Android 14 & 15 (Target SDK 35) using Foreground Service types, Scoped Storage, CameraX, Room, and Jetpack Compose Material 3 with NavigationRail.
 
 ---
 
-### 📞 3. Telephony & SMS Management
-* **SMS Messages**:
-  * Send SMS messages with Dual-SIM support (`/sms [sim] <phone> <text>`).
-  * Read SMS inbox and sent history with pagination (`/sms_inbox 10`).
-  * **Interactive SMS Reply Flow**:
-    * Tap **«💬 Reply by SMS»** inline button under incoming forwarded SMS.
-    * Bot opens a clean message prompt: `✍️ Enter message for +1234567890 (SIM 1):` with an **«❌ Cancel»** button.
-    * Simply type your response and send — the bot transmits the SMS from the matching SIM slot.
-    * Also supports native Telegram swipe/quote reply on forwarded messages.
-* **Calls & USSD**:
-  * Make phone calls (`/call [sim] <phone>`).
-  * View call log history with duration, timestamps, and call types (`/callshistory 20`).
-  * Query USSD balance/service codes with Dual-SIM selection (`/ussd *100#`) via Accessibility Service and TelephonyManager.
+## ⚡ Key Features & Capabilities
+
+### 1. 🤖 Telegram & SMS Dual Control Engine
+- **54+ Remote Commands**: Full device inspection, system controls, media streaming, notifications, telephony, files, location, and shell execution.
+- **Connection Modes**: High-efficiency Long Polling or Webhook Push Wakeup.
+- **SMS Remote Bot**: Control the device offline via encrypted/prefixed SMS commands (`rb status`, `rb photo`, `rb location`, etc.).
+- **Anti-Blocking & DPI Bypass**: Built-in support for custom API endpoints, Direct/SOCKS5 proxies with credentials, and Cloudflare Reverse Proxy.
+
+### 2. 🔔 Notification Mirroring & Interactive Replies
+- **Notification Mirroring**: Forwards incoming notifications from any installed Android app directly to your Telegram chat.
+- **Filter Engine**: 10 customizable filtering rules (app selection, substring matching, regex patterns, case sensitivity, inversion).
+- **Anti-Echo & Dedup Window**: Suppresses duplicate notifications within configurable time windows and ignores notifications generated by the bot itself.
+- **Remote Quick Reply (`/answer <id> <text>`)**: Reply to incoming notifications (Telegram, WhatsApp, Signal, SMS) directly from Telegram chat using Android `RemoteInput` API.
+
+### 3. 🔋 Dual Push Wakeup (Google FCM + Huawei HMS)
+- **Zero Background Drain**: The bot does not keep an active TCP socket open in the background. Instead, it wakes up upon receiving high-priority silent data push messages.
+- **Dual Vendor Gateway**: Supports both Google Play Services (`google-services.json`) and Huawei Mobile Services (`agconnect-services.json`) simultaneously.
+- **Multi-Server Pool**: Automatic health-checking and failover between configured push server endpoints.
+
+### 4. 📞 Telephony & SMS
+- **Call Monitoring**: Live notifications for incoming, outgoing, and missed calls with contact names and numbers.
+- **Remote Calling (`/call <number>`)**: Place phone calls remotely.
+- **Remote SMS (`/sms <number> <text>`)**: Send SMS messages remotely with multi-SIM slot selection and automatic transliteration option.
+- **USSD Execution (`/ussd <code>`)**: Check mobile balances and manage operator services.
+
+### 5. 📸 Camera, Audio & Screen Surveillance
+- **CameraX Silent Capture (`/photo [front|back] [flash]`)**: Background photography without preview windows or shutter sounds.
+- **Silent Video Recording (`/video <duration> [front|back]`)**: Record MP4 video clips silently in the background.
+- **Audio Recording (`/record <duration>`)**: Record ambient sound and receive it as an audio message or voice note.
+- **Screen Capture & Recording (`/screenshot`, `/screen <duration>`)**: Real-time display capture via Android MediaProjection API.
+
+### 6. 📍 Hybrid Geolocation Tracking
+- **Multi-Provider Support**: Fused Location Provider (Google Play Services), Huawei Location Kit, and AOSP GNSS GPS/Network fallback.
+- **Continuous Tracking (`/track_location <interval> <duration>`)**: Periodic location updates directly to your chat with Google Maps and OpenStreetMap links.
+
+### 7. 🛡 Security, Permissions & Administration
+- **User Whitelist**: Restrict bot execution strictly to authorized Telegram User IDs.
+- **Granular Subscriptions (`/events`)**: Customize notification categories (Push, SMS, Calls, System) per whitelisted user via interactive inline keyboard buttons.
+- **Destructive Command Protection**: Require SMS PIN or inline confirmation for `/reboot`, `/wipe`, `/shell`, and settings resets.
+- **Encrypted Storage**: Bot tokens, proxy passwords, and encryption keys are encrypted using Google Tink / `EncryptedSharedPreferences`.
+
+### 8. ⚙️ Root & Shell Engine
+- **Libsu Integration**: Execute root commands asynchronously with non-blocking I/O (`/shell <command>`).
+- **Shizuku API Support**: Execute elevated system commands without requiring traditional root access.
+- **App Management (`/apps`, `/app_info`)**: List installed packages, view permissions, launch apps, or pull APKs remotely.
 
 ---
 
-### 🔔 4. Notification Mirroring & Instant Quick Reply
-* **Real-time Forwarding**: Intercepts Android system notifications via `NotificationListenerService`.
-* **Instant Messenger Reply (WhatsApp, Telegram, Signal, Viber, VK, Skype, Gmail)**:
-  * Automatically extracts `RemoteInput` and `PendingIntent` from notifications.
-  * Inline button **«💬 Reply»** under forwarded notification in Telegram.
-  * Enter response text in Telegram -> Bot injects text into `RemoteInput.addResultsToIntent()` and triggers the intent.
-  * The messenger app delivers the reply to your contact in the background without waking the screen.
-  * Also supports `/answer <id> <text>` and `/resp <id> <text>`.
-* **Filtering & Deduplication**:
-  * Whitelist/Blacklist package filters.
-  * RegEx rule engine (`TitleMatches`, `TitleContains`, `BodyMatches`, `BodyContains`).
-  * Filter out repetitive spam, capture banking 2FA SMS codes.
-  * Adjustable deduplication window (prevents spamming on progress updates).
-  * Auto-cancel notification from status bar after forwarding.
-* **Android 11–15 Package Visibility**: Full support for `QUERY_ALL_PACKAGES` and `<queries>` in app selection picker.
+## 📚 Project Documentation (`docs/`)
+
+The [`docs/`](docs/) directory contains comprehensive guides and configuration templates for setting up third-party services and security keys:
+
+| File | Purpose | Why It Is Needed |
+| :--- | :--- | :--- |
+| [**`FIREBASE_SETUP.md`**](docs/FIREBASE_SETUP.md) | **Google Firebase FCM Setup Guide** | Detailed walkthrough for creating a Google Firebase project, generating credentials, and downloading `google-services.json` to enable zero-drain FCM Push Wakeup. |
+| [**`HMS_SETUP.md`**](docs/HMS_SETUP.md) | **Huawei HMS Push Kit Setup Guide** | Instructions for setting up Huawei AppGallery Connect, enabling Push Kit, registering Release (`remotebot`) and Debug SHA-256 certificate fingerprints, and downloading `agconnect-services.json`. |
+| [**`CLOUDFLARE_WORKER_SETUP.md`**](docs/CLOUDFLARE_WORKER_SETUP.md) | **Cloudflare Workers Push Gateway** | Guide to deploying a free, serverless push gateway script on Cloudflare Workers so Telegram webhooks wake up your device without running a dedicated VPS. |
+| [**`CLOUDFLARE_TELEGRAM_REVERSE_PROXY.md`**](docs/CLOUDFLARE_TELEGRAM_REVERSE_PROXY.md) | **Cloudflare Reverse Proxy for Telegram** | Step-by-step setup of an HTTPS reverse proxy for `api.telegram.org` on Cloudflare Workers to bypass DPI restrictions and ISP censorship. |
+| [**`google-services.json.example`**](docs/google-services.json.example) | **Firebase Config Template** | Reference structure for `app/google-services.json` required by the Google Services Gradle plugin. |
+| [**`agconnect-services.json.example`**](docs/agconnect-services.json.example) | **Huawei AGC Config Template** | Reference structure for `app/agconnect-services.json` required by the Huawei AGConnect Gradle plugin. |
+| [**`keystore.properties.example`**](docs/keystore.properties.example) | **Release Signing Keystore Template** | Template for `keystore.properties` to specify your production keystore path, alias, and passwords for automated Release APK signing. |
+| [**`.env.example`**](docs/.env.example) | **Environment Variables Template** | Configuration template for standalone server gateways (FCM service account credentials, Huawei App ID/Secret, and webhook secret keys). |
 
 ---
 
-### 📍 5. Geolocation & Anti-Theft
-* **Location Tracking (`/location` / `/track`)**:
-  * **Multi-Provider Fused Geolocation**:
-    * **Google Play Services Fused Location**: Primary fused engine combining GPS, Cell towers, and Wi-Fi on GMS devices.
-    * **Huawei HMS Location Kit**: Native Fused Location support for Huawei & Honor devices without Google Play Services.
-    * **AOSP System GNSS & Network**: Direct satellite reception via `GnssStatus` (GPS/GLONASS/Galileo/BeiDou) and cell towers.
-    * **IP Geolocation Fallback**: Automatic IP-based location fallback when both satellites and cell towers are shielded.
-  * **Default Mode**: One-time location fix with configurable timeout.
-  * **Periodic Live Tracking**: Continuous updates until stopped (`/location live 30s|1m|5m|15m|30m|60m` or `/track 5m`, stop: `/track stop`, status: `/track status`).
-  * **Interactive Inline Buttons**: Quick interval selection and one-click stop tracking button.
-  * **Signal Diagnostic**: Explicitly reports active engine (`Google Fused`, `Huawei HMS Fused`, `GPS/GNSS`, `Cell-ID/Wi-Fi`, `IP`), C/N0 dB-Hz signal level, and satellite counts.
-  * Delivers GPS coordinates, accuracy, altitude, speed, reverse-geocoded physical address, and instant Google Maps & OpenStreetMap links.
-* **GPS Control (`/gps on|off|toggle`)**: Programmatic location provider toggle via Root.
-* **Shake Detector Alarm (`/shake_detector on|off [threshold]`)**: Detects physical movement or tampering using accelerometer sensors and sends immediate emergency alert.
+## 🖥 Server Infrastructure & Docker (`server/`)
 
----
+The repository includes lightweight server gateways located in [`server/`](server/) to route Telegram webhook updates to FCM/HMS push notifications, as well as reverse proxies for `api.telegram.org`:
 
-### 📁 6. File System, Apps & Task Manager
-* **Files (`/get_file` / `/gf`, `/download`, `/ls`, `/ls_interactive` / `/lsi`)**:
-  * **Interactive Explorer (`/ls_interactive` or `/lsi [path]`)**: Graphical directory navigator with inline folder buttons, navigate up `⬆️`, refresh `🔄`, and single-click downloading of files or full directory zip packaging.
-  * Download any file or directory (auto-zipped on the fly) up to 2 GB (`/get_file /sdcard/DCIM zip` or `/gf <path>`).
-  * Remote download from direct URL to device storage (`/download <url>`).
-  * Text file explorer (`/ls /sdcard`).
-  * Unsent file queue tracker (`/unsent_files`) for offline recovery.
-* **Applications (`/apps`, `/app_launch`, `/install`)**:
-  * **Direct APK Upload Installation**: Upload an `.apk` document to Telegram chat — the bot downloads and initiates installation automatically.
-  * List installed user and system applications with package search (`/apps whatsapp`).
-  * Launch any application remotely (`/app_launch com.whatsapp`).
-  * Silent APK installation from local storage via Root/Shizuku (`/install /sdcard/app.apk`).
-* **Configuration & Backup (`/backup`, `/restore_backup`)**:
-  * Export clean configuration backup as `.json` document directly to chat (`/backup`).
-  * Automatic configuration restore upon uploading `.json` document to chat or via `/restore_backup <json>`.
-* **Task Manager (`/taskmanager`, `/kill`)**:
-  * View active Linux processes with PID, CPU %, and memory usage.
-  * Terminate any process or background application (`/kill <PID|pkg>`).
+### 1. Push Gateways (`server/serverpush/`)
+Translates Telegram webhook `POST` updates into Google FCM and Huawei HMS push notifications:
+- **Go (`go/`)**: Ultra-lightweight `FROM scratch` binary (~10 MB RAM, self-contained healthchecks).
+- **Python (`python/`)**: Python 3.14 Alpine microservice based on standard HTTP server.
+- **OpenResty (`nginx/`)**: High-performance Lua gateway based on OpenResty Alpine.
+- **Cloudflare Worker (`cloudflare-worker/`)**: Serverless JavaScript implementation for edge deployment.
 
----
-
-### ⚙️ 7. System & Root Shell
-* **Linux Shell (`/shell <command>`)**: Full Root/Shizuku terminal via `libsu` with real-time stdout/stderr output.
-* **System Toggles**:
-  * Wi-Fi (`/wifi on|off`), Bluetooth (`/bluetooth on|off`), Flashlight (`/flashlight on|off`).
-  * Mobile Data (`/mobile_data on|off`), Hotspot (`/hotspot on|off`), Airplane Mode (`/airplane on|off`).
-  * Power Saving (`/powersave`), Auto-brightness (`/auto_brightness`), Sync (`/sync`).
-  * Wireless ADB (`/adb_wifi 5555`) with instant connect command string.
-  * Clipboard read and write (`/clipboard get`, `/clipboard set <text>`).
-  * Device Power: `/reboot`, `/shutdown`, `/recovery`, `/fastboot`.
-* **Diagnostics**: `/system_info`, `/network`, `/battery`, `/toggles`.
-
----
-
-### ⚡ 8. Automation & Integrations
-* **Tasker Integration**:
-  * Execute Tasker tasks remotely from Telegram: `/tasker <TaskName> [par1] [par2]`.
-  * Built-in Tasker Action Plugin: trigger Remote Bot actions from any Tasker automation profile.
-* **JavaScript Engine (`/script <code>`)**: Embedded QuickJS runtime with access to device bridge APIs.
-* **Cron Timers (`/timers list|add|del`)**: Schedule one-time or recurring bot commands (`add 60s /photo`, `add 10m /location`).
-* **Hardware Triggers**: Automatic alerts on charger connect/disconnect, critical battery level, and device reboot.
-
----
-
-### 🧪 9. Experimental Features (Developer / Debug Menu)
-> The Developer Debug menu is revealed by tapping the app version 5 times in the **«About»** screen (`AboutTab`).
-
-* **🛡️ 2FA Action Interception & Confirmation (`enable2FaInterception`)**:
-  * **Status**: **Disabled by default** (toggle is OFF). Must be manually enabled in the *«🧪 Experimental Features»* card of the Debug menu.
-  * **Purpose**: Allows 1-click confirmation or rejection of 2FA push notifications (VPN, ADFS, GitLab, enterprise SSO) directly from Telegram via inline buttons.
-  * **Supported Authenticator Apps**: Multifactor (`ru.multifactor.app`), Duo Mobile (`com.duosecurity.duomobile`), Yandex Key (`ru.yandex.key`), LastPass Authenticator (`com.lastpass.authenticator`), Microsoft Authenticator (`com.azure.authenticator`), Google Authenticator (`com.google.android.apps.authenticator2`).
-  * **When Disabled**: Push notifications are forwarded as plain informational text without action buttons; stale callback clicks are safely rejected.
-  * **Reliability Architecture**:
-    * **Protected 2FA Cache**: 2FA action notifications are stored in a dedicated `active2FaSbnById` map and are never evicted by background chat noise.
-    * **Strict FIFO Rotation**: General notification cache expanded to 1,000 entries with deterministic FIFO eviction.
-    * **Live Android OS Shade Fallback**: When an ID is missing from local memory, queries live system notifications via `NotificationListenerService.getActiveNotifications()` to locate active `PendingIntent`s.
-    * **Android 14+ Compatibility**: Dispatches `PendingIntent`s with `MODE_BACKGROUND_ACTIVITY_START_ALLOWED`.
-
----
-
-## 🔒 Security Architecture
-
-* **Strict Whitelist by Numeric ID**: Authorized strictly by immutable **Telegram User ID** (never `@username`, protecting against username change hijacking).
-* **Role Model & Granular Event Subscriptions (`/events`, `/subs`)**:
-  * **«Subscriber» Role (Default)**: Receives designated categories of background events (Push notifications, incoming SMS, phone calls, system alerts).
-  * **«Commands Only / Operator» Role**: All background notification streams are muted. The user retains full command execution rights (`/status`, `/photo`, `/sms`, `/shell`, etc.) without receiving ambient spam from personal SMS, calls, or app notifications.
-  * **Interactive Bot Menu (`/events`)**: 7 inline keyboard buttons right inside Telegram to toggle categories on/off and switch roles in 1 tap.
-  * **Bot Commands**:
-    * `/events` — Open the interactive subscription control menu for yourself.
-    * `/events list` — Summary table of all authorized users with their roles and active category subscriptions.
-    * `/events off` / `/events on` — Instantly switch to «Commands Only» or turn on all primary event notifications.
-    * `/events <notif|sms|calls|system> <on|off>` — Toggle a specific notification category directly.
-    * `/events <user_id> [on|off|category]` — Manage subscriptions for another user (admin).
-  * **Mobile App UI**: Compact category filter chips (🔔 Push, 💬 SMS, 📞 Calls, ⚙️ Sys) under each whitelisted User ID in the *«🤖 Bot»* tab.
-* **PIN Protection**: Destructive commands (reboot, wipe, shell) require explicit confirmation or SMS PIN.
-* **Encrypted Secrets**: Bot tokens, proxy passwords, and encryption keys are stored using `EncryptedSharedPreferences` backed by Android Keystore.
-* **No Third-Party Telemetry**: Connects directly to `api.telegram.org` or your private Bot API instance. Zero external analytics or third-party servers.
-
----
-
-## 🏗 Technology Stack & Architecture
-
-| Layer | Technologies |
-| :--- | :--- |
-| **Language** | Kotlin 2.0 (Coroutines, Flow, Serialization) |
-| **UI Framework** | Jetpack Compose Material 3 with NavigationRail |
-| **Architecture** | Clean Architecture, Multi-Module Gradle, MVI/MVVM |
-| **Network** | Ktor Client, OkHttp 4, Kotlinx Serialization |
-| **Root & Shell** | Libsu (topjohnwu), Shizuku API |
-| **Location** | Dual Hybrid: Google Play Services Location (`21.4.0`) + Huawei HMS Location Kit (`6.20.0.300`) + AOSP GNSS |
-| **Push** | Dual Push Gateway: Google FCM (`google-services.json`) + Huawei HMS Push Kit (`agconnect-services.json`) |
-| **Database** | Room ORM, EncryptedSharedPreferences |
-
----
-
-### 📚 Setup Guides
-* 📘 [Google Firebase FCM Setup (`google-services.json`)](docs/FIREBASE_SETUP.md)
-* 📕 [Huawei HMS Push Kit Setup (`agconnect-services.json`)](docs/HMS_SETUP.md)
-* ☁️ [Cloudflare Workers Push Gateway Deployment](docs/CLOUDFLARE_WORKER_SETUP.md)
-* 🛡️ [Cloudflare Workers Reverse Proxy for api.telegram.org](docs/CLOUDFLARE_TELEGRAM_REVERSE_PROXY.md)
+### 2. Telegram API Reverse Proxies (`server/serverapi/`)
+Reverse proxies for `api.telegram.org` with TLS support:
+- **Go (`go/`)**: High-concurrency `FROM scratch` reverse proxy.
+- **Python (`python/`)**: Minimal Python 3.14 proxy.
+- **Nginx (`nginx/`)**: High-throughput Nginx 1.30.6 Alpine proxy.
+- **Cloudflare Worker (`cloudflare-worker/`)**: Edge reverse proxy script.
 
 ---
 
 ## 🚀 Building from Source
 
-### Prerequisites
-* JDK 17 or higher
-* Android SDK 35 (Build-tools 35.0.0+)
-* Android NDK (optional, for native modules)
+### Prerequisites:
+- **JDK 17** (Temurin recommended)
+- **Android SDK 35** (Build-tools `35.0.0+`, Platform SDK 35)
+- **Docker** (optional, for server gateways)
 
-### Build Commands
+### 1. Clone & Configure
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/remote-bot.git
-cd remote-bot/newapp
+git clone https://github.com/runalsh/remote-bot-android.git
+cd remote-bot-android
 
-# Run JVM domain tests
-./gradlew :domain:test
+# (Optional) Add your Push credentials
+cp docs/google-services.json.example app/google-services.json
+cp docs/agconnect-services.json.example app/agconnect-services.json
 
-# Build Debug APK
-./gradlew assembleDebug
-
-# Build Release APK
-./gradlew assembleRelease
+# (Optional) Configure production signing key
+cp docs/keystore.properties.example keystore.properties
 ```
+
+### 2. Build APKs
+```bash
+# Build Debug APK (signed with debug key)
+make build-apk
+# Output: app/build/outputs/apk/debug/app-debug.apk
+
+# Build Production Release APK (signed with release.jks or fallback debug key)
+make build-release
+# Output: app/build/outputs/apk/release/app-release.apk
+```
+
+### 3. Install & Run on Device
+```bash
+# Install and launch on connected ADB device
+make install
+
+# Clean reinstall (uninstall -> install -> launch)
+make reinstall
+```
+
+---
+
+## 🛠 Makefile Commands Cheatsheet
+
+| Target | Description |
+| :--- | :--- |
+| `make check` | Full quality gate: runs compilation (`check-compile`), linters (`lint`), and all tests (`test`). |
+| `make check-compile` | Fast compilation check of all Kotlin modules (`compileDebugKotlin`). |
+| `make check-ui` | Fast compilation check of the UI module (`:app:compileDebugKotlin`). |
+| `make lint` | Runs all static analysis tools without modifying code (`ktlintCheck`, `detekt`, `lintDebug`). |
+| `make lint-fix` | Automatically formats Kotlin code using KtLint (`ktlintFormat`). |
+| `make test` | Runs all test suites (Android Domain + Go + Python + JS server gateways). |
+| `make test-coverage` | Runs unit tests and generates Jacoco code coverage HTML/XML reports. |
+| `make test-android` | Runs Kotlin/Android unit tests (`:domain:test`). |
+| `make test-server` | Runs unit tests for all Push Gateway and API Proxy servers. |
+| `make build-apk` | Assembles Android Debug APK (`./gradlew assembleDebug`). |
+| `make build-release` | Assembles signed Android Release APK (`./gradlew assembleRelease`). |
+| `make docker-build-all`| Builds all 8 Docker images for `linux/amd64` (Go, Python, Nginx/OpenResty, NPX). |
+| `make docker-compose-build`| Builds all Docker Compose profiles (`go`, `python`, `nginx`, `npx`). |
+| `make clean` | Cleans build artifacts and Gradle cache. |
+
+---
+
+## 🧪 CI/CD & Quality Gates
+
+The project uses automated GitHub Actions workflows:
+
+1. **Continuous Integration ([`.github/workflows/ci.yml`](.github/workflows/ci.yml))**:
+   - Validates Gradle Wrapper checksum.
+   - Runs static analysis: KtLint, Detekt, and Android Lint.
+   - Executes Android & JVM unit tests and generates Jacoco coverage reports.
+   - Tests all 6 server gateway implementations (Go, Python, Cloudflare Worker).
+   - Assembles and signs Debug and Release APKs.
+2. **Docker Multi-Server Publish ([`.github/workflows/docker.yml`](.github/workflows/docker.yml))**:
+   - Builds and publishes all 8 server gateway images targeted strictly for `linux/amd64`.
+3. **Automated GitHub Releases ([`.github/workflows/release.yml`](.github/workflows/release.yml))**:
+   - Triggers on git tags `v*` (e.g. `v0.1.0`).
+   - Builds and signs:
+     - `remote-bot-android_${TAG}.apk` (production signature via `release.jks`).
+     - `remote-bot-android_${TAG}_testkey.apk` (debug signature).
+   - Generates SHA-256 checksums (`*.sha256`) for both APKs.
+   - Publishes an official GitHub Release with release notes and attached APKs.
+
+---
+
+## ⚠️ Disclaimer of Liability
+
+This software is developed and provided strictly for educational, personal remote administration, and authorized device management purposes.
+
+- The author and contributors are **not responsible** for any misuse, data loss, hardware damage, legal consequences, unauthorized surveillance, or any other direct or indirect damages resulting from the installation or usage of this application.
+- The user bears sole responsibility for ensuring compliance with all applicable local, federal, and international laws, privacy rights, and telecommunication regulations in their jurisdiction.
+- Installing and running this software is done entirely at your own risk.
 
 ---
 
 ## 📄 License
 
+```text
 Copyright 2026 runalsh (https://github.com/runalsh/remote-bot-android)
 
-This project is licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at:
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+    http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the [LICENSE](LICENSE) file for details.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+See the full [LICENSE](LICENSE) file for terms and conditions.
