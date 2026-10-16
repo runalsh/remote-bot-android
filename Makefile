@@ -1,4 +1,4 @@
-.PHONY: all build build-apk build-debug build-release install reinstall run build-server check check-compile check-app check-ui lint lint-ktlint lint-detekt lint-android lint-fix test test-android test-domain test-server test-serverpush test-serverpush-go test-serverpush-py test-serverpush-js test-serverapi test-serverapi-go test-serverapi-py test-serverapi-js docker-build-all docker-build-push docker-build-api docker-compose-build clean help
+.PHONY: all build build-apk build-debug build-release install reinstall run build-server check check-compile check-app check-ui lint lint-ktlint lint-detekt lint-android lint-fix test test-coverage test-android test-domain test-server test-serverpush test-serverpush-go test-serverpush-py test-serverpush-js test-serverapi test-serverapi-go test-serverapi-py test-serverapi-js docker-build-all docker-build-push docker-build-api docker-compose-build clean help
 
 # Экспорт переменной окружения для headless сборки в Linux
 export ANDROID_HOME ?= /opt/android-sdk
@@ -51,6 +51,7 @@ help:
 	@echo "  make reinstall      - Сборка, полное удаление с устройства, чистая установка и запуск"
 	@echo "  make run            - Запуск уже установленного приложения на устройстве"
 	@echo "  make test           - Запуск всех тестов проекта (Android + Push Gateway + API Proxy)"
+	@echo "  make test-coverage  - Запуск тестов и генерация отчёта покрытия Jacoco (:domain:jacocoTestReport)"
 	@echo "  make test-android   - Запуск тестов Android/Kotlin модулей (test-domain)"
 	@echo "  make test-domain    - Запуск тестов Kotlin Domain модуля (:domain:test)"
 	@echo "  make test-server    - Запуск тестов всех серверных шлюзов (Push Gateway + API Proxy)"
@@ -148,6 +149,11 @@ test-android: test-domain
 test-domain:
 	@echo "=== [Android] Запуск тестов Kotlin Domain модуля ==="
 	@$(call run_gradle,:domain:test --info)
+
+test-coverage:
+	@echo "=== Генерация отчёта покрытия тестов Jacoco (Code Coverage) ==="
+	@$(call run_gradle,:domain:jacocoTestReport -Pcoverage)
+	@echo "Отчёт сгенерирован: domain/build/reports/jacoco/test/html/index.html"
 
 test-server: test-serverpush test-serverapi
 	@echo "🎉 Все тесты серверных шлюзов (Push Gateway + API Proxy) пройдены!"

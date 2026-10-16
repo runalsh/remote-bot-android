@@ -122,17 +122,18 @@ jobs:
           chmod +x ./gradlew
           echo "sdk.dir=$ANDROID_HOME" > local.properties
 
-      - name: Run Unit Tests
-        run: ./gradlew testDebugUnitTest :domain:test --continue
+      - name: Run Unit Tests & Coverage Report
+        run: ./gradlew testDebugUnitTest :domain:test :domain:jacocoTestReport --continue
 
-      - name: Upload Test Reports
+      - name: Upload Test & Coverage Reports
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: unit-test-reports
+          name: unit-test-and-coverage-reports
           path: |
             */build/reports/tests/
             */build/test-results/
+            domain/build/reports/jacoco/
           retention-days: 7
 
   # ============================================================================

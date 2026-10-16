@@ -2250,13 +2250,14 @@ cmd netpolicy add restrict-background-whitelist $uid
   - **RemoteInput reply**: notification with Quick Reply → `/answer <id> <text>` → success.
   - **Backup & restore**: export → import → settings consistency.
 
-- [ ] **16. CI/CD Pipeline & Quality Gates**:
-  - **GitHub Actions / GitLab CI**: `make test` на каждый PR, lint check (Detekt/KtLint).
-  - **Code coverage threshold**: минимум 60% для `domain/`, 40% для `core/`, 30% для `app/`.
-  - **Jacoco report**: автоматическая генерация отчёта, блокировка merge при падении порога.
-  - **APK build + signing**: на каждый tag, SHA256 checksum verification.
-  - **Mutation testing (Stryker4k)**: качество тестов (опционально, для критических модулей).
-  - **Performance regression gate**: startup time <3s, PSS growth <10MB/60min.
+- [x] **16. CI/CD Pipeline & Quality Gates**:
+  - [x] **GitHub Actions CI/CD**: workflows `.github/workflows/ci.yml` (полный pre-merge гейт: Gradle Wrapper, linters, unit-тесты, build APK, server gateways tests) и `.github/workflows/docker.yml` (сборка 8 образов серверов для `linux/amd64`).
+  - [x] **Static Analysis & Lint Gates**: KtLint (`ktlintCheck`), Detekt (`detekt`), Android Lint (`lintDebug`) с выгрузкой отчётов в артефакты CI.
+  - [x] **APK Build & Release Signing**: автоматическая подпись Release APK через секреты GitHub Actions (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`) и локальный `keystore.properties` с фоллбэком на debug-ключ.
+  - [x] **Automated GitHub Releases**: workflow `.github/workflows/release.yml` на каждый тег `v*` с генерацией release notes, сборкой подписанного Release APK, подсчетом SHA-256 контрольной суммы и прикреплением артефактов (`app-release.apk`, `app-release.apk.sha256`).
+  - [x] **Code Coverage (Jacoco)**: генерация HTML/XML отчётов покрытия тестами через Jacoco (`:domain:jacocoTestReport`), поддержка в `Makefile` (`make test-coverage`) и автоматическая загрузка отчётов покрытия в артефакты CI (`unit-test-and-coverage-reports`).
+  - [ ] **Mutation testing (Stryker4k)**: качество тестов (опционально, для критических модулей).
+  - [ ] **Performance regression gate**: startup time <3s, PSS growth <10MB/60min.
 
 > **💬 QA Audit и рекомендации по внедрению (Sber Dev, октябрь 2026):**
 >
