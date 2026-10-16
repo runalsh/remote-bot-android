@@ -22,6 +22,7 @@
 ## 📖 Оглавление
 
 - [Обзор и философия проекта](#-обзор-и-философия-проекта)
+- [Скриншоты интерфейса](#-скриншоты-интерфейса)
 - [Основной функционал и возможности](#-основной-функционал-и-возможности)
 - [Документация и руководства (`docs/`)](#-документация-и-руководства-docs)
 - [Серверная инфраструктура и Docker (`server/`)](#-серверная-инфраструктура-и-docker-server)
@@ -42,6 +43,28 @@
 - 📶 **Оффлайн-отказоустойчивость**: Автоматическое переключение на SMS-бот, если мобильный интернет или Wi-Fi недоступны.
 - 🛡 **Многоуровневая безопасность**: Авторизация по белому списку Telegram User ID, подтверждение деструктивных действий через SMS PIN-код, шифрование секретов в Android Keystore.
 - 📱 **Современные стандарты Android**: Разработано под Android 14 и 15 (Target SDK 35) с поддержкой Foreground Service types, Scoped Storage, CameraX, Room и адаптивным UI на Jetpack Compose Material 3 с NavigationRail.
+
+---
+
+## 📱 Скриншоты интерфейса
+
+| 🚀 Фоновая служба и статус | 🤖 Настройки Telegram | 🔔 Центр уведомлений |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/01_start.png" width="280" alt="Фоновая служба и статус" /> | <img src="docs/screenshots/04_telegram.png" width="280" alt="Настройки Telegram" /> | <img src="docs/screenshots/06_notifications.png" width="280" alt="Центр уведомлений" /> |
+
+<details>
+<summary><b>📸 Показать остальные экраны (Права, SMS-шлюз, Push Wakeup, Прокси, О боте, Debug)</b></summary>
+<br />
+
+| 🛡️ 20 системных разрешений | 💬 SMS-шлюз | 🔥 Dual Push Wakeup (FCM/HMS) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/02_permissions.png" width="280" alt="Системные разрешения" /> | <img src="docs/screenshots/05_sms.png" width="280" alt="SMS-шлюз" /> | <img src="docs/screenshots/07_push.png" width="280" alt="Push Wakeup" /> |
+
+| 🌐 Прокси и обход DPI | ℹ️ О приложении и сборка | 🛠️ Инженерное меню (Debug) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/08_proxy.png" width="280" alt="Прокси и обход DPI" /> | <img src="docs/screenshots/09_about.png" width="280" alt="О приложении" /> | <img src="docs/screenshots/10_debug.png" width="280" alt="Инженерное меню" /> |
+
+</details>
 
 ---
 

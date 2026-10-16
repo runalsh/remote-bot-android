@@ -127,9 +127,10 @@ fun AboutTab(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
+            val displayVersion = if (BuildConfig.VERSION_NAME.startsWith("v")) BuildConfig.VERSION_NAME else "v${BuildConfig.VERSION_NAME}"
             AboutInfoRow(
                 title = "Версия приложения",
-                value = "v${BuildConfig.VERSION_NAME} (код: ${BuildConfig.VERSION_CODE})",
+                value = "$displayVersion (код: ${BuildConfig.VERSION_CODE})",
                 onClick = {
                     val now = System.currentTimeMillis()
                     if (now - lastTapTime > 2000L) {

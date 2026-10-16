@@ -19,6 +19,53 @@ if (file("agconnect-services.json").exists()) {
     apply(plugin = "com.huawei.agconnect")
 }
 
+fun resolveVersionName(): String {
+    val prop = project.findProperty("versionName") as? String
+    if (!prop.isNullOrBlank()) return prop.trim().removePrefix("v")
+
+    val envRef = System.getenv("GITHUB_REF_NAME") ?: System.getenv("TAG") ?: System.getenv("VERSION_NAME")
+    if (!envRef.isNullOrBlank()) return envRef.trim().removePrefix("v")
+
+    return try {
+        val desc =
+            providers
+                .exec {
+                    commandLine("git", "describe", "--tags", "--always")
+                    isIgnoreExitValue = true
+                }.standardOutput.asText
+                .get()
+                .trim()
+        if (desc.isNotEmpty()) desc.removePrefix("v") else "0.1.0"
+    } catch (_: Exception) {
+        "0.1.0"
+    }
+}
+
+fun resolveVersionCode(): Int {
+    val prop = project.findProperty("versionCode") as? String
+    if (!prop.isNullOrBlank()) {
+        return prop.toIntOrNull() ?: 1
+    }
+    val envCode = System.getenv("VERSION_CODE")
+    if (!envCode.isNullOrBlank()) {
+        return envCode.toIntOrNull() ?: 1
+    }
+    return try {
+        val count =
+            providers
+                .exec {
+                    commandLine("git", "rev-list", "--count", "HEAD")
+                    isIgnoreExitValue = true
+                }.standardOutput.asText
+                .get()
+                .trim()
+                .toIntOrNull()
+        if (count != null && count > 0) count else 1
+    } catch (_: Exception) {
+        1
+    }
+}
+
 android {
     namespace = "com.remotebot.app"
     compileSdk = 35
@@ -27,8 +74,8 @@ android {
         applicationId = "com.remotebot.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = resolveVersionCode()
+        versionName = resolveVersionName()
 
         val buildTime =
             SimpleDateFormat("dd.MM.yyyy HH:mm:ss 'UTC'", Locale.US)

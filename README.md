@@ -22,6 +22,7 @@
 ## 📖 Table of Contents
 
 - [Overview & Philosophy](#-overview--philosophy)
+- [Application Screenshots](#-application-screenshots)
 - [Key Features & Capabilities](#-key-features--capabilities)
 - [Project Documentation (`docs/`)](#-project-documentation-docs)
 - [Server Infrastructure & Docker (`server/`)](#-server-infrastructure--docker-server)
@@ -42,6 +43,28 @@
 - 📶 **Offline Resilience**: Automatically falls back to SMS commands and sends SMS notifications if mobile data/Wi-Fi is disconnected.
 - 🛡 **Security by Design**: Multi-user whitelisting, SMS PIN verification for destructive operations, and encrypted credential storage backed by Android Keystore.
 - 📱 **Modern Android Standards**: Built for Android 14 & 15 (Target SDK 35) using Foreground Service types, Scoped Storage, CameraX, Room, and Jetpack Compose Material 3 with NavigationRail.
+
+---
+
+## 📱 Application Screenshots
+
+| 🚀 Foreground Service & Status | 🤖 Telegram Configuration | 🔔 Notification Hub & Mirroring |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/01_start.png" width="280" alt="Foreground Service & Status" /> | <img src="docs/screenshots/04_telegram.png" width="280" alt="Telegram Configuration" /> | <img src="docs/screenshots/06_notifications.png" width="280" alt="Notification Hub" /> |
+
+<details>
+<summary><b>📸 View More Screenshots (Permissions, SMS Gateway, Push Wakeup, Proxy, About, Debug)</b></summary>
+<br />
+
+| 🛡️ 20 System Permissions | 💬 SMS Remote Gateway | 🔥 Dual Push Wakeup (FCM/HMS) |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/02_permissions.png" width="280" alt="System Permissions" /> | <img src="docs/screenshots/05_sms.png" width="280" alt="SMS Gateway" /> | <img src="docs/screenshots/07_push.png" width="280" alt="Push Wakeup" /> |
+
+| 🌐 Proxy & DPI Bypass | ℹ️ About & Version Information | 🛠️ Developer Diagnostics |
+| :---: | :---: | :---: |
+| <img src="docs/screenshots/08_proxy.png" width="280" alt="Proxy & DPI Bypass" /> | <img src="docs/screenshots/09_about.png" width="280" alt="About App" /> | <img src="docs/screenshots/10_debug.png" width="280" alt="Developer Diagnostics" /> |
+
+</details>
 
 ---
 
