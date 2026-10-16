@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Remote Bot</string>
+    <string name="accessibility_service_description">Служба специальных возможностей Remote Bot для автоматизации интерфейса, чтения экрана, кликов, автоответов и обработки USSD диалогов.</string>
+</resources>
+

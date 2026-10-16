@@ -1,0 +1,26 @@
+{
+  "project_info": {
+    "project_number": "123456789012",
+    "project_id": "remotebot-sample-project",
+    "storage_bucket": "remotebot-sample-project.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:123456789012:android:abcdef0123456789",
+        "android_client_info": {
+          "package_name": "com.remotebot.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSySampleApiKeyForRemoteBotTesting123"
+        }
+      ],
+      "services": {}
+    }
+  ],
+  "configuration_version": "1"
+}
+

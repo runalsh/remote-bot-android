@@ -1,0 +1,183 @@
+# ==============================================================================
+# RemoteBot Server Infrastructure Docker Compose
+# ==============================================================================
+# Поддерживает запуск через профили (--profile <name>):
+#   - go      (по умолчанию, рекомендуется): Go 1.27.2 статические бинарники
+#   - python  : Легковесные zero-dependency Python 3.14.8 демоны
+#   - nginx   : OpenResty 1.31.1.1-alpine-slim Push Gateway + Nginx 1.30.6-alpine-slim Reverse Proxy
+#   - npx     : Node.js 24.22.0 Cloudflare Worker dev-воркеры
+# ==============================================================================
+
+x-push-env: &push-env
+  PORT: 8080
+  BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+  WHITELIST_CHAT_IDS: ${WHITELIST_CHAT_IDS:-}
+  PUSH_PROVIDER: ${PUSH_PROVIDER:-auto}
+  FIREBASE_SERVICE_ACCOUNT_JSON: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
+  FCM_LEGACY_SERVER_KEY: ${FCM_LEGACY_SERVER_KEY:-}
+  HUAWEI_APP_ID: ${HUAWEI_APP_ID:-}
+  HUAWEI_CLIENT_ID: ${HUAWEI_CLIENT_ID:-}
+  HUAWEI_CLIENT_SECRET: ${HUAWEI_CLIENT_SECRET:-}
+
+x-api-env: &api-env
+  PORT: 8081
+  TARGET_HOST: ${TARGET_HOST:-api.telegram.org}
+
+services:
+  # ============================================================================
+  # Профиль: "go" (Рекомендуемый / Основной)
+  # ============================================================================
+  push-gateway-go:
+    profiles: ["go"]
+    build:
+      context: ./serverpush/go
+      dockerfile: Dockerfile
+    image: remotebot-push-gateway:go
+    container_name: remotebot-push-gateway-go
+    restart: unless-stopped
+    ports:
+      - "${PUSH_GATEWAY_PORT:-8080}:8080"
+    environment: *push-env
+    healthcheck:
+      test: ["CMD", "/app/push-gateway", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  api-proxy-go:
+    profiles: ["go"]
+    build:
+      context: ./serverapi/go
+      dockerfile: Dockerfile
+    image: remotebot-api-proxy:go
+    container_name: remotebot-api-proxy-go
+    restart: unless-stopped
+    ports:
+      - "${API_PROXY_PORT:-8081}:8081"
+    environment: *api-env
+    healthcheck:
+      test: ["CMD", "/app/api-proxy", "-healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ============================================================================
+  # Профиль: "python" (Zero-dependency Python 3.11)
+  # ============================================================================
+  push-gateway-python:
+    profiles: ["python"]
+    build:
+      context: ./serverpush/python
+      dockerfile: Dockerfile
+    image: remotebot-push-gateway:python
+    container_name: remotebot-push-gateway-python
+    restart: unless-stopped
+    ports:
+      - "${PUSH_GATEWAY_PORT:-8080}:8080"
+    environment: *push-env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  api-proxy-python:
+    profiles: ["python"]
+    build:
+      context: ./serverapi/python
+      dockerfile: Dockerfile
+    image: remotebot-api-proxy:python
+    container_name: remotebot-api-proxy-python
+    restart: unless-stopped
+    ports:
+      - "${API_PROXY_PORT:-8081}:8081"
+    environment: *api-env
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ============================================================================
+  # Профиль: "nginx" (OpenResty Push Gateway + Nginx Reverse Proxy)
+  # ============================================================================
+  push-gateway-nginx:
+    profiles: ["nginx"]
+    build:
+      context: ./serverpush/nginx
+      dockerfile: Dockerfile
+    image: remotebot-push-gateway:nginx
+    container_name: remotebot-push-gateway-nginx
+    restart: unless-stopped
+    ports:
+      - "${PUSH_GATEWAY_PORT:-8080}:8080"
+    environment:
+      PUSH_GATEWAY_SECRET: ${PUSH_GATEWAY_SECRET:-}
+      HUAWEI_APP_ID: ${HUAWEI_APP_ID:-}
+      HUAWEI_CLIENT_ID: ${HUAWEI_CLIENT_ID:-}
+      HUAWEI_CLIENT_SECRET: ${HUAWEI_CLIENT_SECRET:-}
+      FIREBASE_SERVICE_ACCOUNT: /etc/remotebot/firebase.json
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  api-proxy-nginx:
+    profiles: ["nginx"]
+    build:
+      context: ./serverapi/nginx
+      dockerfile: Dockerfile
+    image: remotebot-api-proxy:nginx
+    container_name: remotebot-api-proxy-nginx
+    restart: unless-stopped
+    ports:
+      - "${API_PROXY_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ============================================================================
+  # Профиль: "npx" (Cloudflare Workers via Node / Wrangler)
+  # ============================================================================
+  push-gateway-npx:
+    profiles: ["npx"]
+    build:
+      context: ./serverpush/cloudflare-worker
+      dockerfile: Dockerfile
+    image: remotebot-push-gateway:npx
+    container_name: remotebot-push-gateway-npx
+    restart: unless-stopped
+    ports:
+      - "${PUSH_GATEWAY_PORT:-8080}:8080"
+    environment:
+      PUSH_GATEWAY_SECRET: ${PUSH_GATEWAY_SECRET:-}
+      HUAWEI_APP_ID: ${HUAWEI_APP_ID:-}
+      HUAWEI_CLIENT_ID: ${HUAWEI_CLIENT_ID:-}
+      HUAWEI_CLIENT_SECRET: ${HUAWEI_CLIENT_SECRET:-}
+      FIREBASE_SERVICE_ACCOUNT: ${FIREBASE_SERVICE_ACCOUNT_JSON:-}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  api-proxy-npx:
+    profiles: ["npx"]
+    build:
+      context: ./serverapi/cloudflare-worker
+      dockerfile: Dockerfile
+    image: remotebot-api-proxy:npx
+    container_name: remotebot-api-proxy-npx
+    restart: unless-stopped
+    ports:
+      - "${API_PROXY_PORT:-8081}:8081"

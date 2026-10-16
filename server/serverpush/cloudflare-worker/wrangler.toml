@@ -1,0 +1,12 @@
+name = "remotebot-push-gateway"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+[vars]
+PUSH_GATEWAY_SECRET = "change_me_to_your_secret"
+# Google FCM:
+# FIREBASE_SERVICE_ACCOUNT = '{"type":"service_account",...}'
+# Huawei HMS:
+# HUAWEI_APP_ID = "105581234"
+# HUAWEI_CLIENT_ID = "105581234"
+# HUAWEI_CLIENT_SECRET = "your_huawei_client_secret"

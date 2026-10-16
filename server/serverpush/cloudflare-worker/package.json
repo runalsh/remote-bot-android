@@ -1,0 +1,16 @@
+{
+  "name": "remotebot-cloudflare-push-gateway",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Push Gateway for RemoteBot",
+  "type": "module",
+  "main": "worker.js",
+  "scripts": {
+    "test": "node --test test_worker.js",
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}
+

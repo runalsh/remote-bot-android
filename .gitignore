@@ -1,0 +1,59 @@
+# Built application files
+*.apk
+*.aar
+*.aab
+*.ap_
+
+# Files for the ART/Dalvik VM
+*.dex
+
+# Java class files
+*.class
+
+# Generated files
+bin/
+gen/
+out/
+build/
+**/build/
+
+# Gradle files
+.gradle/
+**/.gradle/
+buildOutputCleanup/
+.kotlin/
+
+# Log files
+*.log
+
+# Android Studio / IntelliJ IDEA
+.idea/
+**/.idea/
+*.iml
+**/*.iml
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Keystore / Signing files
+*.jks
+*.keystore
+
+# Crashlytics & profiling
+crashlytics-build.properties
+
+**/__pycache__/
+
+# Local environment & secrets
+local.properties
+.env

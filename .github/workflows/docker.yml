@@ -1,0 +1,217 @@
+name: Build & Publish All Docker Images
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*.*.*'
+      - 'v*'
+    paths:
+      - 'server/**'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - 'server/**'
+      - '.github/workflows/docker.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Images to build'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - push-gateway
+          - api-proxy
+          - go
+          - python
+          - nginx
+          - npx
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build-and-push:
+    name: Build & Push (${{ matrix.service.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          # --- Push Gateway Variants ---
+          - name: remotebot-push-gateway-go
+            family: remotebot-push-gateway
+            variant: go
+            is_default: true
+            key: push-gateway
+            context: server/serverpush/go
+            dockerfile: server/serverpush/go/Dockerfile
+
+          - name: remotebot-push-gateway-python
+            family: remotebot-push-gateway
+            variant: python
+            is_default: false
+            key: push-gateway
+            context: server/serverpush/python
+            dockerfile: server/serverpush/python/Dockerfile
+
+          - name: remotebot-push-gateway-nginx
+            family: remotebot-push-gateway
+            variant: nginx
+            is_default: false
+            key: push-gateway
+            context: server/serverpush/nginx
+            dockerfile: server/serverpush/nginx/Dockerfile
+
+          - name: remotebot-push-gateway-npx
+            family: remotebot-push-gateway
+            variant: npx
+            is_default: false
+            key: push-gateway
+            context: server/serverpush/cloudflare-worker
+            dockerfile: server/serverpush/cloudflare-worker/Dockerfile
+
+          # --- Telegram API Proxy Variants ---
+          - name: remotebot-api-proxy-go
+            family: remotebot-api-proxy
+            variant: go
+            is_default: true
+            key: api-proxy
+            context: server/serverapi/go
+            dockerfile: server/serverapi/go/Dockerfile
+
+          - name: remotebot-api-proxy-python
+            family: remotebot-api-proxy
+            variant: python
+            is_default: false
+            key: api-proxy
+            context: server/serverapi/python
+            dockerfile: server/serverapi/python/Dockerfile
+
+          - name: remotebot-api-proxy-nginx
+            family: remotebot-api-proxy
+            variant: nginx
+            is_default: false
+            key: api-proxy
+            context: server/serverapi/nginx
+            dockerfile: server/serverapi/nginx/Dockerfile
+
+          - name: remotebot-api-proxy-npx
+            family: remotebot-api-proxy
+            variant: npx
+            is_default: false
+            key: api-proxy
+            context: server/serverapi/cloudflare-worker
+            dockerfile: server/serverapi/cloudflare-worker/Dockerfile
+
+    steps:
+      - name: Check if service should be built
+        id: check_trigger
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            INPUT_TARGET="${{ github.event.inputs.target }}"
+            if [[ "$INPUT_TARGET" != "all" && "$INPUT_TARGET" != "${{ matrix.service.key }}" && "$INPUT_TARGET" != "${{ matrix.service.variant }}" ]]; then
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              echo "Skipping build for ${{ matrix.service.name }} due to workflow_dispatch input ($INPUT_TARGET)."
+              exit 0
+            fi
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout repository
+        if: steps.check_trigger.outputs.skip != 'true'
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        if: steps.check_trigger.outputs.skip != 'true'
+        uses: docker/setup-buildx-action@v4
+
+      # ------------------------------------------------------------------------
+      # Registry Authentication
+      # ------------------------------------------------------------------------
+      - name: Log in to GitHub Container Registry (GHCR)
+        if: steps.check_trigger.outputs.skip != 'true' && github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Docker Hub Credentials
+        id: dockerhub_check
+        if: steps.check_trigger.outputs.skip != 'true' && github.event_name != 'pull_request'
+        run: |
+          if [[ -n "${{ secrets.DOCKERHUB_USERNAME }}" && -n "${{ secrets.DOCKERHUB_TOKEN }}" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Docker Hub credentials not configured. Skipping Docker Hub push."
+          fi
+
+      - name: Log in to Docker Hub
+        if: steps.check_trigger.outputs.skip != 'true' && steps.dockerhub_check.outputs.available == 'true'
+        uses: docker/login-action@v4
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # ------------------------------------------------------------------------
+      # Extract Metadata & Tags
+      # ------------------------------------------------------------------------
+      - name: Extract metadata for Docker
+        if: steps.check_trigger.outputs.skip != 'true'
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.name }}
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service.family }}
+            ${{ steps.dockerhub_check.outputs.available == 'true' && format('docker.io/{0}/{1}', secrets.DOCKERHUB_USERNAME, matrix.service.name) || '' }}
+            ${{ steps.dockerhub_check.outputs.available == 'true' && format('docker.io/{0}/{1}', secrets.DOCKERHUB_USERNAME, matrix.service.family) || '' }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=${{ matrix.service.variant }}
+            type=raw,value=latest,enable=${{ matrix.service.is_default && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=ref,event=branch,suffix=-${{ matrix.service.variant }}
+            type=ref,event=pr,suffix=-${{ matrix.service.variant }}
+            type=semver,pattern={{version}},suffix=-${{ matrix.service.variant }}
+            type=semver,pattern={{major}}.{{minor}},suffix=-${{ matrix.service.variant }}
+            type=sha,prefix=sha-,format=short,suffix=-${{ matrix.service.variant }}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.service.name }}
+            org.opencontainers.image.description=RemoteBot Server Gateway (${{ matrix.service.variant }})
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+
+      # ------------------------------------------------------------------------
+      # Build & Push Image (linux/amd64)
+      # ------------------------------------------------------------------------
+      - name: Build and push Docker image
+        if: steps.check_trigger.outputs.skip != 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.service.context }}
+          file: ${{ matrix.service.dockerfile }}
+          platforms: linux/amd64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.service.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}

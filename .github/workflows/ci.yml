@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # ============================================================================
+  # 1. Валидация контрольной суммы Gradle Wrapper (защита от supply-chain атак)
+  # ============================================================================
+  wrapper-validation:
+    name: Validate Gradle Wrapper
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+  # ============================================================================
+  # 2. Статический анализ и линтеры (ktlint, detekt, Android Lint)
+  # ============================================================================
+  lint:
+    name: Lint & Code Style
+    runs-on: ubuntu-latest
+    needs: wrapper-validation
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/develop' }}
+
+      - name: Configure Android SDK path
+        run: |
+          chmod +x ./gradlew
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Run ktlint check
+        run: ./gradlew ktlintCheck
+
+      - name: Run detekt static analysis
+        run: ./gradlew detekt
+
+      - name: Run Android Lint (debug)
+        run: ./gradlew lintDebug
+
+      - name: Upload Lint Reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lint-reports
+          path: |
+            app/build/reports/lint-results*
+            */build/reports/detekt/
+            */build/reports/ktlint/
+          retention-days: 7
+
+  # ============================================================================
+  # 3. Юнит-тестирование Android & Kotlin Domain
+  # ============================================================================
+  unit-tests:
+    name: Unit Tests (Android & Domain)
+    runs-on: ubuntu-latest
+    needs: wrapper-validation
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/develop' }}
+
+      - name: Configure Android SDK path
+        run: |
+          chmod +x ./gradlew
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest :domain:test --continue
+
+      - name: Upload Test Reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: unit-test-reports
+          path: |
+            */build/reports/tests/
+            */build/test-results/
+          retention-days: 7
+
+  # ============================================================================
+  # 4. Сборка APK (Debug и Release)
+  # ============================================================================
+  build-apk:
+    name: Build APK (Debug & Release)
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Configure Android SDK path
+        run: |
+          chmod +x ./gradlew
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Assemble Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Assemble Release APK (unsigned)
+        run: ./gradlew assembleRelease
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+      - name: Upload Release APK (unsigned)
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 14
+
+  # ============================================================================
+  # 5. Тестирование серверных шлюзов (Go, Python, Cloudflare Workers)
+  # ============================================================================
+  server-tests:
+    name: Server Gateway Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.27.2'
+          cache-dependency-path: |
+            server/serverpush/go/go.sum
+            server/serverapi/go/go.sum
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.14'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.22.0'
+
+      # Go тесты
+      - name: Test Go Push Gateway
+        run: |
+          cd server/serverpush/go
+          go test -v -race ./...
+
+      - name: Test Go API Proxy
+        run: |
+          cd server/serverapi/go
+          go test -v ./...
+
+      # Python тесты
+      - name: Test Python Push Gateway
+        run: |
+          cd server/serverpush/python
+          python3 -m unittest -v test_main.py
+
+      - name: Test Python API Proxy
+        run: |
+          cd server/serverapi/python
+          python3 -m unittest -v test_main.py
+
+      # Node.js / Cloudflare Worker тесты
+      - name: Test Cloudflare Worker Push Gateway
+        run: |
+          cd server/serverpush/cloudflare-worker
+          npm test
+
+      - name: Test Cloudflare Worker API Proxy
+        run: |
+          cd server/serverapi/cloudflare-worker
+          node --test test_worker.js

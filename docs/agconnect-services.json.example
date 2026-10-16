@@ -1,0 +1,22 @@
+{
+  "agcgw": {
+    "backurl": "connect-drcn.hispace.hicloud.com",
+    "url": "connect-drcn.hispace.hicloud.com"
+  },
+  "client": {
+    "cp_id": "123456789",
+    "product_id": "987654321",
+    "client_id": "105589999",
+    "client_secret": "sample_client_secret_for_hms_push",
+    "app_id": "105589999",
+    "api_key": "CBwQAABSampleApiKeyForHuaweiHmsPushKit999",
+    "package_name": "com.remotebot.app"
+  },
+  "service": {
+    "analytics": {
+      "channel_id": ""
+    }
+  },
+  "region": "RU"
+}
+
