@@ -42,31 +42,43 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > release.jks
 
-      - name: Assemble Release APK
+      - name: Assemble Debug & Release APKs
         env:
           KEYSTORE_FILE: release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleDebug assembleRelease
 
       - name: Clean up Release Keystore
         if: always()
         run: rm -f release.jks
 
-      - name: Calculate SHA-256 Checksum
+      - name: Prepare Release Artifacts & Checksums
         run: |
-          cd app/build/outputs/apk/release
-          sha256sum app-release.apk > app-release.apk.sha256
-          echo "SHA256 Checksum:"
-          cat app-release.apk.sha256
+          mkdir -p release-artifacts
+          TAG="${{ github.ref_name }}"
 
-      - name: Create GitHub Release
+          # Copy & rename Production Release APK
+          cp app/build/outputs/apk/release/app-release.apk "release-artifacts/remote-bot-android_${TAG}.apk"
+
+          # Copy & rename Debug testkey APK
+          cp app/build/outputs/apk/debug/app-debug.apk "release-artifacts/remote-bot-android_${TAG}_testkey.apk"
+
+          # Calculate SHA-256 Checksums
+          cd release-artifacts
+          sha256sum "remote-bot-android_${TAG}.apk" > "remote-bot-android_${TAG}.apk.sha256"
+          sha256sum "remote-bot-android_${TAG}_testkey.apk" > "remote-bot-android_${TAG}_testkey.apk.sha256"
+
+          echo "=== Release Artifacts ==="
+          ls -lh
+          echo "=== Checksums ==="
+          cat *.sha256
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/apk/release/app-release.apk.sha256
+          files: release-artifacts/*
           generate_release_notes: true
           draft: false
           prerelease: false
