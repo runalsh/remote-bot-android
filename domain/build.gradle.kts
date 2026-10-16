@@ -6,10 +6,10 @@ plugins {
 
 if (System.getenv("CI") != null || project.hasProperty("coverage")) {
     apply(plugin = "jacoco")
-    configure<JacocoPluginExtension> {
+    configure<org.gradle.testing.jacoco.plugins.JacocoPluginExtension> {
         toolVersion = "0.8.12"
     }
-    tasks.register<JacocoReport>("jacocoTestReport") {
+    tasks.named<JacocoReport>("jacocoTestReport") {
         dependsOn(tasks.named("test"))
         reports {
             xml.required.set(true)
