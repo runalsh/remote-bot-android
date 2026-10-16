@@ -112,7 +112,7 @@ build-debug:
 build-release:
 	@echo "=== Сборка Android Release APK ==="
 	@$(call run_gradle,assembleRelease)
-	@echo "APK собран: app/build/outputs/apk/release/app-release-unsigned.apk"
+	@echo "APK собран: app/build/outputs/apk/release/app-release.apk"
 
 install: build-apk
 	@echo "=== Установка APK на устройство через ADB ($(ADB_HOST)) ==="

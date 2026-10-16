@@ -165,7 +165,7 @@ jobs:
       - name: Assemble Debug APK
         run: ./gradlew assembleDebug
 
-      - name: Assemble Release APK (unsigned)
+      - name: Assemble Release APK
         run: ./gradlew assembleRelease
 
       - name: Upload Debug APK
@@ -175,11 +175,11 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           retention-days: 14
 
-      - name: Upload Release APK (unsigned)
+      - name: Upload Release APK
         uses: actions/upload-artifact@v7
         with:
-          name: app-release-unsigned
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: app-release
+          path: app/build/outputs/apk/release/app-release.apk
           retention-days: 14
 
   # ============================================================================

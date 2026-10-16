@@ -1,6 +1,7 @@
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.Properties
 import java.util.TimeZone
 
 plugins {
@@ -53,8 +54,39 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePropsFile = rootProject.file("keystore.properties")
+            val props = Properties()
+            if (keystorePropsFile.exists()) {
+                keystorePropsFile.inputStream().use { props.load(it) }
+            }
+
+            val storeFilePath = props.getProperty("storeFile") ?: System.getenv("KEYSTORE_FILE")
+            val storePasswordVal = props.getProperty("storePassword") ?: System.getenv("KEYSTORE_PASSWORD")
+            val keyAliasVal = props.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
+            val keyPasswordVal = props.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
+
+            val resolvedStoreFile = if (!storeFilePath.isNullOrBlank()) {
+                val f = file(storeFilePath)
+                if (f.exists()) f else rootProject.file(storeFilePath)
+            } else null
+
+            if (resolvedStoreFile != null && resolvedStoreFile.exists() && !keyAliasVal.isNullOrBlank()) {
+                storeFile = resolvedStoreFile
+                storePassword = storePasswordVal
+                keyAlias = keyAliasVal
+                keyPassword = keyPasswordVal ?: storePasswordVal
+            } else {
+                // Фоллбэк на debug.keystore, если production ключ не настроен
+                initWith(getByName("debug"))
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

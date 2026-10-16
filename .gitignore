@@ -48,6 +48,7 @@ Thumbs.db
 # Keystore / Signing files
 *.jks
 *.keystore
+keystore.properties
 
 # Crashlytics & profiling
 crashlytics-build.properties
