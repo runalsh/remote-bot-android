@@ -17,12 +17,14 @@ class BaseCommandsHandler(
     private val apiClient: TelegramApiClient? = null,
     private val diagnosticManager: NetworkDiagnosticManager? = null,
     private val permissionsStatusProvider: PermissionsStatusProvider? = null,
+    private val appVersion: String = "0.1.0",
 ) : CommandHandler {
     override val commandNames: List<String> = listOf("start", "help", "about", "chat_id", "ping", "echo", "status", "permissions")
     override val isDestructive: Boolean = false
 
     override suspend fun execute(command: IncomingCommand): CommandResult {
         val cmd = command.name.lowercase().removePrefix("/")
+        val versionDisplay = if (appVersion.startsWith("v")) appVersion else "v$appVersion"
         return when (cmd) {
             "permissions" -> handlePermissions(command.args)
             "start", "help" -> {
@@ -36,7 +38,7 @@ class BaseCommandsHandler(
 
                 CommandResult.Text(
                     """
-                    🤖 <b>Remote Bot Android (v2.0 Clean)</b>
+                    🤖 <b>Remote Bot Android ($versionDisplay)</b>
                     $rootStatusLine
                     
                     <b>Базовые команды:</b>
@@ -171,7 +173,7 @@ class BaseCommandsHandler(
                     """
                     🤖 <b>Remote Bot Android</b>
                     
-                    • <b>Версия:</b> v1.0.0
+                    • <b>Версия:</b> $versionDisplay
                     • <b>Сборка:</b> Clean Architecture (SDK 35 / Android 15)
                     • <b>Root статус:</b> $rootText
                     

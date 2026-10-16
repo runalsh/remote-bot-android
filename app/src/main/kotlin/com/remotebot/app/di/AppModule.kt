@@ -1,5 +1,6 @@
 package com.remotebot.app.di
 
+import com.remotebot.app.BuildConfig
 import com.remotebot.app.data.PreferencesBotConfigRepository
 import com.remotebot.app.data.PreferencesProxyConfigRepository
 import com.remotebot.channels.telegram.api.TelegramApiClient
@@ -118,6 +119,7 @@ val appModule =
                         apiClient = get(),
                         diagnosticManager = get(),
                         permissionsStatusProvider = get(),
+                        appVersion = BuildConfig.VERSION_NAME,
                     ),
                 )
                 registerHandler(
