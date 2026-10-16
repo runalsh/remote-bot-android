@@ -1,4 +1,4 @@
-.PHONY: all build build-apk build-debug build-release install reinstall run build-server check check-app check-ui lint lint-android lint-ktlint lint-detekt lint-fix test test-server test-server-go test-server-py test-server-js test-domain docker-build-all docker-build-push docker-build-api docker-compose-build clean help
+.PHONY: all build build-apk build-debug build-release install reinstall run build-server check check-compile check-app check-ui lint lint-ktlint lint-detekt lint-android lint-fix test test-android test-domain test-server test-serverpush test-serverpush-go test-serverpush-py test-serverpush-js test-serverapi test-serverapi-go test-serverapi-py test-serverapi-js docker-build-all docker-build-push docker-build-api docker-compose-build clean help
 
 # Экспорт переменной окружения для headless сборки в Linux
 export ANDROID_HOME ?= /opt/android-sdk
@@ -35,12 +35,13 @@ all: build
 
 help:
 	@echo "Доступные команды:"
-	@echo "  make check          - Полный чекер: компиляция всех модулей (check-app) и проверка UI (check-ui)"
-	@echo "  make check-app      - Быстрый чекер: компиляция всех модулей Kotlin (compileDebugKotlin)"
-	@echo "  make check-ui       - Быстрый чекер модуля UI приложения (:app:compileDebugKotlin)"
-	@echo "  make lint           - Запуск всех 4 линтеров (ktlint + ktlint-fix + detekt + Android Lint)"
+	@echo "  make check          - Полный гейт качества: компиляция (check-compile), линтинг (lint) и тесты (test)"
+	@echo "  make check-compile  - Быстрая проверка типов и компиляции Kotlin всех модулей (compileDebugKotlin)"
+	@echo "  make check-app      - Алиас для check-compile"
+	@echo "  make check-ui       - Проверка компиляции модуля UI приложения (:app:compileDebugKotlin)"
+	@echo "  make lint           - Запуск всех статических анализаторов без изменения кода (ktlint + detekt + Android Lint)"
+	@echo "  make lint-fix       - Автоисправление ошибок форматирования Kotlin (ktlintFormat)"
 	@echo "  make lint-ktlint    - Запуск линтера форматирования и стиля Kotlin (ktlintCheck)"
-	@echo "  make lint-fix       - Автоисправление ошибок форматирования (ktlintFormat)"
 	@echo "  make lint-detekt    - Запуск статического анализатора кода Kotlin (detekt)"
 	@echo "  make lint-android   - Запуск официального Android Lint (lintDebug)"
 	@echo "  make build          - Сборка всего проекта (Debug APK + Go сервер)"
@@ -49,53 +50,55 @@ help:
 	@echo "  make install        - Сборка, установка на устройство через ADB и запуск приложения"
 	@echo "  make reinstall      - Сборка, полное удаление с устройства, чистая установка и запуск"
 	@echo "  make run            - Запуск уже установленного приложения на устройстве"
-	@echo "  make test           - Запуск всех тестов (Go + Python + JS Push Gateway + Kotlin domain)"
-	@echo "  make test-server    - Запуск тестов всех 3 шлюзов Push Gateway (Go, Python, JS)"
-	@echo "  make test-server-go - Запуск юнит-тестов Go Push Gateway"
-	@echo "  make test-server-py - Запуск юнит-тестов Python Push Gateway"
-	@echo "  make test-server-js - Запуск юнит-тестов JS Cloudflare Worker Push Gateway"
-	@echo "  make test-domain    - Запуск тестов Kotlin Domain модуля"
+	@echo "  make test           - Запуск всех тестов проекта (Android + Push Gateway + API Proxy)"
+	@echo "  make test-android   - Запуск тестов Android/Kotlin модулей (test-domain)"
+	@echo "  make test-domain    - Запуск тестов Kotlin Domain модуля (:domain:test)"
+	@echo "  make test-server    - Запуск тестов всех серверных шлюзов (Push Gateway + API Proxy)"
+	@echo "  make test-serverpush- Запуск тестов шлюзов Push Gateway (Go, Python, JS)"
+	@echo "  make test-serverapi - Запуск тестов шлюзов Telegram API Proxy (Go, Python, JS)"
 	@echo "  make docker-build-all  - Сборка всех 8 Docker-образов серверов (Go, Python, Nginx, NPX)"
 	@echo "  make docker-build-push - Сборка 4 Docker-образов Push Gateway"
 	@echo "  make docker-build-api  - Сборка 4 Docker-образов API Proxy"
 	@echo "  make docker-compose-build - Сборка всех профилей через Docker Compose"
 	@echo "  make clean          - Очистка временных файлов и Gradle кэша"
 
-check: check-app check-ui
-	@echo "🎉 Полный чекер успешно завершен: все модули и UI скомпилированы без ошибок!"
+check: check-compile lint test
+	@echo "🎉 Полная проверка (компиляция + линтинг + тесты) успешно завершена!"
 
-check-app:
+check-compile:
 	@echo "=== Быстрая проверка типов и компиляции Kotlin всех модулей (compileDebugKotlin) ==="
 	@$(call run_gradle,compileDebugKotlin)
 	@echo "✅ Все модули Kotlin скомпилированы успешно!"
+
+check-app: check-compile
 
 check-ui:
 	@echo "=== Быстрая проверка компиляции модуля UI (:app:compileDebugKotlin) ==="
 	@$(call run_gradle,:app:compileDebugKotlin)
 	@echo "✅ Модуль UI (:app) компилируется без ошибок!"
 
-lint: lint-ktlint lint-fix lint-detekt lint-android
-	@echo "🎉 Все 4 линтера (ktlint, ktlint-fix, detekt, Android Lint) отработали успешно!"
+lint: lint-ktlint lint-detekt lint-android
+	@echo "🎉 Все статические анализаторы (ktlint, detekt, Android Lint) отработали успешно!"
 
 lint-ktlint:
-	@echo "=== [1/4] Запуск ktlint (стиль и форматирование кода Kotlin) ==="
+	@echo "=== [1/3] Запуск ktlint (стиль и форматирование кода Kotlin) ==="
 	@$(call run_gradle,ktlintCheck)
 	@echo "✅ ktlint завершен!"
 
-lint-fix:
-	@echo "=== [2/4] Автоисправление форматирования через ktlint (ktlintFormat) ==="
-	@$(call run_gradle,ktlintFormat)
-	@echo "✅ Автоисправление завершено!"
-
 lint-detekt:
-	@echo "=== [3/4] Запуск detekt (статический анализ сложности, code smell, багов) ==="
+	@echo "=== [2/3] Запуск detekt (статический анализ сложности, code smell, багов) ==="
 	@$(call run_gradle,detekt)
 	@echo "✅ detekt завершен!"
 
 lint-android:
-	@echo "=== [4/4] Запуск Android Lint (ресурсы, манифест, безопасность, Android API) ==="
+	@echo "=== [3/3] Запуск Android Lint (ресурсы, манифест, безопасность, Android API) ==="
 	@$(call run_gradle,lintDebug)
 	@echo "✅ Android Lint завершен!"
+
+lint-fix:
+	@echo "=== Автоисправление форматирования через ktlint (ktlintFormat) ==="
+	@$(call run_gradle,ktlintFormat)
+	@echo "✅ Автоисправление завершено!"
 
 build: build-apk build-server
 
@@ -136,10 +139,20 @@ build-server:
 	cd server/serverpush/go && go build -o /tmp/push-gateway main.go
 	@echo "Бинарник собран: /tmp/push-gateway"
 
-test: test-serverpush test-serverapi test-domain
+test: test-android test-server
+	@echo "🎉 Все тесты проекта (Android + Push Gateway + API Proxy) успешно пройдены!"
+
+test-android: test-domain
+	@echo "✅ Все тесты Android/Kotlin модулей успешно пройдены!"
+
+test-domain:
+	@echo "=== [Android] Запуск тестов Kotlin Domain модуля ==="
+	@$(call run_gradle,:domain:test --info)
+
+test-server: test-serverpush test-serverapi
+	@echo "🎉 Все тесты серверных шлюзов (Push Gateway + API Proxy) пройдены!"
 
 test-serverpush: test-serverpush-go test-serverpush-py test-serverpush-js
-test-server: test-serverpush
 
 test-serverpush-go:
 	@echo "=== [Go] Запуск тестов Push Gateway ==="
@@ -166,10 +179,6 @@ test-serverapi-py:
 test-serverapi-js:
 	@echo "=== [JS / Cloudflare Worker] Запуск тестов Telegram API Proxy ==="
 	cd server/serverapi/cloudflare-worker && node --test test_worker.js
-
-test-domain:
-	@echo "=== Запуск тестов Kotlin Domain модуля ==="
-	@$(call run_gradle,:domain:test --info)
 
 docker-build-all: docker-build-push docker-build-api
 	@echo "🎉 Все 8 Docker-образов серверов успешно собраны!"

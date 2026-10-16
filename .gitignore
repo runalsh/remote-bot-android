@@ -57,3 +57,7 @@ crashlytics-build.properties
 # Local environment & secrets
 local.properties
 .env
+
+# Backups
+*.bkp_*
+*.bkp
