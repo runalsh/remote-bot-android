@@ -19,7 +19,26 @@ class BaseCommandsHandler(
     private val permissionsStatusProvider: PermissionsStatusProvider? = null,
     private val appVersion: String = "0.1.0",
 ) : CommandHandler {
-    override val commandNames: List<String> = listOf("start", "help", "about", "chat_id", "ping", "echo", "status", "permissions")
+    override val commandNames: List<String> =
+        listOf(
+            "start",
+            "help",
+            "about",
+            "chat_id",
+            "ping",
+            "echo",
+            "status",
+            "permissions",
+            "menu_main",
+            "menu_all",
+            "menu_cat_base",
+            "menu_cat_media",
+            "menu_cat_comm",
+            "menu_cat_geo_sec",
+            "menu_cat_files",
+            "menu_cat_system",
+            "menu_cat_auto",
+        )
     override val isDestructive: Boolean = false
 
     override suspend fun execute(command: IncomingCommand): CommandResult {
@@ -27,145 +46,15 @@ class BaseCommandsHandler(
         val versionDisplay = if (appVersion.startsWith("v")) appVersion else "v$appVersion"
         return when (cmd) {
             "permissions" -> handlePermissions(command.args)
-            "start", "help" -> {
-                val isRoot = rootStatusProvider.isRootGrantedSync()
-                val rootStatusLine =
-                    if (isRoot) {
-                        "👑 <b>Root статус:</b> ✅ <b>АКТИВЕН (UID 0)</b> — все 54 команды доступны"
-                    } else {
-                        "👑 <b>Root статус:</b> ⚠️ <b>НЕ ПРЕДОСТАВЛЕН</b> (команды /shell, /reboot, /hotspot, /adb_wifi отключены)"
-                    }
-
-                CommandResult.Text(
-                    """
-                    🤖 <b>Remote Bot Android ($versionDisplay)</b>
-                    $rootStatusLine
-                    
-                    <b>Базовые команды:</b>
-                    • /start / /help — приветствие и полный список всех команд
-                    • /status — сводный статус подключения, пинг API и доступность Push
-                    • /permissions [group] — проверка статуса выданных Android-разрешений
-                    • /ping — проверка связи (Pong!)
-                    • /echo &lt;текст&gt; — эхо-тест
-                    • /chat_id — ID чата и пользователя
-                    • /about — информация о сборке и статусе
-                    
-                    📷 <b>Мультимедиа (Камера, Звук, Экран):</b>
-                    • /photo [front|back] [flash_on|off] [rotate] — фото с камеры
-                    • /videorec [front|back] [сек] — видеозапись с камеры (кнопки 10-3600 сек, запись до остановки /videorec stop)
-                    • /gallery [N] — выгрузка последних N фото из галереи (по умолч: 5 фото, макс: 10)
-                    • /rec [сек] [file|voice] — скрытая запись с микрофона (кнопки 10-3600 сек, запись до остановки /rec stop)
-                    • /rec_file [сек] — скрытая запись в формате аудиофайла (с кнопками управления)
-                    • /rec stop — экстренно остановить текущую аудиозапись
-                    • /tts [lang] &lt;текст&gt; — синтез речи через динамик (по умолч: системный язык)
-                    • /player (алиас: /playback) — медиаплеер и быстрые звуковые пресеты
-                    • /volume [stream] [level] — просмотр и регулировка громкости (0-100%)
-                    • /ring_mode [normal|silent|vibrate] — переключение звукового профиля
-                    • /device_search — сирена поиска устройства (максимальная громкость)
-                    • /sound_detector [1..10|on|off] — интерактивный охранный детектор шума/звука (порог 40..85 dB)
-                    • /detectmotion [1..10|on|off] — охранный детектор движения с камеры (порог 1..10, кулдаун 1..60с)
-                    • /screenshot — снимок экрана смартфона в чат ⚡
-                    • /screen_rec [сек] — видеозапись экрана в чат ⚡ (по умолч: 10 сек, макс: 180)
-                    
-                    📞 <b>Связь, SMS и Уведомления (Блоки 3, 8):</b>
-                    • /sms [sim] &lt;номер&gt; &lt;текст&gt; — отправка SMS с выбором SIM (по умолч: SIM 1)
-                    • /sms_inbox [N] — последние входящие/исходящие SMS (по умолч: 10 шт)
-                    • /call [sim] &lt;номер&gt; — совершить голосовой вызов (по умолч: SIM 1)
-                    • /callshistory [N] — журнал звонков (по умолч: 10 последних вызовов)
-                    • /ussd [sim] &lt;код&gt; — отправка USSD-запроса (баланс, тариф)
-                    • /notify [N] (алиас: /notifications) — список перехваченных push-уведомлений (по умолч: 10 шт)
-                    • /notify_send &lt;заголовок&gt; &lt;текст&gt; — отправить уведомление в шторку Android
-                    • /fake_notify &lt;pkg&gt; &lt;заголовок&gt; &lt;текст&gt; (алиас: /simulate_notify) — симуляция уведомления от приложения
-                    • /answer &lt;ID&gt; &lt;текст&gt; (алиас: /resp) — быстрый ответ на уведомление (RemoteInput)
-                    • /notify_clear &lt;ID&gt; — закрыть/удалить уведомление из шторки
-                    • /notify_rule &lt;list|add|del&gt; — правила фильтрации уведомлений
-                    
-                    📍 <b>Геолокация и Безопасность (Блок 4):</b>
-                    • /location [сек|last] (алиас: /trace) — разовое определение координат GPS/LBS (по умолч: 30с, last — мгновенно из кэша)
-                    • /track [интервал|stop|status] — периодический GPS-трекинг с отправкой геопозиции (30s..60m, кнопки управления)
-                    • /shake_detector [1..10|on|off] — интерактивный охранный датчик тряски (порог 1..30 м/с², интервал 1-60с, кнопки)
-                    • /detectmotion [1..10|on|off] [интервал_сек] — охранный детектор движения (шкала 1..10, интервал фото 1-60с, кнопки)
-                    
-                    📁 <b>Файлы, Приложения и Процессы (Блок 5):</b>
-                    • /get_file &lt;путь&gt; [zip] (алиас: /gf) — выгрузка файла или архива папки в чат
-                    • /download &lt;URL&gt; [путь] — скачивание файла из сети (по умолч: папка Downloads)
-                    • /ls / /dir [путь] — текстовый список файлов в папке (по умолч: /sdcard)
-                    • /ls_interactive [путь] (алиас: /lsi) — интерактивный проводник с кнопками папок и файлов
-                    • /apps [filter] — список установленных приложений (all, user, system)
-                    • /app_launch &lt;pkg&gt; — удаленный запуск приложения
-                    • /install &lt;apk&gt; — тихая установка APK-пакета ⚡
-                    • /taskmanager — диспетчер задач и потребление CPU/ОЗУ
-                    • /kill &lt;PID|pkg&gt; — принудительное завершение процесса ⚡
-                    
-                    🤖 <b>Автоматизация, Tasker и Скрипты (Блоки 9, 10):</b>
-                    • /tasker &lt;TaskName&gt; [par1] [par2] — запуск задач в приложении Tasker
-                    • /script &lt;код&gt; — выполнение системного скрипта/командной строки
-                    • /timers [list|add|del] — планировщик отложенных и периодических команд
-                    
-                    <b>Системный контроль и Root (Блок 7):</b>
-                    • /toggles (алиасы: /panel, /quick_settings) — интерактивная панель переключателей с кнопками
-                    • /system_info — сводка об устройстве, RAM, ROM, CPU, Root
-                    • /uptime — время непрерывной работы процесса службы и системы Android
-                    • /battery — статус аккумулятора, температура, вольтаж
-                    • /network — сетевые интерфейсы, IP (IPv4/IPv6), DNS, MAC, MTU
-                    • /wifi [on|off|toggle] — статус и переключение Wi-Fi
-                    • /bluetooth [on|off|toggle] — статус и переключение Bluetooth
-                    • /flashlight [on|off|toggle] — фонарик (вспышка камеры)
-                    • /airplane [on|off|toggle] — режим полета ⚡
-                    • /hotspot [on|off|toggle] (алиас: /tethering) — точка доступа Wi-Fi (Hotspot) ⚡
-                    • /mobile_data [on|off|toggle] (алиас: /data) — мобильная передача данных ⚡
-                    • /gps [on|off|toggle] (алиас: /location_mode) — геолокация (GPS) ⚡
-                    • /powersave [on|off|toggle] (алиас: /battery_saver) — режим экономии энергии ⚡
-                    • /auto_brightness [on|off|toggle] — автояркость экрана
-                    • /clipboard [текст|clear] — чтение и запись в буфер обмена
-                    • /sync [on|off|toggle] — автосинхронизация аккаунтов
-                    • /adb [on|off|toggle] (алиас: /usb_debugging) — режим отладки USB (ADB) ⚡
-                    • /adb_wifi [on|off|toggle|порт] (алиасы: /adbwifi, /wireless_adb) — отладка по Wi-Fi ⚡ (порт 5555)
-                    • /shell &lt;команда&gt; (алиас: /sh) — Linux терминал (Root/sh) ⚡
-                    • /reboot — перезагрузка устройства ⚡ (с паузой 10 сек)
-                    • /shutdown (алиас: /poweroff) — выключение смартфона ⚡ (с паузой 10 сек)
-                    • /recovery — перезагрузка в Recovery ⚡ (с паузой 10 сек)
-                    • /fastboot (алиас: /bootloader) — перезагрузка в Bootloader ⚡ (с паузой 10 сек)
-                    
-                    <b>Управление ботом и сетью:</b>
-                    • /proxy — просмотр текущего статуса и подробная справка с примерами
-                    • /proxy [socks5|http|wss|off] — быстрая смена или выключение прокси
-                    • /active — активные фоновые операции
-                    • /stop_all — экстренная отмена всех операций
-                    • /log [N] [level] — журнал событий (по умолч: 20 строк, макс: 100, уровни: DEBUG/INFO/WARN/ERROR)
-                    • /backup — экспорт резервной копии конфигурации в файл .json
-                    • /restore_backup [json|файл] — восстановление конфигурации из текста или файла
-                    • /unsent_files — очередь неотправленных файлов
-                    • /bot_status — текущий статус Telegram и SMS каналов
-                    • /tg_bot [on|off|toggle] — включение/выключение Telegram бота
-                    • /sms_bot [on|off|toggle] — интерактивная панель статуса и включение/выключение SMS-бота
-                    • /bot_toggle &lt;tg|sms&gt; [on|off] — универсальный переключатель каналов связи
-                    • /add_user [id] / /del_user &lt;id&gt; / /list_users — управление белым списком Telegram User ID (по умолч: ваш ID)
-                    • /add_phone [номер] / /del_phone &lt;номер&gt; / /list_phones — доверенные SMS-номера для управления без PIN
-                    • /add_forward [номер] / /del_forward &lt;номер&gt; / /list_forwards — номера пересылки SMS/звонков/push
-                    • /tg_forward [sms|calls|push|battery_charge|battery_low|battery] [on|off] — управление доставкой событий в Telegram
-                    • /events [on|off|notif|sms|calls|system|list|id] (алиас: /subs) — интерактивное меню и рассылка событий (режим «Только команды» vs «Подписчик»)
-                    • /whitelist_user [add|del|clear|list|<id>] (алиас: /user) — полное управление списком Telegram ID
-                    • /whitelist_phone [add|del|clear|list|<номер>] (алиас: /phone) — полное управление доверенными номерами SMS
-                    • /sms_forward [add|del|clear|list|on|off|missed|push|translit|<номер>] (алиас: /forward) — комплексное управление пересылкой и параметрами
-                    
-                    <i>⚡ = команды, требующие Root-прав (Superuser)</i>
-                    """.trimIndent(),
-                    keyboard =
-                        InlineKeyboardMarkup(
-                            listOf(
-                                listOf(
-                                    InlineKeyboardButton("🎛️ Переключатели", "/toggles"),
-                                    InlineKeyboardButton("📊 Статус", "/status"),
-                                ),
-                                listOf(
-                                    InlineKeyboardButton("⏱️ Uptime", "/uptime"),
-                                    InlineKeyboardButton("📱 Система", "/system_info"),
-                                ),
-                            ),
-                        ),
-                )
-            }
+            "start", "help", "menu_main" -> handleMainMenu(versionDisplay)
+            "menu_all" -> handleFullHelp(versionDisplay)
+            "menu_cat_base" -> handleCategoryBase()
+            "menu_cat_media" -> handleCategoryMedia()
+            "menu_cat_comm" -> handleCategoryComm()
+            "menu_cat_geo_sec" -> handleCategoryGeoSec()
+            "menu_cat_files" -> handleCategoryFiles()
+            "menu_cat_system" -> handleCategorySystem()
+            "menu_cat_auto" -> handleCategoryAuto()
             "about" -> {
                 val isRoot = rootStatusProvider.isRootGrantedSync()
                 val rootText = if (isRoot) "✅ Доступен (UID 0)" else "❌ Отсутствует / Не выдан"
@@ -320,4 +209,332 @@ class BaseCommandsHandler(
 
         return CommandResult.Text(text)
     }
+
+    private fun createCategoryKeyboard(): InlineKeyboardMarkup =
+        InlineKeyboardMarkup(
+            listOf(
+                listOf(
+                    InlineKeyboardButton("🔙 Назад в меню", "/menu_main"),
+                    InlineKeyboardButton("📊 Статус", "/status"),
+                ),
+            ),
+        )
+
+    private fun handleMainMenu(versionDisplay: String): CommandResult {
+        val isRoot = rootStatusProvider.isRootGrantedSync()
+        val rootText = if (isRoot) "✅ АКТИВЕН (UID 0)" else "❌ Отсутствует / Не выдан"
+        val text =
+            """
+            🤖 <b>Remote Bot Android</b> ($versionDisplay)
+            👑 <b>Root статус:</b> $rootText
+            📡 <b>Служба:</b> 🟢 Активна
+
+            Выберите категорию команд для навигации:
+            """.trimIndent()
+
+        val keyboard =
+            InlineKeyboardMarkup(
+                listOf(
+                    listOf(
+                        InlineKeyboardButton("⚙️ Базовые", "/menu_cat_base"),
+                        InlineKeyboardButton("📷 Мультимедиа", "/menu_cat_media"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton("📞 Связь и SMS", "/menu_cat_comm"),
+                        InlineKeyboardButton("📍 Геолокация", "/menu_cat_geo_sec"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton("📁 Файлы и App", "/menu_cat_files"),
+                        InlineKeyboardButton("⚡ Система & Root", "/menu_cat_system"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton("🤖 Автоматизация", "/menu_cat_auto"),
+                        InlineKeyboardButton("🎛️ Переключатели", "/toggles"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton("📜 Полный список", "/menu_all"),
+                        InlineKeyboardButton("📊 Статус", "/status"),
+                    ),
+                ),
+            )
+        return CommandResult.Text(text, keyboard = keyboard)
+    }
+
+    private fun handleCategoryBase(): CommandResult {
+        val text =
+            """
+            ⚙️ <b>Базовые команды и Диагностика:</b>
+            • /status — сводный статус подключения, пинг Telegram API, FCM/HMS
+            • /permissions [filter] — аудит разрешений (critical/confidential/standard/denied)
+            • /ping — проверка времени отклика и сетевой задержки
+            • /echo &lt;текст&gt; — эхо-тест входящих команд бота
+            • /chat_id — узнать Chat ID и User ID текущего чата
+            • /about — информация о сборке бота, версии и разработчике
+            • /uptime — время непрерывной работы процесса службы и системы Android
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategoryMedia(): CommandResult {
+        val text =
+            """
+            📷 <b>Камера, Звук и Экран:</b>
+            • /photo [front|back] — снимок с фронтальной или основной камеры
+            • /videorec [front|back] [секунды] — скрытая видеозапись
+            • /gallery [N] — отправка последних N медиафайлов из галереи
+            • /rec [секунды] — скрытая аудиозапись с микрофона (голос)
+            • /rec_file [секунды] — аудиозапись в виде несжатого файла .wav/.m4a
+            • /tts &lt;текст&gt; — воспроизведение текста синтезатором речи на динамик
+            • /player [play|pause|next|prev|stop] — управление воспроизведением медиаплеера
+            • /volume [0-100|stream] [значение] — регулировка громкости звуковых потоков
+            • /ring_mode [normal|silent|vibrate] — переключение профилей звонка
+            • /device_search — громкая сирена и вибрация для поиска потерянного телефона
+            • /screenshot — моментальный снимок экрана (MediaProjection / Root)
+            • /screen_rec [секунды] — запись экрана в видеофайл (Root / Service)
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategoryComm(): CommandResult {
+        val text =
+            """
+            📞 <b>Связь, SMS & Уведомления:</b>
+            • /sms &lt;номер&gt; &lt;текст&gt; — прямая отправка исходящего SMS с выбором SIM
+            • /sms_inbox [N] — просмотр последних входящих SMS сообщений
+            • /call &lt;номер&gt; — инициация голосового телефонного вызова
+            • /callshistory [N] — история входящих, исходящих и пропущенных вызовов
+            • /ussd &lt;код&gt; — выполнение USSD-запроса баланса или тарифа (Android 8.0+)
+            • /notify [list|clear] — просмотр активных системных уведомлений в шторке
+            • /notify_send [id] — принудительная отправка уведомления в чат
+            • /fake_notify &lt;title&gt; | &lt;text&gt; — генерация фиктивного уведомления в шторку Android
+            • /answer &lt;notif_id&gt; &lt;текст&gt; — отправка быстрого ответа (RemoteInput) в мессенджер
+            • /notify_clear [id|all] — удаление уведомления из шторки устройства
+            • /notify_rule [add|del|list] — гибкие regex-правила фильтрации входящих уведомлений
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategoryGeoSec(): CommandResult {
+        val text =
+            """
+            📍 <b>Геолокация & Охрана:</b>
+            • /location — текущие координаты GPS/Сеть со ссылкой на карты Google
+            • /track [start|stop|status] — непрерывный фоновый GPS-трекинг маршрута
+            • /shake_detector [on|off|sens] — скрытая сигнализация на движение акселерометра
+            • /detectmotion [on|off|front|back] — обнаружение движения камерой с авто-фото
+            • /sound_detector [on|off|sens] — детекция шума/голоса вокруг смартфона
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategoryFiles(): CommandResult {
+        val text =
+            """
+            📁 <b>Файлы & Приложения:</b>
+            • /get_file &lt;путь&gt; — скачивание любого файла из файловой системы Android
+            • /download &lt;url&gt; [путь] — удаленная загрузка файлов из интернета на устройство
+            • /ls &lt;путь&gt; — просмотр содержимого папки на устройстве
+            • /ls_interactive &lt;путь&gt; — интерактивный проводник файлов с Inline-кнопками навигации
+            • /apps [system|user|all] — список установленных приложений и пакетов
+            • /app_launch &lt;package&gt; — запуск выбранного приложения на экране
+            • /install — удаленная установка APK-файла (тихая установка при Root)
+            • /taskmanager (алиас: /top) — диспетчер запущенных процессов и потребления RAM
+            • /kill &lt;package|pid&gt; — принудительное завершение зависшего приложения (Root)
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategorySystem(): CommandResult {
+        val text =
+            """
+            ⚡ <b>Система & Root:</b>
+            • /toggles (алиасы: /panel, /quick_settings) — интерактивная панель переключателей с кнопками
+            • /system_info — сводка об устройстве, RAM, ROM, CPU, Root
+            • /uptime — время непрерывной работы процесса службы и системы Android
+            • /battery — статус аккумулятора, температура, вольтаж
+            • /network — сетевые интерфейсы, IP (IPv4/IPv6), DNS, MAC, MTU
+            • /wifi [on|off|toggle] — статус и переключение Wi-Fi
+            • /bluetooth [on|off|toggle] — статус и переключение Bluetooth
+            • /flashlight [on|off|toggle] — фонарик (вспышка камеры)
+            • /airplane [on|off|toggle] — режим полета ⚡
+            • /hotspot [on|off|toggle] (алиас: /tethering) — точка доступа Wi-Fi (Hotspot) ⚡
+            • /mobile_data [on|off|toggle] (алиас: /data) — мобильная передача данных ⚡
+            • /gps [on|off|toggle] (алиас: /location_mode) — геолокация (GPS) ⚡
+            • /powersave [on|off|toggle] (алиас: /battery_saver) — режим экономии энергии ⚡
+            • /auto_brightness [on|off|toggle] — автояркость экрана
+            • /clipboard [текст|clear] — чтение и запись в буфер обмена
+            • /sync [on|off|toggle] — автосинхронизация аккаунтов
+            • /adb [on|off|toggle] (алиас: /usb_debugging) — режим отладки USB (ADB) ⚡
+            • /adb_wifi [on|off|toggle|порт] (алиасы: /adbwifi, /wireless_adb) — отладка по Wi-Fi ⚡ (порт 5555)
+            • /shell &lt;команда&gt; (алиас: /sh) — Linux терминал (Root/sh) ⚡
+            • /reboot — перезагрузка устройства ⚡ (с паузой 10 сек)
+            • /shutdown (алиас: /poweroff) — выключение смартфона ⚡ (с паузой 10 сек)
+            • /recovery — перезагрузка в Recovery ⚡ (с паузой 10 сек)
+            • /fastboot (алиас: /bootloader) — перезагрузка в Bootloader ⚡ (с паузой 10 сек)
+
+            <i>⚡ = команды, требующие Root-прав (Superuser)</i>
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleCategoryAuto(): CommandResult {
+        val text =
+            """
+            🤖 <b>Автоматизация, Tasker & Сеть:</b>
+            • /tasker &lt;TaskName&gt; [par1] [par2] — запуск задач в приложении Tasker
+            • /script &lt;код&gt; — выполнение системного скрипта/командной строки
+            • /timers [list|add|del] — планировщик отложенных и периодических команд
+            • /proxy — просмотр текущего статуса и подробная справка с примерами
+            • /proxy [socks5|http|wss|off] — быстрая смена или выключение прокси
+            • /active — активные фоновые операции
+            • /stop_all — экстренная отмена всех операций
+            • /log [N] [level] — журнал событий (по умолч: 20 строк, макс: 100, уровни: DEBUG/INFO/WARN/ERROR)
+            • /backup — экспорт резервной копии конфигурации в файл .json
+            • /restore_backup [json|файл] — восстановление конфигурации из текста или файла
+            • /unsent_files — очередь неотправленных файлов
+            • /bot_status — текущий статус Telegram и SMS каналов
+            • /tg_bot [on|off|toggle] — включение/выключение Telegram бота
+            • /sms_bot [on|off|toggle] — интерактивная панель статуса и включение/выключение SMS-бота
+            • /bot_toggle &lt;tg|sms&gt; [on|off] — универсальный переключатель каналов связи
+            • /add_user [id] / /del_user &lt;id&gt; / /list_users — управление белым списком Telegram User ID
+            • /add_phone [номер] / /del_phone &lt;номер&gt; / /list_phones — доверенные SMS-номера без PIN
+            • /add_forward [номер] / /del_forward &lt;номер&gt; / /list_forwards — номера пересылки SMS/звонков/push
+            • /tg_forward [sms|calls|push|battery_charge|battery_low|battery] [on|off] — управление доставкой событий в Telegram
+            • /events [on|off|notif|sms|calls|system|list|id] (алиас: /subs) — интерактивное меню и рассылка событий
+            • /whitelist_user [add|del|clear|list|&lt;id&gt;] (алиас: /user) — полное управление списком Telegram ID
+            • /whitelist_phone [add|del|clear|list|&lt;номер&gt;] (алиас: /phone) — полное управление доверенными номерами SMS
+            • /sms_forward [add|del|clear|list|on|off|missed|push|translit|&lt;номер&gt;] (алиас: /forward) — комплексное управление пересылкой
+            """.trimIndent()
+        return CommandResult.Text(text, keyboard = createCategoryKeyboard())
+    }
+
+    private fun handleFullHelp(versionDisplay: String): CommandResult {
+        val isRoot = rootStatusProvider.isRootGrantedSync()
+        val rootText = if (isRoot) "✅ АКТИВЕН (UID 0) — все 54 команды доступны" else "⚠️ ОГРАНИЧЕН (без Root) — системные команды недоступны"
+        val text =
+            """
+            🤖 <b>Remote Bot Android</b> ($versionDisplay)
+            👑 Root статус: $rootText
+
+            <b>Базовые команды:</b>
+            • /start / /help — приветствие и интерактивное меню
+            • /status — сводный статус подключения, пинг Telegram API, FCM/HMS
+            • /permissions [filter] — детальный аудит прав Android
+            • /ping — проверка времени отклика и сетевой задержки
+            • /echo &lt;текст&gt; — эхо-тест входящих команд бота
+            • /chat_id — узнать Chat ID и User ID текущего чата
+            • /about — информация о сборке бота, версии и разработчике
+
+            <b>Медиа, Звук и Камера:</b>
+            • /photo [front|back] — моментальный снимок с фронтальной или основной камеры
+            • /videorec [front|back] [секунды] — скрытая видеозапись
+            • /gallery [N] — отправка последних N медиафайлов из галереи устройства
+            • /rec [секунды] — скрытая аудиозапись с микрофона (голос)
+            • /rec_file [секунды] — аудиозапись в виде несжатого файла .wav/.m4a
+            • /tts &lt;текст&gt; — воспроизведение текста синтезатором речи на динамик смартфона
+            • /player [play|pause|next|prev|stop] — управление воспроизведением медиаплеера
+            • /volume [0-100|stream] [значение] — регулировка громкости звуковых потоков
+            • /ring_mode [normal|silent|vibrate] — переключение профилей звонка
+            • /device_search — громкая сирена и вибрация для поиска потерянного телефона
+            • /screenshot — моментальный снимок экрана (MediaProjection / Root)
+            • /screen_rec [секунды] — запись экрана в видеофайл (Root / Service)
+
+            <b>Связь, SMS & Уведомления:</b>
+            • /sms &lt;номер&gt; &lt;текст&gt; — прямая отправка исходящего SMS с выбором SIM
+            • /sms_inbox [N] — просмотр последних входящих SMS сообщений
+            • /call &lt;номер&gt; — инициация голосового телефонного вызова
+            • /callshistory [N] — история входящих, исходящих и пропущенных вызовов
+            • /ussd &lt;код&gt; — выполнение USSD-запроса баланса или тарифа (Android 8.0+)
+            • /notify [list|clear] — просмотр активных системных уведомлений в шторке
+            • /notify_send [id] — принудительная отправка уведомления в чат
+            • /fake_notify &lt;title&gt; | &lt;text&gt; — генерация фиктивного уведомления в шторку Android
+            • /answer &lt;notif_id&gt; &lt;текст&gt; — отправка быстрого ответа (RemoteInput) в мессенджер
+            • /notify_clear [id|all] — удаление уведомления из шторки устройства
+            • /notify_rule [add|del|list] — гибкие regex-правила фильтрации входящих уведомлений
+
+            <b>Геолокация и Охрана:</b>
+            • /location — текущие координаты GPS/Сеть со ссылкой на карты Google
+            • /track [start|stop|status] — непрерывный фоновый GPS-трекинг маршрута
+            • /shake_detector [on|off|sens] — скрытая сигнализация на движение акселерометра
+            • /detectmotion [on|off|front|back] — обнаружение движения камерой с авто-фото
+            • /sound_detector [on|off|sens] — детекция шума/голоса вокруг смартфона
+
+            <b>Файлы и Приложения:</b>
+            • /get_file &lt;путь&gt; — скачивание любого файла из файловой системы Android
+            • /download &lt;url&gt; [путь] — удаленная загрузка файлов из интернета на устройство
+            • /ls &lt;путь&gt; — просмотр содержимого папки на устройстве
+            • /ls_interactive &lt;путь&gt; — интерактивный проводник файлов с Inline-кнопками навигации
+            • /apps [system|user|all] — список установленных приложений и пакетов
+            • /app_launch &lt;package&gt; — запуск выбранного приложения на экране
+            • /install — удаленная установка APK-файла (тихая установка при Root)
+            • /taskmanager (алиас: /top) — диспетчер запущенных процессов и потребления RAM
+            • /kill &lt;package|pid&gt; — принудительное завершение зависшего приложения (Root)
+
+            <b>Автоматизация, Tasker и Скрипты:</b>
+            • /tasker &lt;TaskName&gt; [par1] [par2] — запуск задач в приложении Tasker
+            • /script &lt;код&gt; — выполнение системного скрипта/командной строки
+            • /timers [list|add|del] — планировщик отложенных и периодических команд
+
+            <b>Системный контроль и Root:</b>
+            • /toggles (алиасы: /panel, /quick_settings) — интерактивная панель переключателей с кнопками
+            • /system_info — сводка об устройстве, RAM, ROM, CPU, Root
+            • /uptime — время непрерывной работы процесса службы и системы Android
+            • /battery — статус аккумулятора, температура, вольтаж
+            • /network — сетевые интерфейсы, IP (IPv4/IPv6), DNS, MAC, MTU
+            • /wifi [on|off|toggle] — статус и переключение Wi-Fi
+            • /bluetooth [on|off|toggle] — статус и переключение Bluetooth
+            • /flashlight [on|off|toggle] — фонарик (вспышка камеры)
+            • /airplane [on|off|toggle] — режим полета ⚡
+            • /hotspot [on|off|toggle] (алиас: /tethering) — точка доступа Wi-Fi (Hotspot) ⚡
+            • /mobile_data [on|off|toggle] (алиас: /data) — мобильная передача данных ⚡
+            • /gps [on|off|toggle] (алиас: /location_mode) — геолокация (GPS) ⚡
+            • /powersave [on|off|toggle] (алиас: /battery_saver) — режим экономии энергии ⚡
+            • /auto_brightness [on|off|toggle] — автояркость экрана
+            • /clipboard [текст|clear] — чтение и запись в буфер обмена
+            • /sync [on|off|toggle] — автосинхронизация аккаунтов
+            • /adb [on|off|toggle] (алиас: /usb_debugging) — режим отладки USB (ADB) ⚡
+            • /adb_wifi [on|off|toggle|порт] (алиасы: /adbwifi, /wireless_adb) — отладка по Wi-Fi ⚡ (порт 5555)
+            • /shell &lt;команда&gt; (алиас: /sh) — Linux терминал (Root/sh) ⚡
+            • /reboot — перезагрузка устройства ⚡ (с паузой 10 сек)
+            • /shutdown (алиас: /poweroff) — выключение смартфона ⚡ (с паузой 10 сек)
+            • /recovery — перезагрузка в Recovery ⚡ (с паузой 10 сек)
+            • /fastboot (алиас: /bootloader) — перезагрузка в Bootloader ⚡ (с паузой 10 сек)
+
+            <b>Управление ботом и сетью:</b>
+            • /proxy — просмотр текущего статуса и подробная справка с примерами
+            • /proxy [socks5|http|wss|off] — быстрая смена или выключение прокси
+            • /active — активные фоновые операции
+            • /stop_all — экстренная отмена всех операций
+            • /log [N] [level] — журнал событий (по умолч: 20 строк, макс: 100, уровни: DEBUG/INFO/WARN/ERROR)
+            • /backup — экспорт резервной копии конфигурации в файл .json
+            • /restore_backup [json|файл] — восстановление конфигурации из текста или файла
+            • /unsent_files — очередь неотправленных файлов
+            • /bot_status — текущий статус Telegram и SMS каналов
+            • /tg_bot [on|off|toggle] — включение/выключение Telegram бота
+            • /sms_bot [on|off|toggle] — интерактивная панель статуса и включение/выключение SMS-бота
+            • /bot_toggle &lt;tg|sms&gt; [on|off] — универсальный переключатель каналов связи
+            • /add_user [id] / /del_user &lt;id&gt; / /list_users — управление белым списком Telegram User ID (по умолч: ваш ID)
+            • /add_phone [номер] / /del_phone &lt;номер&gt; / /list_phones — доверенные SMS-номера для управления без PIN
+            • /add_forward [номер] / /del_forward &lt;номер&gt; / /list_forwards — номера пересылки SMS/звонков/push
+            • /tg_forward [sms|calls|push|battery_charge|battery_low|battery] [on|off] — управление доставкой событий в Telegram
+            • /events [on|off|notif|sms|calls|system|list|id] (алиас: /subs) — интерактивное меню и рассылка событий
+            • /whitelist_user [add|del|clear|list|&lt;id&gt;] (алиас: /user) — полное управление списком Telegram ID
+            • /whitelist_phone [add|del|clear|list|&lt;номер&gt;] (алиас: /phone) — полное управление доверенными номерами SMS
+            • /sms_forward [add|del|clear|list|on|off|missed|push|translit|&lt;номер&gt;] (алиас: /forward) — комплексное управление пересылкой
+
+            <i>⚡ = команды, требующие Root-прав (Superuser)</i>
+            """.trimIndent()
+
+        val keyboard =
+            InlineKeyboardMarkup(
+                listOf(
+                    listOf(
+                        InlineKeyboardButton("🔙 Главное меню", "/menu_main"),
+                        InlineKeyboardButton("🎛️ Переключатели", "/toggles"),
+                    ),
+                ),
+            )
+        return CommandResult.Text(text, keyboard = keyboard)
+    }
 }
+

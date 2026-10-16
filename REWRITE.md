@@ -2541,12 +2541,12 @@ cmd netpolicy add restrict-background-whitelist $uid
 
 ### Фаза 18: Интерактивное группированное меню `/start` и `/help` в Telegram-боте (Inline Navigation)
 
-- [ ] **1. Проблема и цель рефакторинга**:
+- [x] **1. Проблема и цель рефакторинга**:
   - **Текущее поведение:** При вводе `/start` или `/help` бот отправляет гигантское монолитное полотно текста на 3-4 сообщения подряд (более 150 строк), перечисляющее все 54 команды сразу. Пользователю неудобно ориентироваться, экран чата забивается.
   - **Целевое поведение:** При вызове `/start` выводится компактная сводная карточка бота (версия, статус Root, быстрый статус связи) и двухуровневое Inline-меню с категоризированными кнопками. При нажатии на категорию текущее сообщение **редактируется (`editMessageText`)**, отображая только команды выбранной категории и кнопку «🔙 Назад в главное меню».
 
-- [ ] **2. Архитектура категорий команд в `:channels:telegram-bot`**:
-  - [ ] **Логические группы команд (Категории)**:
+- [x] **2. Архитектура категорий команд в `:channels:telegram-bot`**:
+  - [x] **Логические группы команд (Категории)**:
     1. ⚙️ **Базовые & Статус** (`cat_base`): `/status`, `/permissions`, `/ping`, `/echo`, `/chat_id`, `/about`, `/uptime`.
     2. 📷 **Камера, Звук, Экран** (`cat_media`): `/photo`, `/videorec`, `/gallery`, `/rec`, `/rec_file`, `/tts`, `/player`, `/volume`, `/ring_mode`, `/device_search`, `/screenshot`, `/screen_rec`.
     3. 📞 **Связь, SMS & Уведомления** (`cat_comm`): `/sms`, `/sms_inbox`, `/call`, `/callshistory`, `/ussd`, `/notify`, `/notify_send`, `/fake_notify`, `/answer`, `/notify_clear`, `/notify_rule`.
@@ -2554,7 +2554,7 @@ cmd netpolicy add restrict-background-whitelist $uid
     5. 📁 **Файлы & Приложения** (`cat_files`): `/get_file`, `/download`, `/ls`, `/ls_interactive`, `/apps`, `/app_launch`, `/install`, `/taskmanager`, `/kill`.
     6. ⚡ **Система & Root** (`cat_system`): `/toggles`, `/system_info`, `/battery`, `/network`, `/wifi`, `/bluetooth`, `/flashlight`, `/airplane`, `/hotspot`, `/mobile_data`, `/gps`, `/powersave`, `/auto_brightness`, `/clipboard`, `/sync`, `/adb`, `/adb_wifi`, `/shell`, `/reboot`, `/shutdown`, `/recovery`, `/fastboot`.
     7. 🤖 **Автоматизация & Сеть** (`cat_auto`): `/tasker`, `/script`, `/timers`, `/proxy`, `/active`, `/stop_all`, `/log`, `/backup`, `/restore_backup`, `/unsent_files`, `/bot_status`, `/tg_bot`, `/sms_bot`, `/bot_toggle`, `/whitelist_user`, `/whitelist_phone`, `/sms_forward`, `/tg_forward`, `/events`.
-  - [ ] **Структура главного меню `/start`**:
+  - [x] **Структура главного меню `/start`**:
     - Компактный заголовок: имя бота, статус службы (🟢 Активна), Root-доступ (✅ / ⚠️).
     - Сетка Inline-кнопок категорий (по 2 в ряд):
       * `[ ⚙️ Базовые ]` `[ 📷 Мультимедиа ]`
@@ -2563,21 +2563,21 @@ cmd netpolicy add restrict-background-whitelist $uid
       * `[ 🤖 Автоматизация ]` `[ 🎛️ Переключатели ]`
       * `[ 📜 Полный список (текстом) ]` `[ 📊 Статус ]`
 
-- [ ] **3. Обработка Callback-навигации (`BaseCommandsHandler` / `TelegramBotEngine`)**:
-  - [ ] Регистрация обработчиков callback данных:
+- [x] **3. Обработка Callback-навигации (`BaseCommandsHandler` / `TelegramBotEngine`)**:
+  - [x] Регистрация обработчиков callback данных:
     - `menu_cat_<category_id>`: редактирование сообщения с выводом форматированного списка команд данной категории с описанием и синтаксисом параметров + кнопка `[ 🔙 Назад в меню ]`.
     - `menu_main`: возврат к главному компактному экрану категорий.
     - `menu_all`: вывод полного списка (для пользователей, которым нужен старый текстовый монолитный режим).
-  - [ ] Плавное обновление сообщения: использование `apiClient.editMessageText` с сохранением контекста и поддержкой `parse_mode = "HTML"`.
-  - [ ] Быстрый ответ `answerCallbackQuery` без всплывающего алерта для мгновенного отклика UI.
+  - [x] Плавное обновление сообщения: использование `apiClient.editMessageText` с сохранением контекста и поддержкой `parse_mode = "HTML"`.
+  - [x] Быстрый ответ `answerCallbackQuery` без всплывающего алерта для мгновенного отклика UI.
 
-- [ ] **4. Тестирование и верификация**:
-  - [ ] Unit-тесты `BaseCommandsHandlerTest`:
+- [x] **4. Тестирование и верификация**:
+  - [x] Unit-тесты `BaseCommandsHandlerTest`:
     - Проверка генерации главного меню `/start` с клавиатурой категорий.
     - Проверка возврата списка команд при переходе по каждой категории (`menu_cat_base`, `menu_cat_media` и т.д.).
     - Проверка наличия кнопки «🔙 Назад» в каждом подразделе.
     - Проверка целостности всех 54 команд (ни одна команда не потеряна при группировке).
-  - [ ] Верификация через `make lint` и `make check-ui`.
+  - [x] Верификация через `make lint` и `make check-ui`.
 
 ---
 

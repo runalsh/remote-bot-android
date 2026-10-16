@@ -33,4 +33,7 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.koin.android)
     implementation(libs.libsu.core)
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlinx.coroutines.core)
 }
+
