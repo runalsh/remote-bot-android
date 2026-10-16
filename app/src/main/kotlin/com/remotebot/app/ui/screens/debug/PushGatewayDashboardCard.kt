@@ -80,7 +80,7 @@ fun PushGatewayDashboardCard(
             apiClient.getCandidateRoots()
         }
 
-    // Состояния пинга каждого сервера по ID/URL
+    // Ping states for each server by ID/URL
     var serverHealthMap by remember {
         mutableStateOf<Map<String, ServerHealthItem>>(emptyMap())
     }
@@ -113,7 +113,7 @@ fun PushGatewayDashboardCard(
                 val took = System.currentTimeMillis() - start
                 conn.disconnect()
 
-                // Для Telegram API: 200 (валидный токен) или 401/404 (сервер доступен, но токен пуст/неверен) считаем доступностью хоста
+                // For Telegram API: 200 (valid token) or 401/404 (server reachable, token empty/invalid) counts as reachable host
                 val healthy = if (isTelegramApi) (code == 200 || code == 401 || code == 404) else (code == 200)
                 val msg = if (code == 200) "HTTP 200 OK (${took}ms)" else "HTTP $code (${took}ms)"
                 ServerHealthItem(key, name, targetUrl, isChecking = false, isHealthy = healthy, latencyMs = took, responseMsg = msg)
@@ -137,7 +137,7 @@ fun PushGatewayDashboardCard(
             isCheckingAll = true
             val updated = serverHealthMap.toMutableMap()
 
-            // 1. Пинг всех Push FCM / HMS
+            // 1. Ping all Push FCM / HMS
             val pushTasks =
                 allPushServers.map { server ->
                     async {
@@ -150,7 +150,7 @@ fun PushGatewayDashboardCard(
                     }
                 }
 
-            // 2. Пинг всех Telegram API серверов
+            // 2. Ping all Telegram API servers
             val apiTasks =
                 apiRoots.mapIndexed { idx, root ->
                     async {
@@ -185,7 +185,7 @@ fun PushGatewayDashboardCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Заголовок карточки
+            // Card header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -218,7 +218,7 @@ fun PushGatewayDashboardCard(
                 }
             }
 
-            // Общий статус провайдеров Push
+            // Overall Push providers status
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -264,7 +264,7 @@ fun PushGatewayDashboardCard(
                 }
             }
 
-            // СЕКЦИЯ 1: FCM Push Серверы
+            // SECTION 1: FCM Push Servers
             Text(
                 text = "🔥 Серверы FCM Push (${fcmServers.size}):",
                 style = MaterialTheme.typography.labelLarge,
@@ -297,7 +297,7 @@ fun PushGatewayDashboardCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // СЕКЦИЯ 2: HMS Push Серверы
+            // SECTION 2: HMS Push Servers
             Text(
                 text = "🛡️ Серверы Huawei HMS Push (${hmsServers.size}):",
                 style = MaterialTheme.typography.labelLarge,
@@ -330,7 +330,7 @@ fun PushGatewayDashboardCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // СЕКЦИЯ 3: Telegram API Серверы (Зеркала)
+            // SECTION 3: Telegram API Servers (Mirrors)
             Text(
                 text = "✈️ Telegram Bot API Серверы (${apiRoots.size}):",
                 style = MaterialTheme.typography.labelLarge,
@@ -356,7 +356,7 @@ fun PushGatewayDashboardCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // СЕКЦИЯ 4: Метрики доставки Push
+            // SECTION 4: Push Delivery Metrics
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),

@@ -147,7 +147,7 @@ class FilesAndAppsCommandsHandler(
             onSuccess = { items ->
                 val rows = mutableListOf<List<com.remotebot.domain.model.InlineKeyboardButton>>()
 
-                // Навигационные кнопки в самом верху (На уровень выше, Обновить)
+                // Navigation buttons at the top (Up one level, Refresh)
                 val currentFile = File(path)
                 val parentPath = currentFile.parent
                 val navRow = mutableListOf<com.remotebot.domain.model.InlineKeyboardButton>()
@@ -171,11 +171,11 @@ class FilesAndAppsCommandsHandler(
                 }
                 rows.add(navRow)
 
-                // Разделяем папки и файлы
+                // Separate directories and files
                 val dirs = items.filter { it.isDirectory }.take(30)
                 val files = items.filter { !it.isDirectory }.take(30)
 
-                // Папки по 2 в ряд
+                // Directories 2 per row
                 dirs.chunked(2).forEach { chunk ->
                     rows.add(
                         chunk.map { dir ->
@@ -189,7 +189,7 @@ class FilesAndAppsCommandsHandler(
                     )
                 }
 
-                // Файлы по 1 в ряд для удобного клика скачивания
+                // Files 1 per row for easy download click
                 files.forEach { file ->
                     val sizeFormatted = formatFileSize(file.sizeBytes)
                     val shortName = if (file.name.length > 24) file.name.take(22) + "…" else file.name

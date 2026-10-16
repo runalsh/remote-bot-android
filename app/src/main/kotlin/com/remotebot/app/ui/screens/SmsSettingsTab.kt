@@ -56,7 +56,7 @@ fun SmsSettingsTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Карточка 1: Главный выключатель SMS-бота
+        // Card 1: Main SMS bot master toggle
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -103,7 +103,7 @@ fun SmsSettingsTab(
             }
         }
 
-        // Карточка 2: Номера назначения для пересылки (SMS ➔ SMS & Push ➔ SMS)
+        // Card 2: Forwarding destination numbers (SMS -> SMS & Push -> SMS)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Row(
@@ -168,7 +168,7 @@ fun SmsSettingsTab(
             }
         }
 
-        // Карточка 3: Параметры отправки SMS
+        // Card 3: SMS sending parameters
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -178,7 +178,7 @@ fun SmsSettingsTab(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Транслитерация
+                // Transliteration
                 Row(
                     modifier =
                         Modifier
@@ -229,7 +229,7 @@ fun SmsSettingsTab(
             }
         }
 
-        // Карточка 4: Удаленное управление по SMS (Offline Bot)
+        // Card 4: Remote control via SMS (Offline Bot)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -315,14 +315,14 @@ fun SmsSettingsTab(
             }
         }
 
-        // Кнопка сохранения
+        // Save button
         Button(
             onClick = {
                 val cleanPin = pinInput.trim().ifBlank { null }
                 val cleanPhones = allowedPhonesList.map { it.trim() }.filter { it.isNotBlank() }.toSet()
                 val cleanTargets = targetNumbersList.map { it.trim() }.filter { it.isNotBlank() }.toSet()
 
-                // Автозащита: если список номеров назначения пуст, бот выключает отправку пересылки
+                // Auto-protection: if destination numbers list is empty, disable forwarding
                 val effectiveBotEnabled = smsBotEnabled && (cleanTargets.isNotEmpty() || cleanPhones.isNotEmpty() || cleanPin != null)
 
                 scope.launch {

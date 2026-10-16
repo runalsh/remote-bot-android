@@ -1,21 +1,23 @@
-# Инструкция: Создание персонального Reverse Proxy для api.telegram.org на Cloudflare Workers
+[English](CLOUDFLARE_TELEGRAM_REVERSE_PROXY.md) | [Русский](CLOUDFLARE_TELEGRAM_REVERSE_PROXY_RU.md)
 
-Данное руководство объясняет, как за 2 минуты бесплатно создать собственный защищенный прокси-шлюз (Reverse Proxy) для серверов Telegram (`api.telegram.org`) на платформе **Cloudflare Workers** и подключить его в приложении **RemoteBot**.
+# Guide: Creating Personal Reverse Proxy for api.telegram.org on Cloudflare Workers
 
----
-
-## 1. Зачем это нужно?
-
-* **Обход блокировок и DPI**: Если прямой доступ к `api.telegram.org` заблокирован провайдером, замедляется ТСПУ или нестабилен мобильный интернет, Cloudflare Worker работает как прозрачный туннель без необходимости включать VPN или сторонние медленные SOCKS5/HTTP прокси.
-* **Высокая скорость и надежность**: Запросы от смартфона идут в ближайший дата-центр Cloudflare по прямому HTTPS-соединению, а Cloudflare связывается с Telegram по быстрым глобальным магистралям.
-* **100% бесплатно**: До 100 000 запросов в сутки на бесплатном аккаунте Cloudflare (более чем достаточно для личного бота).
-* **Безопасность**: Весь код воркера состоит из 7 строк, работает только в вашем личном аккаунте Cloudflare без посторонних логов.
+This guide explains how to set up your own free, secure reverse proxy for Telegram servers (`api.telegram.org`) using **Cloudflare Workers** in 2 minutes and connect it to **RemoteBot**.
 
 ---
 
-## 2. Исходный код Worker
+## 1. Why is this needed?
 
-Код перенаправляет все входящие HTTP-методы (GET, POST), заголовки и тело запросов (включая загрузку файлов, фото и видео) напрямую на `api.telegram.org`:
+* **Bypass ISP blocks and DPI**: If direct access to `api.telegram.org` is throttled or blocked by your carrier/ISP, Cloudflare Worker acts as a transparent tunnel without requiring heavy VPNs or slow, unreliable third-party SOCKS5/HTTP proxies.
+* **High speed and stability**: Requests from your mobile device connect to the nearest Cloudflare Edge data center over direct HTTPS, and Cloudflare routes to Telegram via high-speed global backbones.
+* **100% Free**: Up to 100,000 requests per day on the free Cloudflare plan (more than enough for personal bot administration).
+* **Security & Privacy**: The worker code is just 7 lines of JavaScript running entirely in your personal Cloudflare account without third-party logging.
+
+---
+
+## 2. Worker Source Code
+
+The code forwards all incoming HTTP methods (GET, POST), headers, and payloads (including file, photo, and video uploads) directly to `api.telegram.org`:
 
 ```javascript
 export default {
@@ -29,21 +31,21 @@ export default {
 
 ---
 
-## 3. Пошаговое создание воркера в Cloudflare (через браузер)
+## 3. Step-by-Step Creation in Cloudflare (via Browser)
 
-### Шаг 1: Создание воркера
-1. Войдите в панель [Cloudflare Dashboard](https://dash.cloudflare.com/) (или зарегистрируйтесь бесплатно).
-2. В левом меню выберите **Compute (Workers & Pages)**.
-3. Нажмите кнопку **Create application** $\to$ вкладка **Workers** $\to$ **Create Worker**.
-4. В поле названия введите понятное имя, например: `my-tg-proxy`.
-5. Нажмите синюю кнопку **Deploy**.
+### Step 1: Create a Worker
+1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/) (or register for free).
+2. In the left navigation, select **Compute (Workers & Pages)**.
+3. Click **Create application** $\to$ **Workers** tab $\to$ **Create Worker**.
+4. Enter an identifier, for example: `my-tg-proxy`.
+5. Click the blue **Deploy** button.
 
 ---
 
-### Шаг 2: Вставка кода
-1. На странице созданного воркера нажмите кнопку **Edit code** (Редактировать код).
-2. В редакторе слева полностью сотрите существующий шаблонный код.
-3. Вставьте следующий код:
+### Step 2: Paste Worker Code
+1. On the created worker page, click **Edit code**.
+2. Delete the default boilerplate code in the left editor pane.
+3. Paste the following snippet:
    ```javascript
    export default {
      async fetch(request) {
@@ -53,54 +55,53 @@ export default {
      },
    };
    ```
-4. В правом верхнем углу нажмите кнопку **Deploy** (или **Save and deploy**).
+4. In the top-right corner, click **Deploy** (or **Save and deploy**).
 
 ---
 
-### Шаг 3: Получение адреса воркера
-1. Вернитесь назад на страницу воркера.
-2. В блоке **Domains & Routes** найдите ссылку на ваш воркер. Она имеет вид:
+### Step 3: Get Your Worker Address
+1. Return to the worker overview page.
+2. In the **Domains & Routes** section, find the link to your worker. It will look like:
    ```text
-   https://my-tg-proxy.ВАШ_СУБДОМЕН.workers.dev
+   https://my-tg-proxy.YOUR_SUBDOMAIN.workers.dev
    ```
-3. Скопируйте этот URL.
+3. Copy this URL.
 
 > [!TIP]
-> **Если провайдер блокирует домены `*.workers.dev`:**  
-> Вы можете бесплатно привязать свой собственный домен во вкладке **Settings** $\to$ **Domains & Routes** $\to$ **Add Custom Domain** (например, `tg.mydomain.com`). Персональные домены в Cloudflare работают без каких-либо блокировок.
+> **If your carrier blocks `*.workers.dev` domains:**  
+> You can bind your own custom domain for free in **Settings** $\to$ **Domains & Routes** $\to$ **Add Custom Domain** (e.g., `tg.mydomain.com`). Custom domains in Cloudflare bypass regional domain blocks seamlessly.
 
 ---
 
-## 4. Куда вставлять адрес в приложении RemoteBot
+## 4. Configuring RemoteBot Application
 
-1. Откройте приложение **RemoteBot** на Android.
-2. Перейдите во вкладку **🤖 Telegram**.
-3. Прокрутите экран вниз до блока:
-   **Кастомный API Root / Прокси (оставьте пустым)**
-4. Вставьте скопированный адрес вашего Cloudflare воркера:
+1. Open the **RemoteBot** app on your Android device.
+2. Navigate to the **🤖 Telegram** tab.
+3. Scroll down to:
+   **Custom API Root / Proxy (leave blank for default)**
+4. Paste your Cloudflare worker address:
    ```text
-   https://my-tg-proxy.ВАШ_СУБДОМЕН.workers.dev
+   https://my-tg-proxy.YOUR_SUBDOMAIN.workers.dev
    ```
-   *(Можно вводить как с `https://`, так и без — приложение автоматически добавит протокол).*
-5. Нажмите кнопку **💾 Сохранить и проверить**.
+   *(You can enter it with or without `https://` — the app will automatically format it).*
+5. Tap **💾 Save & Verify**.
 
 ---
 
-## 5. Как это работает под капотом
+## 5. How It Works Under the Hood
 
-* Приложение RemoteBot обращается к вашему адресу:
-  ```text
-  https://my-tg-proxy.ВАШ_СУБДОМЕН.workers.dev/bot<TOKEN>/getMe
-  ```
-* Cloudflare Worker перехватывает запрос, меняет хост на `api.telegram.org`:
-  ```text
-  https://api.telegram.org/bot<TOKEN>/getMe
-  ```
-* И возвращает ответ от Telegram напрямую в ваше приложение.
-* В статусе проверки в приложении отобразится:
-  ```text
-  ✅ Соединение с Telegram успешно установлено!
-  Бот: @ваш_бот
-  ```
-* В логах приложения (`Logcat` / вкладка Логи) будет зафиксировано использование указанного API Root вместо стандартного адреса Telegram.
-
+* RemoteBot sends requests to your worker URL:
+   ```text
+   https://my-tg-proxy.YOUR_SUBDOMAIN.workers.dev/bot<TOKEN>/getMe
+   ```
+* Cloudflare Worker intercepts the request, rewrites the hostname to `api.telegram.org`:
+   ```text
+   https://api.telegram.org/bot<TOKEN>/getMe
+   ```
+* And returns the response directly back to your application.
+* The app verification status will display:
+   ```text
+   ✅ Connection to Telegram established successfully!
+   Bot: @your_bot
+   ```
+* The app logs (Logcat / Logs tab) will confirm the custom API root is in use instead of the standard Telegram endpoint.

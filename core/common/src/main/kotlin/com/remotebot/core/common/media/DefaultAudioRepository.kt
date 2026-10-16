@@ -131,7 +131,7 @@ class DefaultAudioRepository(
                 return@withContext false
             }
             isRecordingRequested = false
-            // Даем циклу завершить запись штатно
+            // Allow loop to finish recording gracefully
             true
         }
 
@@ -314,7 +314,7 @@ class DefaultAudioRepository(
             try {
                 stopDeviceSearchAlarm()
 
-                // Устанавливаем громкость будильника на максимум
+                // Set alarm volume to maximum
                 val maxAlarmVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_ALARM)
                 audioManager.setStreamVolume(AudioManager.STREAM_ALARM, maxAlarmVol, 0)
 
@@ -413,7 +413,7 @@ class DefaultAudioRepository(
                     val buffer = ShortArray(bufSize / 2)
 
                     while (isActive && _soundConfig.value.isEnabled) {
-                        // Если идет запись звука в файл / голосового сообщения, уступаем микрофон
+                        // Yield microphone if audio recording to file / voice message is active
                         if (currentRecorder != null) {
                             delay(500)
                             continue

@@ -152,7 +152,7 @@ fun TelegramSettingsTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Главный тумблер активности Telegram-бота
+        // Main Telegram bot active toggle
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -199,7 +199,7 @@ fun TelegramSettingsTab(
             }
         }
 
-        // Токен
+        // Token
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(text = "1. Telegram Bot Token", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -334,7 +334,7 @@ fun TelegramSettingsTab(
             }
         }
 
-        // Режим подключения
+        // Connection mode
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(text = "3. Режим приема команд", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -441,7 +441,7 @@ fun TelegramSettingsTab(
                         }
                     }
 
-                    // Легенда статусов
+                    // Status legend
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -526,7 +526,7 @@ fun TelegramSettingsTab(
             }
         }
 
-        // 4. Папка сохранения файлов и медиа
+        // 4. Directory for saving files and media
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -571,7 +571,7 @@ fun TelegramSettingsTab(
             }
         }
 
-        // Кнопка сохранения и проверки
+        // Save and verify button
         Button(
             onClick = {
                 val rawToken = tokenInput.trim().trim('"', '\'')

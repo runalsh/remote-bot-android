@@ -125,7 +125,7 @@ func TestTelegramWebhookValid(t *testing.T) {
 
 	jsonBody := []byte(`{"update_id": 99887766}`)
 
-	// Валидный запрос с правильным secretKey (Legacy/Default)
+	// Valid request with correct secretKey (Legacy/Default)
 	req, _ := http.NewRequest(http.MethodPost, "/tg/fcm_device_token_abc/my_secret_token", bytes.NewBuffer(jsonBody))
 	rr := httptest.NewRecorder()
 	handleTelegramWebhook(rr, req)
@@ -134,7 +134,7 @@ func TestTelegramWebhookValid(t *testing.T) {
 		t.Errorf("Expected 200 OK, got %d (body: %s)", rr.Code, rr.Body.String())
 	}
 
-	// Валидный запрос для HMS
+	// Valid request for HMS
 	reqHMS, _ := http.NewRequest(http.MethodPost, "/tg/hms/hms_device_token_xyz/my_secret_token", bytes.NewBuffer(jsonBody))
 	rrHMS := httptest.NewRecorder()
 	handleTelegramWebhook(rrHMS, reqHMS)
@@ -143,7 +143,7 @@ func TestTelegramWebhookValid(t *testing.T) {
 		t.Errorf("Expected 200 OK for HMS, got %d (body: %s)", rrHMS.Code, rrHMS.Body.String())
 	}
 
-	// Валидный запрос с query-параметром ?provider=hms
+	// Valid request with ?provider=hms query parameter
 	reqQuery, _ := http.NewRequest(http.MethodPost, "/tg/hms_device_token_xyz/my_secret_token?provider=hms", bytes.NewBuffer(jsonBody))
 	rrQuery := httptest.NewRecorder()
 	handleTelegramWebhook(rrQuery, reqQuery)
@@ -152,7 +152,7 @@ func TestTelegramWebhookValid(t *testing.T) {
 		t.Errorf("Expected 200 OK for query provider, got %d (body: %s)", rrQuery.Code, rrQuery.Body.String())
 	}
 
-	// Невалидный secretKey -> 401 Unauthorized
+	// Invalid secretKey -> 401 Unauthorized
 	reqUnauthorized, _ := http.NewRequest(http.MethodPost, "/tg/fcm_device_token_abc/wrong_secret", bytes.NewBuffer(jsonBody))
 	rrUnauth := httptest.NewRecorder()
 	handleTelegramWebhook(rrUnauth, reqUnauthorized)

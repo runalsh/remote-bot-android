@@ -97,7 +97,7 @@ fun AppPickerDialog(
                         .fillMaxWidth()
                         .height(450.dp),
             ) {
-                // Поиск
+                // Search
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -108,7 +108,7 @@ fun AppPickerDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Переключатель "Показывать системные приложения"
+                // "Show system apps" switch
                 Row(
                     modifier =
                         Modifier
@@ -129,7 +129,7 @@ fun AppPickerDialog(
 
                 Spacer(modifier = Modifier.height(6.dp))
 
-                // Кнопки быстрого выбора
+                // Quick selection buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),

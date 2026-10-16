@@ -54,7 +54,7 @@ fun <T> SegmentedSlider(
             label = "segmented_slider_indicator",
         )
 
-        // Плавающий бегунок-слайдер
+        // Floating slider thumb
         Box(
             modifier =
                 Modifier
@@ -66,7 +66,7 @@ fun <T> SegmentedSlider(
                     .background(MaterialTheme.colorScheme.primary),
         )
 
-        // Варианты выбора
+        // Selection options
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,

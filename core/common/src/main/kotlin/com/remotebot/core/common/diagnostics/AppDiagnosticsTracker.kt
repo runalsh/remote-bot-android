@@ -13,9 +13,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
- * Глобальный трекер метрик работы приложения для инженерного меню DebugTab.
- * Метрики собираются ТОЛЬКО когда режим отладки включен (isDebugModeEnabled == true).
- * Когда режим отладки выключен, вызовы record* мгновенно возвращают управление без аллокаций.
+ * Global application runtime metrics tracker for DebugTab engineering menu.
+ * Metrics are collected ONLY when debug mode is enabled (isDebugModeEnabled == true).
+ * When debug mode is disabled, record* calls return immediately without allocations.
  */
 object AppDiagnosticsTracker {
     private val appStartTimeMs = System.currentTimeMillis()
@@ -52,7 +52,7 @@ object AppDiagnosticsTracker {
     val metricsSnapshot: StateFlow<DebugMetricsSnapshot> = _metricsSnapshot.asStateFlow()
 
     /**
-     * Установка статуса активности отладки (вызывается из UI / репозитория конфига)
+     * Set debug mode active status (invoked from UI / config repository)
      */
     fun setTrackingEnabled(enabled: Boolean) {
         isTrackingActive = enabled
@@ -65,7 +65,7 @@ object AppDiagnosticsTracker {
     fun isTracking(): Boolean = isTrackingActive
 
     /**
-     * Фиксация просыпания приложения
+     * Record application wakeup event
      */
     fun recordWakeup(source: WakeupSource) {
         if (!isTrackingActive) return
@@ -76,7 +76,7 @@ object AppDiagnosticsTracker {
     }
 
     /**
-     * Фиксация сетевого обращения к Push Gateway или Telegram API
+     * Record network request to Push Gateway or Telegram API
      */
     fun recordConnection(
         serverId: String,
@@ -92,7 +92,7 @@ object AppDiagnosticsTracker {
     }
 
     /**
-     * Фиксация неудачной аутентификации
+     * Record failed authentication attempt
      */
     fun recordAuthFailure(
         channel: AuthChannel,
@@ -106,7 +106,7 @@ object AppDiagnosticsTracker {
     }
 
     /**
-     * Очистка истории
+     * Clear event history
      */
     fun clearHistory() {
         wakeupEvents.clear()
@@ -116,7 +116,7 @@ object AppDiagnosticsTracker {
     }
 
     /**
-     * Удаление событий старше 1 часа для предотвращения утечек памяти
+     * Remove events older than 1 hour to prevent memory leaks
      */
     private fun pruneOldEvents(now: Long) {
         val cutoff = now - RETENTION_WINDOW_MS

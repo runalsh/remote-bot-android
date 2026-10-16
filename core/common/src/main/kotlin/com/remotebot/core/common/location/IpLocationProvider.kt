@@ -9,8 +9,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Резервный сетевой IP-геолокатор для определения приблизительных координат устройства,
- * когда недоступны спутники GPS, сотовые вышки и Fused Location Provider.
+ * Fallback network IP locator for approximating device coordinates
+ * when GPS satellites, cell towers, and Fused Location Provider are unavailable.
  */
 object IpLocationProvider {
     private val ENDPOINTS =

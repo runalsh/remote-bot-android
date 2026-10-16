@@ -20,7 +20,7 @@ class DefaultCommandDispatcher(
     }
 
     override suspend fun dispatch(command: IncomingCommand): CommandResult {
-        // 1. Проверка источника и Whitelist
+        // 1. Source and whitelist verification
         when (command.source) {
             CommandSource.TELEGRAM -> {
                 val userId = command.senderId.toLongOrNull()
@@ -38,11 +38,11 @@ class DefaultCommandDispatcher(
                 }
             }
             CommandSource.SMS -> {
-                // SMS авторизация (валидный PIN с любого номера или доверенный номер) выполняется на уровне SMS-обработчика
+                // SMS authorization (valid PIN from any number or trusted sender) is verified at SMS handler level
             }
         }
 
-        // 2. Поиск обработчика
+        // 2. Handler lookup
         val cmdName =
             command.name
                 .lowercase()
@@ -50,7 +50,7 @@ class DefaultCommandDispatcher(
                 .substringBefore("@")
         val handler = handlers[cmdName] ?: return CommandResult.Error("Неизвестная команда: ${command.name}. Введите /help")
 
-        // 3. Исполнение
+        // 3. Execution
         return try {
             handler.execute(command)
         } catch (e: Exception) {

@@ -87,7 +87,7 @@ class DefaultLocationRepository(
     override val shakeDetectorConfig: StateFlow<ShakeDetectorConfig> = shakeDetectorManager.shakeDetectorConfig
     override val shakeEvents: Flow<Unit> = shakeDetectorManager.shakeEvents
 
-    // Live / периодическое отслеживание местоположения
+    // Live / periodic location tracking
     private val _liveTrackingStatus = MutableStateFlow(LiveTrackingStatus())
     override val liveTrackingStatus: StateFlow<LiveTrackingStatus> = _liveTrackingStatus.asStateFlow()
 
@@ -97,7 +97,7 @@ class DefaultLocationRepository(
     private var liveTrackingJob: Job? = null
     private val trackingScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Снимок данных GNSS спутников
+    // GNSS satellite data snapshot
     private data class GnssStatusSnapshot(
         val visibleSatellites: Int = 0,
         val usedInFix: Int = 0,
@@ -120,7 +120,7 @@ class DefaultLocationRepository(
                 val now = System.currentTimeMillis()
                 var bestRecentLocation: Location? = null
 
-                // 1. Проверяем кэш Google Fused Location Provider
+                // 1. Check Google Fused Location Provider cache
                 try {
                     val googleLast = googleFusedClient?.lastLocation?.await()
                     if (googleLast != null) {
@@ -132,7 +132,7 @@ class DefaultLocationRepository(
                 } catch (_: Exception) {
                 }
 
-                // 2. Проверяем кэш Huawei HMS Fused Location Provider
+                // 2. Check Huawei HMS Fused Location Provider cache
                 if (bestRecentLocation == null) {
                     try {
                         val huaweiLast = huaweiFusedClient?.lastLocation?.awaitHuawei()
@@ -146,7 +146,7 @@ class DefaultLocationRepository(
                     }
                 }
 
-                // 3. Проверяем кэш всех системных LocationManager провайдеров
+                // 3. Check cache of all system LocationManager providers
                 val allProviders =
                     try {
                         locationManager.allProviders
@@ -173,7 +173,7 @@ class DefaultLocationRepository(
                     bestRecentLocation = cachedLastLocation
                 }
 
-                // Если есть свежий спутниковый фикс (< 60 сек), возвращаем его сразу
+                // If fresh satellite fix exists (< 60s), return it immediately
                 if (bestRecentLocation != null &&
                     bestRecentLocation.provider == LocationManager.GPS_PROVIDER &&
                     (now - bestRecentLocation.time) < 60_000
@@ -181,7 +181,7 @@ class DefaultLocationRepository(
                     return@runCatching buildLocationData(bestRecentLocation, latestGnssSnapshot)
                 }
 
-                // 4. Пытаемся получить свежий фикс через Google Fused Location Provider Client (getCurrentLocation)
+                // 4. Attempt to get fresh fix via Google Fused Location Provider Client (getCurrentLocation)
                 var fusedFreshLoc: Location? = null
                 try {
                     val cts = CancellationTokenSource()
@@ -198,7 +198,7 @@ class DefaultLocationRepository(
                         b.putString("fused_engine", "google")
                         fusedFreshLoc.extras = b
                         cachedLastLocation = fusedFreshLoc
-                        // Если точность отличная (<= 50м) или это прямой GPS, сразу возвращаем
+                        // If accuracy is high (<= 50m) or direct GPS, return immediately
                         if (fusedFreshLoc.accuracy <= 50f || fusedFreshLoc.provider == LocationManager.GPS_PROVIDER) {
                             return@runCatching buildLocationData(fusedFreshLoc, latestGnssSnapshot)
                         }
@@ -206,7 +206,7 @@ class DefaultLocationRepository(
                 } catch (_: Exception) {
                 }
 
-                // 5. Если Google Fused не дал результат, пробуем Huawei HMS Fused Location Provider Client
+                // 5. If Google Fused gave no result, try Huawei HMS Fused Location Provider Client
                 if (fusedFreshLoc == null && huaweiFusedClient != null) {
                     try {
                         fusedFreshLoc =
@@ -274,7 +274,7 @@ class DefaultLocationRepository(
                 val searchStartTime = System.currentTimeMillis()
                 var candidateLoc: Location? = fusedFreshLoc
 
-                // Запрашиваем свежие координаты с тайм-аутом
+                // Request fresh coordinates with timeout
                 val freshLoc =
                     withTimeoutOrNull(timeoutSeconds * 1000L) {
                         suspendCancellableCoroutine<Location?> { continuation ->
@@ -347,7 +347,7 @@ class DefaultLocationRepository(
                                             cleanupFn()
                                             continuation.resume(loc)
                                         } else {
-                                            // Если пришла точка от сети/fused/criteria:
+                                            // If fix received from network/fused/criteria:
                                             val elapsed = System.currentTimeMillis() - searchStartTime
                                             if ((elapsed >= 2500L || loc.accuracy <= 50f || !hasGps) && continuation.isActive) {
                                                 cleanupFn()
@@ -387,7 +387,7 @@ class DefaultLocationRepository(
                                     locationManager.registerGnssStatusCallback(gnssCallback, handler)
                                 }
 
-                                // 1. Метод оригинального RemoteBot: Criteria requestSingleUpdate (legacy fallback для старых Android)
+                                // 1. Original RemoteBot method: Criteria requestSingleUpdate (legacy fallback for older Android)
                                 @Suppress("DEPRECATION")
                                 val criteria =
                                     Criteria().apply {
@@ -405,7 +405,7 @@ class DefaultLocationRepository(
                                 } catch (_: Exception) {
                                 }
 
-                                // 2. Запрос от всех доступных провайдеров
+                                // 2. Request from all available providers
                                 if (hasGps) {
                                     try {
                                         locationManager.requestLocationUpdates(
@@ -491,11 +491,11 @@ class DefaultLocationRepository(
                         }
                     }
 
-                // Окончательный выбор лучшей точки:
-                // 1. Свежий фикс (freshLoc)
-                // 2. Кандидат из сети/fused/criteria (candidateLoc)
-                // 3. Последняя известная точка (bestRecentLocation)
-                // 4. Резервный сетевой IP-геолокатор
+                // Final selection of the best location:
+                // 1. Fresh fix (freshLoc)
+                // 2. Candidate from network/fused/criteria (candidateLoc)
+                // 3. Last known location (bestRecentLocation)
+                // 4. Fallback network IP locator
                 val resultLoc =
                     freshLoc ?: candidateLoc ?: bestRecentLocation ?: IpLocationProvider.fetchLocation()?.also {
                         AppLogger.i(

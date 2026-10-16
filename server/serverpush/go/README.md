@@ -1,33 +1,35 @@
+[English](README.md) | [Русский](README_RU.md)
+
 # RemoteBot Push Gateway (Go)
 
-Легковесный высокопроизводительный микросервис Webhook $\to$ Push Wakeup Gateway на Go (поддерживает Google FCM и Huawei HMS Push Kit).
+Lightweight, high-performance Webhook $\to$ Push Wakeup Gateway microservice written in Go (supporting both Google FCM and Huawei HMS Push Kit).
 
-## Переменные окружения
-* `PORT` — порт HTTP сервера (по умолчанию `8080`).
-* `PUSH_GATEWAY_SECRET` — секретный ключ для авторизации вебхуков (пароль шлюза).
+## Environment Variables
+* `PORT` — HTTP server listening port (default: `8080`).
+* `PUSH_GATEWAY_SECRET` — secret key for webhook authentication.
 
-### Для Google Firebase (FCM):
-* `FIREBASE_SERVICE_ACCOUNT` — JSON сервисного аккаунта (FCM v1).
-* `GOOGLE_APPLICATION_CREDENTIALS` — альтернативно: путь к файлу `serviceAccount.json`.
-* `FCM_LEGACY_SERVER_KEY` — ключ сервера Firebase Legacy (опциональный фоллбэк).
+### For Google Firebase (FCM):
+* `FIREBASE_SERVICE_ACCOUNT` — service account JSON string (FCM v1).
+* `GOOGLE_APPLICATION_CREDENTIALS` — alternatively: path to `serviceAccount.json` file.
+* `FCM_LEGACY_SERVER_KEY` — Firebase Legacy server key (optional fallback).
 
-### Для Huawei HMS Push:
-* `HUAWEI_APP_ID` — идентификатор приложения из `agconnect-services.json`.
-* `HUAWEI_CLIENT_ID` — идентификатор клиента (обычно равен `HUAWEI_APP_ID`).
-* `HUAWEI_CLIENT_SECRET` — секрет из `agconnect-services.json`.
+### For Huawei HMS Push:
+* `HUAWEI_APP_ID` — Application ID from `agconnect-services.json`.
+* `HUAWEI_CLIENT_ID` — Client ID (usually identical to `HUAWEI_APP_ID`).
+* `HUAWEI_CLIENT_SECRET` — Client secret from `agconnect-services.json`.
 
-## Маршруты
-* `POST /tg/:token/:secretKey` — автовыбор провайдера (или через `?provider=hms`/`fcm`).
-* `POST /tg/fcm/:fcmToken/:secretKey` — доставка через Google FCM.
-* `POST /tg/hms/:hmsToken/:secretKey` — доставка через Huawei Push Kit.
-* `GET /health` — проверка статуса готовности (`{"status":"healthy","fcm":true,"hms":true}`).
+## Endpoints
+* `POST /tg/:token/:secretKey` — automatic provider selection (or via query `?provider=hms`/`fcm`).
+* `POST /tg/fcm/:fcmToken/:secretKey` — delivery via Google FCM.
+* `POST /tg/hms/:hmsToken/:secretKey` — delivery via Huawei Push Kit.
+* `GET /health` — healthcheck endpoint (`{"status":"healthy","fcm":true,"hms":true}`).
 
-## Запуск
+## Running
 ```bash
 go run main.go
 ```
 
-## Тесты
+## Running Tests
 ```bash
 go test -v ./...
 ```

@@ -1,110 +1,111 @@
-# Инструкция: Как получить свой Huawei HMS конфиг (`agconnect-services.json`) для Remote Bot
+[English](HMS_SETUP.md) | [Русский](HMS_SETUP_RU.md)
 
-Данная инструкция описывает пошаговое создание проекта в Huawei AppGallery Connect (AGC) и получение файла конфигурации `agconnect-services.json` для работы функции **HMS Push Wakeup** (пробуждение бота через push-сообщения Huawei Mobile Services).
+# Guide: How to Get Your Huawei HMS Configuration (`agconnect-services.json`) for Remote Bot
 
----
-
-## 1. Регистрация и вход в AppGallery Connect
-
-1. Перейдите на портал разработчиков Huawei: [Huawei Developers](https://developer.huawei.com/consumer/en/) (или [AppGallery Connect](https://developer.huawei.com/consumer/en/service/josp/agc/index.html)).
-2. Зарегистрируйтесь или войдите под своим HUAWEI ID аккаунтом.
-3. Откройте панель управления **AppGallery Connect** и выберите раздел **«Мои проекты» (My Projects)**.
+This guide provides step-by-step instructions for creating a project in Huawei AppGallery Connect (AGC) and obtaining the `agconnect-services.json` configuration file required for **HMS Push Wakeup** (waking up the bot via Huawei Mobile Services push notifications).
 
 ---
 
-## 2. Создание проекта и добавление приложения
+## 1. Registration and Sign-in to AppGallery Connect
 
-1. Нажмите кнопку **«Добавить проект» (Add project)** и укажите название (например, `RemoteBot`).
-2. Внутри созданного проекта нажмите **«Добавить приложение» (Add app)**:
-   * **Тип платформы (Platform)**: `Android`
-   * **Тип устройства (Device)**: `Phone` (Мобильный телефон)
-   * **Название приложения (App name)**: `Remote Bot`
-   * **Имя пакета (Package name)**:
+1. Go to the Huawei Developers portal: [Huawei Developers](https://developer.huawei.com/consumer/en/) (or [AppGallery Connect](https://developer.huawei.com/consumer/en/service/josp/agc/index.html)).
+2. Register or log in with your HUAWEI ID account.
+3. Open the **AppGallery Connect** console and select **My Projects**.
+
+---
+
+## 2. Creating a Project and Adding an App
+
+1. Click **Add project** and enter a project name (e.g., `RemoteBot`).
+2. Inside the created project, click **Add app**:
+   * **Platform**: `Android`
+   * **Device**: `Phone`
+   * **App name**: `Remote Bot`
+   * **Package name**:
      ```text
      com.remotebot.app
      ```
      > [!IMPORTANT]
-     > Имя пакета должно **в точности совпадать** с `com.remotebot.app` (пакет нашего приложения).
-   * **Категория приложения (App category)**: `App` (Приложение).
-   * **Язык по умолчанию (Default language)**: `Russian` (или любой на выбор).
-3. Нажмите **ОК**.
+     > The package name must **exactly match** `com.remotebot.app` (our application package).
+   * **App category**: `App`.
+   * **Default language**: `Russian` (or any language of your choice).
+3. Click **OK**.
 
 ---
 
-## 3. Включение Push Kit в службах проекта
+## 3. Enabling Push Kit in Project Services
 
-1. В левом боковом меню проекта выберите **Manage APIs** (Управление API).
-2. Найдите в списке службу **Push Kit** и переведите тумблер в положение **Включено (Enabled)**.
-3. В левом меню перейдите в подраздел **Push Kit** $\to$ **Enable Push Service** (Включить службу Push) и подтвердите активацию.
+1. In the left sidebar of the project, select **Manage APIs**.
+2. Locate **Push Kit** in the list and toggle the switch to **Enabled**.
+3. In the left navigation, go to **Push Kit** $\to$ **Enable Push Service** and confirm the activation.
 
 ---
 
-## 4. Добавление SHA-256 отпечатка ключа (Критически важно!)
+## 4. Adding SHA-256 Certificate Fingerprint (Critically Important!)
 
 > [!WARNING]
-> В отличие от Firebase, Huawei **обязательно** требует добавления отпечатка SHA-256 сертификата подписи APK. Если этого не сделать, SDK вернет ошибку `6003: CERT_FINGERPRINT_EMPTY` или `907135702`.
+> Unlike Firebase, Huawei **strictly requires** adding the SHA-256 fingerprint of your APK signing certificate. Without it, the SDK will fail with error `6003: CERT_FINGERPRINT_EMPTY` or `907135702`.
 
-1. **Скопируйте отпечаток подписи вашего APK**:
-   * **Для боевого Release APK (ключ `remotebot` / `release.jks`)**:
+1. **Copy the SHA-256 fingerprint of your APK signature**:
+   * **For Production Release APK (`remotebot` / `release.jks` key)**:
      ```text
      9F:1B:55:4A:BA:2B:E9:FA:43:6A:FC:36:A4:BF:D9:CD:93:6A:11:19:2D:5C:A3:D4:F0:B1:20:5B:D7:D4:6F:CC
      ```
-   * **Для Debug APK (стандартный `debug.keystore`)**:
+   * **For Debug APK (standard `debug.keystore`)**:
      ```text
      79:80:EC:EB:4A:F2:72:6B:FF:C2:89:6D:88:9D:B7:8D:11:8E:E6:FD:D3:10:66:E6:2D:68:A3:D4:9C:2C:CF:EC
      ```
    > [!TIP]
-   > В консоли Huawei AppGallery Connect можно добавить **оба** отпечатка (кнопка `+`), чтобы пуши доходили и до Release APK, и до Debug-версий при разработке.
-   * **Если собирали сами со своим ключом подписи**:
-     * Из debug keystore:
+   > In Huawei AppGallery Connect console you can add **both** fingerprints (using the `+` button), so push notifications work for both Release APK and Debug versions during development.
+   * **If you built with your own signing key**:
+     * From debug keystore:
        ```bash
        keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android | grep "SHA256:"
        ```
-     * Из готового Release APK (пароль от хранилища не требуется):
+     * From existing Release APK (no keystore password required):
        ```bash
        apksigner verify --print-certs app-release.apk | grep "SHA-256"
        ```
-     * Из файла Release Keystore (`.jks` / `.keystore`):
+     * From Release Keystore file (`.jks` / `.keystore`):
        ```bash
        keytool -list -v -keystore /path/to/release.jks -alias your_alias | grep "SHA256:"
        ```
-2. В консоли AppGallery Connect перейдите в **Project Settings** (Настройки проекта) $\to$ вкладка **General Information** (Общие сведения).
-3. Прокрутите страницу вниз до блока **App Information** (Информация о приложении).
-4. Найдите строку **SHA-256 certificate fingerprint** (Сертификат SHA-256).
-5. Нажмите иконку **+** (или галочку) и вставьте ваш SHA-256 отпечаток.
-6. Нажмите **Сохранить** (галочка подтверждения).
+2. In AppGallery Connect, go to **Project Settings** $\to$ **General Information** tab.
+3. Scroll down to the **App Information** section.
+4. Locate the **SHA-256 certificate fingerprint** field.
+5. Click the **+** icon (or checkmark) and paste your SHA-256 fingerprint.
+6. Click **Save**.
 
 ---
 
-## 5. Скачивание `agconnect-services.json`
+## 5. Downloading `agconnect-services.json`
 
-1. На той же странице **Project Settings** $\to$ **General Information** в блоке **App Information** найдите кнопку:
-   **«agconnect-services.json»** (кнопка скачивания файла конфигурации).
-2. Скачайте файл `agconnect-services.json` на компьютер или телефон.
-
----
-
-## 6. Загрузка конфигурации в приложение Remote Bot
-
-1. Откройте приложение **Remote Bot** на смартфоне.
-2. В левом боковом меню (NavigationRail) перейдите во вкладку **🔔 Push**.
-3. В верхнем блоке выбора провайдера выберите **🦅 Huawei HMS** (или **⚡ Гибридный**).
-4. Загрузите конфигурацию одним из двух способов:
-   * **Способ А (Файл)**: Нажмите **«📁 Выбрать файл»** и выберите скачанный `agconnect-services.json`.
-   * **Способ Б (Текст)**: Скопируйте текст из `agconnect-services.json` в буфер обмена и нажмите кнопку **«📋 Из буфера»**.
-5. Нажмите кнопку **«⚡ Применить и инициализировать HMS»**.
-6. Приложение распарсит параметры (`app_id`, `client_id`, `api_key`), инициализирует `AGConnectInstance` и запросит **HMS Device Token**:
-   * Зеленый статус: `✅ Huawei HMS готов! Токен: ...`
-   * Отобразится карточка с токеном устройства и кнопка быстрого копирования в буфер обмена.
+1. On the same **Project Settings** $\to$ **General Information** page under **App Information**, click:
+   **agconnect-services.json** (download configuration button).
+2. Save the `agconnect-services.json` file to your computer or phone.
 
 ---
 
-## 7. Решение возможных проблем
+## 6. Importing Configuration into the Remote Bot App
 
-| Код / Ошибка | Причина | Решение |
+1. Open the **Remote Bot** app on your phone.
+2. In the side navigation menu (NavigationRail), select the **🔔 Push** tab.
+3. In the provider selection card, choose **🦅 Huawei HMS** (or **⚡ Hybrid**).
+4. Load the configuration using one of two methods:
+   * **Method A (File)**: Tap **📁 Choose file** and select the downloaded `agconnect-services.json`.
+   * **Method B (Clipboard)**: Copy the contents of `agconnect-services.json` to the clipboard and tap **📋 From clipboard**.
+5. Tap **⚡ Apply and Initialize HMS**.
+6. The app will parse parameters (`app_id`, `client_id`, `api_key`), initialize `AGConnectInstance`, and request an **HMS Device Token**:
+   * Green status: `✅ Huawei HMS ready! Token: ...`
+   * A card will appear displaying your device token with a copy to clipboard button.
+
+---
+
+## 7. Troubleshooting
+
+| Code / Error | Cause | Solution |
 | :--- | :--- | :--- |
-| `6003: CERT_FINGERPRINT_EMPTY` | В консоли AGC не указан SHA-256 отпечаток ключа подписи | Добавьте SHA-256 вашего `debug.keystore` (или release-ключа) в AGC Console по шагу 4, скачайте обновленный JSON. |
-| `907135702` | Несоответствие SHA-256 отпечатка или имени пакета | Проверьте, что в AGC указан именно пакет `com.remotebot.app` и актуальный SHA-256 ключа, которым подписан установленный APK. |
-| `HMS Core is not available` | На смартфоне другого вендора (Xiaomi, Samsung) не установлена служба HMS Core | Установите приложение **HMS Core** (`com.huawei.hwid`) из Huawei AppGallery или используйте Google FCM. |
-| `Токен пуст (null)` | Служба Push Kit выключена в проекте | Зайдите в AGC $\to$ Manage APIs и убедитесь, что тумблер **Push Kit** включен (Шаг 3). |
-
+| `6003: CERT_FINGERPRINT_EMPTY` | SHA-256 fingerprint is not configured in AGC console | Add the SHA-256 of your `debug.keystore` (or release key) in AGC Console (Step 4), then download the updated JSON. |
+| `907135702` | Mismatch of SHA-256 fingerprint or package name | Verify that the package name in AGC is exactly `com.remotebot.app` and the SHA-256 matches the key used to sign the installed APK. |
+| `HMS Core is not available` | HMS Core service is not installed on non-Huawei devices | Install **HMS Core** (`com.huawei.hwid`) from Huawei AppGallery or switch to Google FCM. |
+| `Token is empty (null)` | Push Kit service is disabled in the project | Open AGC $\to$ Manage APIs and ensure the **Push Kit** toggle is enabled (Step 3). |

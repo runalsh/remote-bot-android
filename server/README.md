@@ -1,25 +1,27 @@
-# Серверные шлюзы RemoteBot (`server/`)
+[English](README.md) | [Русский](README_RU.md)
 
-Данная директория содержит инфраструктурные серверные компоненты RemoteBot, обеспечивающие:
-1. **Push Gateway (`serverpush/`)** — 100% надежное пробуждение устройства из глубокого сна (Doze Mode) через Push-уведомления (Google FCM и Huawei HMS) при поступлении входящих сообщений в Telegram-бот.
-2. **API Reverse Proxy (`serverapi/`)** — прозрачное обратное проксирование запросов к `api.telegram.org` для бесперебойной работы приложения в условиях DPI, блокировок или региональных ограничений.
+# RemoteBot Server Gateways (`server/`)
+
+This directory contains infrastructure server components of RemoteBot:
+1. **Push Gateway (`serverpush/`)** — 100% reliable wake-up of Android devices from deep sleep (Doze Mode) via push notifications (Google FCM and Huawei HMS) upon incoming Telegram bot updates.
+2. **API Reverse Proxy (`serverapi/`)** — transparent reverse proxy to `api.telegram.org` for uninterrupted app operation during DPI filtering, ISP blocking, or regional restrictions.
 
 ---
 
-## Архитектура работы
+## Architectural Overview
 
 ```
-[ Пользователь в Telegram ]
-            │ (сообщение боту)
-            ▼
-    [ Telegram Bot API ]
-            │ (Webhook)
-            ▼
+[ Telegram User ]
+        │ (sends message to bot)
+        ▼
+[ Telegram Bot API ]
+        │ (Webhook)
+        ▼
 ┌──────────────────────────────────────────────┐
 │  Push Gateway (:8080)                        │
-│  - Валидация подписи и Whitelist             │
-│  - Определение провайдера (FCM v1 / HMS)      │
-│  - Отправка data-only Push (High Priority)    │
+│  - Signature and Whitelist validation        │
+│  - Provider detection (FCM v1 / HMS)         │
+│  - High-priority data-only Push dispatch     │
 └──────────────┬───────────────────────────────┘
                │
       ┌────────┴────────┐
@@ -29,17 +31,17 @@
       └────────┬────────┘
                ▼
 ┌──────────────────────────────────────────────┐
-│  Android-устройство (RemoteBot)               │
-│  - Прием Wakeup Push (WakeLock + Foreground) │
-│  - Забор апдейта и выполнение команды        │
-│  - Отправка ответа через API Proxy           │
+│  Android Device (RemoteBot)                  │
+│  - Receives Wakeup Push (WakeLock/Foreground)│
+│  - Fetches update and executes command       │
+│  - Dispatches response via API Proxy         │
 └──────────────┬───────────────────────────────┘
-               │ (HTTPS запросы)
+               │ (HTTPS requests)
                ▼
 ┌──────────────────────────────────────────────┐
 │  API Reverse Proxy (:8081)                   │
-│  - Проксирует https://api.telegram.org       │
-│  - Скрытие SNI / обход DPI                   │
+│  - Proxies https://api.telegram.org          │
+│  - SNI masking / DPI evasion                 │
 └──────────────┬───────────────────────────────┘
                │
                ▼
@@ -48,42 +50,42 @@
 
 ---
 
-## Варианты реализаций
+## Implementations
 
-Каждый шлюз реализован на 4 технологических стеках. Каждый подкаталог содержит свой независимый `Dockerfile`:
+Each gateway is implemented across 4 technology stacks. Each subdirectory includes its own independent `Dockerfile`:
 
 ### 1. Push Gateway (`serverpush/`)
-| Каталог | Стек | Особенности | Dockerfile |
+| Directory | Stack | Features | Dockerfile |
 |---|---|---|---|
-| [`serverpush/go/`](file:///root/remote-bot-android/server/serverpush/go) | **Go 1.27.2** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический бинарник, SSL-сертификаты, автономный Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/go/Dockerfile) |
-| [`serverpush/python/`](file:///root/remote-bot-android/server/serverpush/python) | **Python 3.14.8** | Zero-dependency (чистая стандартная библиотека Python), быстрый запуск без компиляции. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/python/Dockerfile) |
-| [`serverpush/nginx/`](file:///root/remote-bot-android/server/serverpush/nginx) | **OpenResty 1.31.1.1-alpine-slim** | Сверхвысокая производительность Nginx + Lua, кэширование OAuth-токенов в shared memory. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/nginx/Dockerfile) |
-| [`serverpush/cloudflare-worker/`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Serverless Edge-воркер. Бесплатный запуск на инфраструктуре Cloudflare без необходимости арендовать собственный сервер. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker/Dockerfile) |
+| [`serverpush/go/`](serverpush/go) | **Go 1.27.2** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static binary, SSL root certificates, standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverpush/go/Dockerfile) |
+| [`serverpush/python/`](serverpush/python) | **Python 3.14.8** | Zero-dependency (pure Python standard library), instant startup without compilation. | [`Dockerfile`](serverpush/python/Dockerfile) |
+| [`serverpush/nginx/`](serverpush/nginx) | **OpenResty 1.31.1.1-alpine-slim** | Ultra-high throughput Nginx + Lua, shared memory OAuth token caching. | [`Dockerfile`](serverpush/nginx/Dockerfile) |
+| [`serverpush/cloudflare-worker/`](serverpush/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Serverless Edge worker. Free execution on Cloudflare global edge without renting a server. | [`Dockerfile`](serverpush/cloudflare-worker/Dockerfile) |
 
 ### 2. API Reverse Proxy (`serverapi/`)
-| Каталог | Стек | Особенности | Dockerfile |
+| Directory | Stack | Features | Dockerfile |
 |---|---|---|---|
-| [`serverapi/go/`](file:///root/remote-bot-android/server/serverapi/go) | **Go 1.27.2** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический `httputil.ReverseProxy`, стриминг без буферизации, поддержка Long Polling (`getUpdates`), Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/go/Dockerfile) |
-| [`serverapi/python/`](file:///root/remote-bot-android/server/serverapi/python) | **Python 3.14.8** | Легковесный прокси на `http.server` и `urllib`. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/python/Dockerfile) |
-| [`serverapi/nginx/`](file:///root/remote-bot-android/server/serverapi/nginx) | **Nginx 1.30.6-alpine-slim** | Классический production reverse proxy с оптимизированными TLS-буферами и client_max_body_size 50M. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/nginx/Dockerfile) |
-| [`serverapi/cloudflare-worker/`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Edge-прокси в один файл JavaScript, работающий через глобальную сеть Cloudflare. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker/Dockerfile) |
+| [`serverapi/go/`](serverapi/go) | **Go 1.27.2** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static `httputil.ReverseProxy`, unbuffered streaming, Long Polling support (`getUpdates`), standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverapi/go/Dockerfile) |
+| [`serverapi/python/`](serverapi/python) | **Python 3.14.8** | Lightweight proxy based on `http.server` and `urllib`. | [`Dockerfile`](serverapi/python/Dockerfile) |
+| [`serverapi/nginx/`](serverapi/nginx) | **Nginx 1.30.6-alpine-slim** | Classic production reverse proxy with optimized TLS buffers and `client_max_body_size 50M`. | [`Dockerfile`](serverapi/nginx/Dockerfile) |
+| [`serverapi/cloudflare-worker/`](serverapi/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Single-file JavaScript edge proxy routed via Cloudflare global network. | [`Dockerfile`](serverapi/cloudflare-worker/Dockerfile) |
 
 ---
 
-## Быстрый старт через Docker Compose
+## Quickstart via Docker Compose
 
-Для запуска обоих сервисов в один шаг используйте [`docker-compose.yml`](file:///root/remote-bot-android/server/docker-compose.yml).
+To launch both services in one step, use [`docker-compose.yml`](docker-compose.yml).
 
-### Шаг 1. Подготовка переменных окружения
+### Step 1. Prepare Environment Variables
 
-Скопируйте пример файла конфигурации из `docs/.env.example` в `server/.env`:
+Copy the example configuration file:
 ```bash
 cp ../docs/.env.example .env
 ```
 
-Заполните необходимые параметры в `.env`:
+Configure parameters in `.env`:
 ```ini
-# Порты сервисов
+# Service Ports
 PUSH_GATEWAY_PORT=8080
 API_PROXY_PORT=8081
 
@@ -92,7 +94,7 @@ TELEGRAM_BOT_TOKEN=123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ
 WHITELIST_CHAT_IDS=12345678,87654321
 PUSH_PROVIDER=auto
 
-# Google Firebase Cloud Messaging v1 (JSON сервисного аккаунта)
+# Google Firebase Cloud Messaging v1 (Service Account JSON)
 FIREBASE_SERVICE_ACCOUNT_JSON='{"type":"service_account","project_id":"...","private_key":"...","client_email":"..."}'
 
 # Huawei Push Kit (HMS)
@@ -100,128 +102,123 @@ HUAWEI_APP_ID=105581234
 HUAWEI_CLIENT_ID=105581234
 HUAWEI_CLIENT_SECRET=your_huawei_client_secret
 
-# Хост Telegram API
+# Telegram API Target Host
 TARGET_HOST=api.telegram.org
 
-# Выбор активного профиля (go / python / nginx / npx)
+# Active Profile (go / python / nginx / npx)
 COMPOSE_PROFILES=go
 ```
 
-### Шаг 2. Запуск контейнеров с профилями
+### Step 2. Launch Profile Containers
 
-`docker-compose.yml` содержит 4 изолированных профиля: `go`, `python`, `nginx`, `npx`.
-Вы можете запустить нужный стек через ключ `--profile` или задать `COMPOSE_PROFILES=...` в файле `.env`:
+`docker-compose.yml` provides 4 isolated profiles: `go`, `python`, `nginx`, `npx`.
+Launch your preferred stack with `--profile` or set `COMPOSE_PROFILES=...` in `.env`:
 
 ```bash
-# 1. Стек на Go (рекомендуется для продакшена: push-gateway-go + api-proxy-go)
+# 1. Go Stack (Recommended for production: push-gateway-go + api-proxy-go)
 docker compose --profile go up -d
 
-# 2. Стек на Python (push-gateway-python + api-proxy-python)
+# 2. Python Stack (push-gateway-python + api-proxy-python)
 docker compose --profile python up -d
 
-# 3. Стек на Nginx / OpenResty (push-gateway-nginx + api-proxy-nginx)
+# 3. Nginx / OpenResty Stack (push-gateway-nginx + api-proxy-nginx)
 docker compose --profile nginx up -d
 
-# 4. Стек на Cloudflare Workers / Node (push-gateway-npx + api-proxy-npx)
+# 4. Cloudflare Workers / Node Stack (push-gateway-npx + api-proxy-npx)
 docker compose --profile npx up -d
 ```
 
-### Шаг 3. Проверка работоспособности
+### Step 3. Verify Health
 
-Проверьте статус запущенных контейнеров:
+Check running containers:
 ```bash
 docker compose ps
 ```
 
-Проверьте healthcheck endpoints:
+Verify health endpoints:
 ```bash
-# Push Gateway (порт 8080)
+# Push Gateway (port 8080)
 curl http://localhost:8080/health
-# Ответ: {"status":"healthy","fcm":true,"hms":true}
+# Response: {"status":"healthy","fcm":true,"hms":true}
 
-# API Proxy (порт 8081)
+# API Proxy (port 8081)
 curl http://localhost:8081/health
-# Ответ: {"status":"healthy","target_host":"api.telegram.org"}
+# Response: {"status":"healthy","target_host":"api.telegram.org"}
 ```
 
 ---
 
-## Сборка Docker-образов
+## Building Docker Images
 
-### Сборка всех 8 образов через Makefile
-Из корневой папки проекта:
+### Build All 8 Images via Makefile
+From project root:
 ```bash
-# Сборка всех 8 образов серверов одной командой
+# Build all 8 server images in one command
 make docker-build-all
 
-# Или раздельно:
-make docker-build-push   # 4 варианта Push Gateway (Go, Python, Nginx, NPX)
-make docker-build-api    # 4 варианта API Proxy (Go, Python, Nginx, NPX)
+# Or separately:
+make docker-build-push   # 4 Push Gateway variants (Go, Python, Nginx, NPX)
+make docker-build-api    # 4 API Proxy variants (Go, Python, Nginx, NPX)
 
-# Или через Docker Compose:
+# Or via Docker Compose:
 make docker-compose-build
 ```
 
-### Сборка отдельных Docker-образов вручную:
-Вы можете собрать любую конкретную реализацию под свои нужды:
+### Manual Individual Docker Builds:
 
 ### Push Gateway:
 ```bash
-# Go версия (Pure Scratch, рекомендуется)
+# Go version (Pure Scratch, recommended)
 docker build -t remotebot-push-gateway:go -f serverpush/go/Dockerfile serverpush/go
 
-# Python версия
+# Python version
 docker build -t remotebot-push-gateway:python -f serverpush/python/Dockerfile serverpush/python
 
-# OpenResty Nginx версия
+# OpenResty Nginx version
 docker build -t remotebot-push-gateway:nginx -f serverpush/nginx/Dockerfile serverpush/nginx
 
-# Cloudflare Worker версия (локальный dev-сервер)
+# Cloudflare Worker version (local dev server)
 docker build -t remotebot-push-gateway:cf -f serverpush/cloudflare-worker/Dockerfile serverpush/cloudflare-worker
 ```
 
 ### API Reverse Proxy:
 ```bash
-# Go версия (рекомендуется)
+# Go version (recommended)
 docker build -t remotebot-api-proxy:go -f serverapi/go/Dockerfile serverapi/go
 
-# Python версия
+# Python version
 docker build -t remotebot-api-proxy:python -f serverapi/python/Dockerfile serverapi/python
 
-# Nginx версия
+# Nginx version
 docker build -t remotebot-api-proxy:nginx -f serverapi/nginx/Dockerfile serverapi/nginx
 
-# Cloudflare Worker версия
+# Cloudflare Worker version
 docker build -t remotebot-api-proxy:cf -f serverapi/cloudflare-worker/Dockerfile serverapi/cloudflare-worker
 ```
 
 ---
 
-## Настройка Telegram Webhook на шлюз
+## Register Telegram Webhook to Gateway
 
-Чтобы Telegram направлял входящие сообщения в ваш Push Gateway, зарегистрируйте вебхук:
+To route incoming Telegram updates to your Push Gateway, register the webhook:
 
 ```bash
 curl -F "url=https://your-push-domain.com/tg/auto/<PUSH_TOKEN>/<SECRET_KEY>" \
      https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook
 ```
 
-Где:
-- `your-push-domain.com` — публичный домен вашего шлюза (с валидным SSL-сертификатом от Let's Encrypt / Cloudflare).
-- `auto` — автоматический выбор провайдера (`fcm`, `hms` или `auto`).
-- `<PUSH_TOKEN>` — push-токен устройства, полученный из приложения RemoteBot на вкладке Настройки/Debug.
-- `<SECRET_KEY>` — ваш секретный ключ безопасности (параметр `PUSH_GATEWAY_SECRET`).
+Where:
+- `your-push-domain.com` — public domain of your gateway with valid SSL certificate.
+- `auto` — automatic provider selection (`fcm`, `hms`, or `auto`).
+- `<PUSH_TOKEN>` — device push token obtained from RemoteBot Settings/Debug tab.
+- `<SECRET_KEY>` — your gateway secret security key (`PUSH_GATEWAY_SECRET`).
 
 ---
 
-## Тестирование шлюзов
+## Testing Server Gateways
 
-Из корневой папки проекта [`remote-bot-android/`](file:///root/remote-bot-android):
+From project root [`remote-bot-android/`](../):
 ```bash
-# Запуск тестов всех реализаций Push Gateway (Go, Python, JS)
+# Run all server gateway tests (Push Gateway + API Proxy)
 make test-server
-
-# Запуск тестов всех реализаций API Reverse Proxy (Go, Python, JS)
-make test-serverapi
 ```
-

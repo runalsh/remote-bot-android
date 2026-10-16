@@ -25,7 +25,7 @@ class RemoteBotApplication : Application() {
             modules(appModule)
         }
 
-        // Попытка динамической инициализации Firebase из сохраненной конфигурации
+        // Attempt dynamic Firebase initialization from saved configuration
         try {
             val configRepo: BotConfigRepository = get()
             val config = configRepo.config.value
@@ -44,10 +44,10 @@ class RemoteBotApplication : Application() {
                 FirebaseApp.initializeApp(this)
             }
         } catch (_: Exception) {
-            // Firebase может быть не инициализирован до ввода google-services.json пользователем
+            // Firebase may not be initialized until user provides google-services.json
         }
 
-        // Попытка динамической инициализации Huawei HMS из сохраненной конфигурации
+        // Attempt dynamic Huawei HMS initialization from saved configuration
         try {
             val configRepo: BotConfigRepository = get()
             val config = configRepo.config.value
@@ -65,10 +65,10 @@ class RemoteBotApplication : Application() {
                     .initialize(this, hmsConfig)
             }
         } catch (_: Exception) {
-            // HMS может быть не настроен или устройство не поддерживает HMS
+            // HMS may not be configured or device does not support HMS
         }
 
-        // Инициализация статуса трекера метрик согласно сохраненной конфигурации
+        // Initialize metrics tracker status according to saved configuration
         try {
             val configRepo: BotConfigRepository = get()
             com.remotebot.core.common.diagnostics.AppDiagnosticsTracker.setTrackingEnabled(
@@ -84,7 +84,7 @@ class RemoteBotApplication : Application() {
         } catch (_: Exception) {
         }
 
-        // Асинхронная проверка Root-прав при запуске процесса
+        // Asynchronous Root privileges check on process launch
         val rootProvider: RootStatusProvider = get()
         CoroutineScope(Dispatchers.IO).launch {
             rootProvider.checkRoot(forceRefresh = true)

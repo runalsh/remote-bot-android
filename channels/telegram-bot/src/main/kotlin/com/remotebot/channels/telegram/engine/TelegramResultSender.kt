@@ -109,7 +109,7 @@ class TelegramResultSender(
                     apiClient.sendMessage(chatId, "❌ ${result.errorMsg}")
                 }
                 CommandResult.Acknowledged -> {
-                    // Молчаливое подтверждение
+                    // Silent acknowledgement
                 }
             }
         } catch (e: Exception) {

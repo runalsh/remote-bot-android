@@ -1,82 +1,84 @@
-# Инструкция: Деплой гибридного Push Gateway на Cloudflare Workers
+[English](CLOUDFLARE_WORKER_SETUP.md) | [Русский](CLOUDFLARE_WORKER_SETUP_RU.md)
 
-Данная инструкция описывает пошаговое развертывание бессерверного (serverless) шлюза **RemoteBot Push Gateway** на бесплатной платформе **Cloudflare Workers**. 
+# Guide: Deploying Hybrid Push Gateway to Cloudflare Workers
 
-Шлюз принимает входящие вебхуки от Telegram и мгновенно отправляет пробуждающий **Data Push** (через **Google FCM** или **Huawei HMS Push**) на ваш смартфон. Это позволяет боту мгновенно просыпаться и обрабатывать команды, экономя до 90% заряда батареи.
+This guide provides step-by-step instructions for deploying the serverless **RemoteBot Push Gateway** on the free **Cloudflare Workers** platform.
 
----
-
-## 1. Преимущества Cloudflare Workers
-* **Полностью бесплатно**: до 100 000 входящих запросов в сутки на бесплатном тарифе (хватит на тысячи сообщений в день).
-* **Не нужен свой сервер/VPS**: работает в глобальной сети Cloudflare Edge с задержкой 10–30 мс.
-* **Двойная поддержка**: отправляет пуши на устройства с Google сервисами (FCM) и на устройства Huawei/Honor (HMS).
+The gateway receives incoming webhooks from Telegram and immediately delivers a wake-up **Data Push** (via **Google FCM** or **Huawei HMS Push**) to your smartphone. This allows the bot to wake up instantly to execute commands while saving up to 90% of battery power.
 
 ---
 
-## 2. Способ А: Деплой через веб-интерфейс (Без терминала, прямо из браузера)
+## 1. Benefits of Cloudflare Workers
+* **Completely Free**: up to 100,000 incoming requests per day on the free tier (plenty for thousands of messages daily).
+* **No VPS/Server Needed**: operates directly on Cloudflare Edge global network with 10–30 ms latency.
+* **Dual Provider Support**: delivers pushes to devices with Google Services (FCM) and Huawei/Honor devices (HMS).
 
-### Шаг 1: Создание воркера
-1. Войдите в панель управления [Cloudflare Dashboard](https://dash.cloudflare.com/) (или зарегистрируйтесь бесплатно).
-2. В левом боковом меню перейдите в раздел **Compute (Workers & Pages)**.
-3. Нажмите кнопку **Create application** $\to$ вкладка **Workers** $\to$ нажмите **Create Worker**.
-4. Задайте имя воркера (например, `remotebot-push-gateway`) и нажмите синюю кнопку **Deploy**.
+---
 
-### Шаг 2: Вставка исходного кода
-1. На странице созданного воркера нажмите кнопку **Edit code** (Редактировать код).
-2. Удалите стандартный пример кода в редакторе.
-3. Откройте файл [`worker.js`](../serverpush/cloudflare-worker/worker.js), скопируйте весь его текст целиком и вставьте в редактор Cloudflare.
-4. В правом верхнем углу нажмите **Save and deploy** (Сохранить и развернуть).
+## 2. Method A: Deployment via Web Dashboard (No terminal, directly in browser)
 
-### Шаг 3: Настройка переменных и секретов
-1. Вернитесь на главную страницу воркера и перейдите во вкладку **Settings** $\to$ подраздел **Variables and Secrets** (Переменные и секреты).
-2. Нажмите **Add** для добавления нужных параметров:
+### Step 1: Create a Worker
+1. Log in to [Cloudflare Dashboard](https://dash.cloudflare.com/) (or register for free).
+2. In the left navigation sidebar, go to **Compute (Workers & Pages)**.
+3. Click **Create application** $\to$ **Workers** tab $\to$ click **Create Worker**.
+4. Set a name for the worker (e.g., `remotebot-push-gateway`) and click the blue **Deploy** button.
 
-| Имя переменной | Тип | Описание | Откуда взять |
+### Step 2: Paste Source Code
+1. On the worker page, click **Edit code**.
+2. Delete the default boilerplate code in the editor.
+3. Open [`worker.js`](../server/serverpush/cloudflare-worker/worker.js), copy its entire contents, and paste it into the Cloudflare editor.
+4. In the top-right corner, click **Save and deploy**.
+
+### Step 3: Configure Variables and Secrets
+1. Return to the worker main page and open the **Settings** tab $\to$ **Variables and Secrets**.
+2. Click **Add** to configure the required parameters:
+
+| Variable Name | Type | Description | Where to get it |
 | :--- | :--- | :--- | :--- |
-| `PUSH_GATEWAY_SECRET` | Secret (Зашифровано) | Ваш секретный пароль шлюза для защиты от спама | Придумайте любую надежную строку (например: `my_secret_key_123`) |
-| `FIREBASE_SERVICE_ACCOUNT` | Secret (Зашифровано) | *(Опционально)* Закрытый ключ сервисного аккаунта Firebase | Firebase Console $\to$ Project Settings $\to$ Service accounts $\to$ Generate private key. Вставить текст скачанного `.json` файла целиком |
-| `HUAWEI_APP_ID` | Variable / Secret | *(Опционально)* Идентификатор приложения Huawei | Поле `app_id` из вашего файла `agconnect-services.json` |
-| `HUAWEI_CLIENT_ID` | Variable / Secret | *(Опционально)* Идентификатор клиента Huawei | Поле `client_id` (обычно совпадает с `HUAWEI_APP_ID`) |
-| `HUAWEI_CLIENT_SECRET` | Secret (Зашифровано) | *(Опционально)* Секретный ключ Huawei | Поле `client_secret` из вашего файла `agconnect-services.json` |
+| `PUSH_GATEWAY_SECRET` | Secret (Encrypted) | Your secret gateway password to prevent spam | Any strong secret string (e.g., `my_secret_key_123`) |
+| `FIREBASE_SERVICE_ACCOUNT` | Secret (Encrypted) | *(Optional)* Firebase service account private key | Firebase Console $\to$ Project Settings $\to$ Service accounts $\to$ Generate private key. Paste the entire `.json` file content |
+| `HUAWEI_APP_ID` | Variable / Secret | *(Optional)* Huawei Application ID | The `app_id` field from your `agconnect-services.json` file |
+| `HUAWEI_CLIENT_ID` | Variable / Secret | *(Optional)* Huawei Client ID | The `client_id` field (usually same as `HUAWEI_APP_ID`) |
+| `HUAWEI_CLIENT_SECRET` | Secret (Encrypted) | *(Optional)* Huawei Client Secret | The `client_secret` field from your `agconnect-services.json` file |
 
 > [!TIP]
-> Если вы используете только Google FCM — достаточно указать `FIREBASE_SERVICE_ACCOUNT`.  
-> Если только Huawei — укажите три переменные `HUAWEI_*`.  
-> Если нужны оба провайдера — укажите все переменные, шлюз будет поддерживать обоих.
+> If you only use Google FCM, configuring `FIREBASE_SERVICE_ACCOUNT` is sufficient.  
+> If you only use Huawei, specify the three `HUAWEI_*` variables.  
+> If you want hybrid support, specify all variables; the gateway will handle both.
 
-3. После добавления переменных нажмите **Deploy** для применения изменений.
+3. After adding variables, click **Deploy** to apply changes.
 
 ---
 
-## 3. Способ Б: Деплой через CLI (Wrangler)
+## 3. Method B: Deployment via CLI (Wrangler)
 
-Если у вас установлен Node.js и утилита Wrangler:
+If you have Node.js and Wrangler installed:
 
 ```bash
-cd remote/newapp/serverpush/cloudflare-worker
+cd server/serverpush/cloudflare-worker
 
-# Авторизация в Cloudflare
+# Authenticate with Cloudflare
 npx wrangler login
 
-# Установка секретов
+# Set secrets
 npx wrangler secret put PUSH_GATEWAY_SECRET
-npx wrangler secret put FIREBASE_SERVICE_ACCOUNT   # при использовании FCM
-npx wrangler secret put HUAWEI_CLIENT_SECRET       # при использовании HMS
+npx wrangler secret put FIREBASE_SERVICE_ACCOUNT   # when using FCM
+npx wrangler secret put HUAWEI_CLIENT_SECRET       # when using HMS
 
-# Публикация воркера
+# Deploy worker
 npx wrangler deploy
 ```
 
 ---
 
-## 4. Проверка работоспособности (Healthcheck)
+## 4. Healthcheck Verification
 
-После публикации откройте адрес вашего воркера со страницей `/health` в браузере:
+After deployment, open your worker's `/health` endpoint in your browser:
 ```text
-https://remotebot-push-gateway.<ваш-поддомен>.workers.dev/health
+https://remotebot-push-gateway.<your-subdomain>.workers.dev/health
 ```
 
-Ответ должен быть в формате JSON:
+The response will be in JSON format:
 ```json
 {
   "status": "healthy",
@@ -84,54 +86,53 @@ https://remotebot-push-gateway.<ваш-поддомен>.workers.dev/health
   "hms": true
 }
 ```
-*(Значения `true`/`false` отражают, какие провайдеры настроены и готовы отправлять пуши)*.
+*(The `true`/`false` values reflect which providers are configured and ready to dispatch pushes)*.
 
 ---
 
-## 5. Настройка в приложении Remote Bot
+## 5. App Configuration in Remote Bot
 
-1. Откройте приложение **Remote Bot** на смартфоне.
-2. Перейдите во вкладку **🔔 Push** (в левом меню NavigationRail).
-3. Прокрутите экран вниз до карточки **⚙️ Настройки Push Gateway (Шлюз)**:
-   * **Push Gateway URL**: вставьте URL вашего воркера:
+1. Open the **Remote Bot** app on your phone.
+2. Navigate to the **🔔 Push** tab in the side menu.
+3. Scroll down to the **⚙️ Push Gateway Settings** card:
+   * **Push Gateway URL**: enter your worker URL:
      ```text
-     https://remotebot-push-gateway.<ваш-поддомен>.workers.dev
+     https://remotebot-push-gateway.<your-subdomain>.workers.dev
      ```
-   * **Push Secret Key**: введите тот же секрет, что вы указали в `PUSH_GATEWAY_SECRET` (например, `my_secret_key_123`).
-   * Переведите переключатель **Режим Push Wakeup** во **Включено** (зеленый).
-   * Нажмите кнопку **«Сохранить параметры Push Gateway»**.
+   * **Push Secret Key**: enter the same secret you set in `PUSH_GATEWAY_SECRET` (e.g., `my_secret_key_123`).
+   * Toggle the **Push Wakeup Mode** switch to **Enabled** (green).
+   * Tap **Save Push Gateway Parameters**.
 
 ---
 
-## 6. Как устроен поток вызовов
+## 6. Execution Flow Architecture
 
 ```
-[Пользователь] 
-      │ 
-      ▼ (отправляет команду в Telegram)
+[User] 
+   │ 
+   ▼ (sends command to Telegram)
 [Telegram Bot Servers]
-      │ 
-      ▼ (Webhook POST /tg/:token/:secretKey)
+   │ 
+   ▼ (Webhook POST /tg/:token/:secretKey)
 [Cloudflare Worker Gateway]
-      │ 
-      ▼ (отправляет легкий Data Push "wakeup" ~50 байт)
+   │ 
+   ▼ (dispatches lightweight Data Push "wakeup" ~50 bytes)
 [Google FCM / Huawei HMS]
-      │ 
-      ▼ (пробуждает Android-приложение)
-[Remote Bot Service на смартфоне]
-      │ 
-      ▼ (забирает апдейт из пуша или опрашивает Telegram)
-[Отправка ответа пользователю]
+   │ 
+   ▼ (wakes up Android application)
+[Remote Bot Service on Phone]
+   │ 
+   ▼ (retrieves update from payload or polls Telegram)
+[Sends response back to user]
 ```
 
 ---
 
-## 7. Решение частых проблем
+## 7. Troubleshooting
 
-| Симптом | Причина | Решение |
+| Symptom | Cause | Solution |
 | :--- | :--- | :--- |
-| `HTTP 401 Unauthorized` | Не совпадает секретный ключ | Проверьте, что ключ в приложении Remote Bot точно совпадает с переменной `PUSH_GATEWAY_SECRET` в Cloudflare. |
-| `HTTP 400 Invalid path` | Неверный формат пути | Убедитесь, что Telegram отправляет запросы на `/tg/:token/:secretKey` или `/tg/hms/:token/:secretKey`. |
-| Пуш не доходит на Huawei | Ошибка OAuth Huawei | Проверьте правильность `HUAWEI_APP_ID` и `HUAWEI_CLIENT_SECRET` в секретах воркера. В логах воркера (вкладка Logs) будет видна ошибка от Huawei. |
-| Пуш не доходит на Google | Ошибка Google OAuth | Убедитесь, что `FIREBASE_SERVICE_ACCOUNT` содержит валидный JSON сервисного аккаунта с закрытым ключом `private_key`. |
-
+| `HTTP 401 Unauthorized` | Secret key mismatch | Verify that the secret key in Remote Bot matches `PUSH_GATEWAY_SECRET` in Cloudflare. |
+| `HTTP 400 Invalid path` | Malformed endpoint path | Ensure Telegram webhooks target `/tg/:token/:secretKey` or `/tg/hms/:token/:secretKey`. |
+| Push not delivered to Huawei | Huawei OAuth error | Check `HUAWEI_APP_ID` and `HUAWEI_CLIENT_SECRET` in worker secrets. Inspect worker logs for details. |
+| Push not delivered to Google | Google OAuth error | Ensure `FIREBASE_SERVICE_ACCOUNT` contains valid JSON with a functional `private_key`. |

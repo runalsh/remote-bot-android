@@ -63,7 +63,7 @@ fun PushGatewaySection(
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
             )
 
-            // Настройка политики Retry (повторных попыток)
+            // Retry policy configuration
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
 
             val currentConfig = configRepo.config.collectAsState().value
@@ -80,7 +80,7 @@ fun PushGatewaySection(
                 fontWeight = FontWeight.Bold,
             )
 
-            // Пресеты
+            // Presets
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -117,7 +117,7 @@ fun PushGatewaySection(
                 }
             }
 
-            // Слайдер 1: Попытки
+            // Slider 1: Attempts
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -134,7 +134,7 @@ fun PushGatewaySection(
                 )
             }
 
-            // Слайдер 2: Задержка
+            // Slider 2: Delay
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -43,7 +43,7 @@ fun BackupTab(
     var exportedJson by remember { mutableStateOf("") }
     var importJsonText by remember { mutableStateOf("") }
 
-    // Лаунчер сохранения бэкапа в файл
+    // Launcher for exporting backup to file
     val exportFileLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -84,7 +84,7 @@ fun BackupTab(
                             }
                         }
 
-                        // Обновляем метаданные в медиахранилище, если это файловый путь
+                        // Update media store metadata if this is a file path
                         uri.path?.let { path ->
                             android.media.MediaScannerConnection.scanFile(context, arrayOf(path), arrayOf("application/json"), null)
                         }
@@ -107,7 +107,7 @@ fun BackupTab(
             }
         }
 
-    // Лаунчер открытия бэкапа из файла
+    // Launcher for importing backup from file
     val importFileLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -174,7 +174,7 @@ fun BackupTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Экспорт
+        // Export
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(text = "Экспорт конфигурации", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
@@ -226,7 +226,7 @@ fun BackupTab(
             }
         }
 
-        // Импорт
+        // Import
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(text = "Восстановление конфигурации", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))

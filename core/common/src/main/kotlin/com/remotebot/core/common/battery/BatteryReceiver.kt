@@ -104,7 +104,7 @@ class BatteryReceiver : BroadcastReceiver() {
                 return
             }
 
-            // 1. Проверка изменения статуса зарядки / подключения кабеля
+            // 1. Check charging status / cable connection change
             val chargingStateChanged = lastChargingState != isCharging
             val plugChanged = isCharging && lastPlugType != plugged && plugged > 0
 
@@ -126,17 +126,17 @@ class BatteryReceiver : BroadcastReceiver() {
                 )
             }
 
-            // 2. Проверка низкого заряда (каждые 3% после 20% и ниже)
+            // 2. Check low battery (every 3% below 20%)
             if (!isCharging) {
                 if (batteryPct <= 20) {
                     val prev = lastNotifiedLowLevel
                     if (prev == null) {
-                        // Первое срабатывание при достижении <= 20%
+                        // First trigger upon reaching <= 20%
                         lastNotifiedLowLevel = batteryPct
                         AppLogger.i("BatteryReceiver", "Low battery trigger: $batteryPct% (first <= 20%)")
                         _batteryEvents.tryEmit(BatteryEvent.LowBattery(level = batteryPct, isCharging = false))
                     } else if ((prev - batteryPct) >= 3 || (batteryPct <= 2 && prev > batteryPct)) {
-                        // Разряд минимум на 3% с последнего уведомления или финальные <= 2%
+                        // Discharged by at least 3% since last notification or final <= 2%
                         lastNotifiedLowLevel = batteryPct
                         AppLogger.i("BatteryReceiver", "Low battery trigger: $batteryPct% (drop >= 3% from $prev%)")
                         _batteryEvents.tryEmit(BatteryEvent.LowBattery(level = batteryPct, isCharging = false))

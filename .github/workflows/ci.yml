@@ -32,7 +32,7 @@ defaults:
 
 jobs:
   # ============================================================================
-  # 1. Валидация контрольной суммы Gradle Wrapper (защита от supply-chain атак)
+  # 1. Validate Gradle Wrapper checksum (supply-chain attack protection)
   # ============================================================================
   wrapper-validation:
     name: Validate Gradle Wrapper
@@ -45,7 +45,7 @@ jobs:
         uses: gradle/actions/wrapper-validation@v6
 
   # ============================================================================
-  # 2. Статический анализ и линтеры (ktlint, detekt, Android Lint)
+  # 2. Static analysis and linters (ktlint, detekt, Android Lint)
   # ============================================================================
   lint:
     name: Lint & Code Style
@@ -94,7 +94,7 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # 3. Юнит-тестирование Android & Kotlin Domain
+  # 3. Android & Kotlin Domain unit testing
   # ============================================================================
   unit-tests:
     name: Unit Tests (Android & Domain)
@@ -137,7 +137,7 @@ jobs:
           retention-days: 7
 
   # ============================================================================
-  # 4. Сборка APK (Debug и Release)
+  # 4. Build APKs (Debug and Release)
   # ============================================================================
   build-apk:
     name: Build APK (Debug & Release)
@@ -199,7 +199,7 @@ jobs:
           retention-days: 14
 
   # ============================================================================
-  # 5. Тестирование серверных шлюзов (Go, Python, Cloudflare Workers)
+  # 5. Server gateway testing (Go, Python, Cloudflare Workers)
   # ============================================================================
   server-tests:
     name: Server Gateway Tests
@@ -226,7 +226,7 @@ jobs:
         with:
           node-version: '24.22.0'
 
-      # Go тесты
+      # Go tests
       - name: Test Go Push Gateway
         run: |
           cd server/serverpush/go
@@ -237,7 +237,7 @@ jobs:
           cd server/serverapi/go
           go test -v ./...
 
-      # Python тесты
+      # Python tests
       - name: Test Python Push Gateway
         run: |
           cd server/serverpush/python
@@ -248,7 +248,7 @@ jobs:
           cd server/serverapi/python
           python3 -m unittest -v test_main.py
 
-      # Node.js / Cloudflare Worker тесты
+      # Node.js / Cloudflare Worker tests
       - name: Test Cloudflare Worker Push Gateway
         run: |
           cd server/serverpush/cloudflare-worker

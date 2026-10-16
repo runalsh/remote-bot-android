@@ -177,7 +177,7 @@ fun MainScreen(
         return false
     }
 
-    // Перехват системной кнопки / жеста «Назад» для возврата к предыдущему экрану
+    // Intercept system Back button/gesture to return to previous screen
     BackHandler(enabled = tabHistory.size > 1) {
         navigateBack()
     }
@@ -209,7 +209,7 @@ fun MainScreen(
             }
         }
 
-    // Если режим отладки был отключен, а пользователь находился на вкладке Debug (индекс 11) - возвращаем на "О боте"
+    // If debug mode was disabled while on Debug tab (index 11) - fallback to About tab
     LaunchedEffect(isDebugEnabled) {
         if (!isDebugEnabled && selectedTab >= 11) {
             navigateToTab(10)
@@ -226,7 +226,7 @@ fun MainScreen(
                 .fillMaxSize()
                 .safeDrawingPadding(),
     ) {
-        // Фиксированная панель переключателей экранов (3 ряда)
+        // Fixed screen switcher bar (3 rows)
         M3BrowserTabsHeader(
             tabs = navItems,
             selectedTab = safeSelectedTab,
@@ -234,7 +234,7 @@ fun MainScreen(
             onTabSelected = { navigateToTab(it) },
         )
 
-        // Контейнер с содержимым выбранной вкладки (окна)
+        // Container with active tab content (window)
         Surface(
             modifier =
                 Modifier
@@ -243,7 +243,7 @@ fun MainScreen(
             color = MaterialTheme.colorScheme.surface,
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Заголовок текущего открытого окна режима
+                // Header of currently open mode window
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxWidth(),
@@ -386,9 +386,9 @@ private fun M3BrowserTabsHeader(
     isServiceRunning: Boolean = false,
     onTabSelected: (Int) -> Unit,
 ) {
-    // Ряд 1 (4): Старт, Права, Задачи, Telegram
-    // Ряд 2 (4): SMS, Уведомл., Push, Прокси
-    // Ряд 3 (3-4): Логи, Бэкап, О боте, [Debug]
+    // Row 1 (4): Start, Perms, Tasks, Telegram
+    // Row 2 (4): SMS, Notifs, Push, Proxy
+    // Row 3 (3-4): Logs, Backup, About, [Debug]
     val row1Tabs = tabs.take(4)
     val row2Tabs = tabs.drop(4).take(4)
     val row3Tabs = tabs.drop(8)
@@ -406,7 +406,7 @@ private fun M3BrowserTabsHeader(
                     .padding(horizontal = 6.dp, vertical = 6.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            // Ряд 1: 4 кнопки (Старт, Права, Задачи, Telegram)
+            // Row 1: 4 buttons (Start, Perms, Tasks, Telegram)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -430,7 +430,7 @@ private fun M3BrowserTabsHeader(
                 }
             }
 
-            // Ряд 2: 4 кнопки (SMS, Уведомл., Push, Прокси)
+            // Row 2: 4 buttons (SMS, Notifs, Push, Proxy)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -447,7 +447,7 @@ private fun M3BrowserTabsHeader(
                 }
             }
 
-            // Ряд 3: 3-4 кнопки (Логи, Бэкап, О боте, [Debug])
+            // Row 3: 3-4 buttons (Logs, Backup, About, [Debug])
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

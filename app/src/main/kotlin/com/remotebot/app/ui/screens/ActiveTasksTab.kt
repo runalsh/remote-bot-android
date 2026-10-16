@@ -30,7 +30,7 @@ fun ActiveTasksTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Заглавная карточка статуса задач
+        // Header card for task status
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -78,7 +78,7 @@ fun ActiveTasksTab(
             }
         }
 
-        // Список активных операций или пустое состояние
+        // Active operations list or empty state
         if (activeOps.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),

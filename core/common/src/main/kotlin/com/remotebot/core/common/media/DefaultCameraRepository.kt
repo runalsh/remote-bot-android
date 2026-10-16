@@ -250,7 +250,7 @@ class DefaultCameraRepository(
                     val startTime = System.currentTimeMillis()
                     val targetDurationMs = duration * 1000L
 
-                    // Запись видео: поддержка гибкой остановки
+                    // Video recording: graceful stop support
                     var lastProgressSec = 0
                     while (isVideoRecordingRequested && (System.currentTimeMillis() - startTime) < targetDurationMs) {
                         delay(200L)
@@ -263,12 +263,12 @@ class DefaultCameraRepository(
 
                     isVideoRecordingRequested = false
 
-                    // Если запись прервана раньше или завершилась
+                    // If recording stopped early or finished
                     if (outFile.exists() && outFile.length() > 0) {
                         Result.success(outFile)
                     } else {
-                        // Создаем пустой/тестовый mp4 файл если нет активного хардварного энкодера без превью
-                        // Для реальной записи используется MediaRecorder / Camera2
+                        // Create dummy/test mp4 file if no active hardware encoder without preview
+                        // MediaRecorder / Camera2 is used for production recording
                         outFile.createNewFile()
                         Result.success(outFile)
                     }
@@ -334,12 +334,12 @@ class DefaultCameraRepository(
                             delay(2000L) // сканируем кадр каждые 2 секунды
                             if (!isActive) break
 
-                            // Захват кадра с камеры
+                            // Capture frame from camera
                             val photoResult = takePhoto(PhotoParams(lens = CameraLens.BACK, flash = FlashMode.OFF))
                             val photoFile = photoResult.getOrNull()
 
                             if (photoFile != null && photoFile.exists()) {
-                                // Быстрый анализ яркости (downscaled bitmap)
+                                // Quick brightness analysis (downscaled bitmap)
                                 val options =
                                     BitmapFactory.Options().apply {
                                         inSampleSize = 16
@@ -370,7 +370,7 @@ class DefaultCameraRepository(
                                         }
                                         val avgDiffPercent = (diffSum.toDouble() / (sampleGrid * sampleGrid * 255.0)) * 100.0
 
-                                        // Порог срабатывания: при чувствительности 100% порог 5%, при чувствительности 10% порог 50%
+                                        // Trigger threshold: at 100% sensitivity threshold is 5%, at 10% sensitivity threshold is 50%
                                         val thresholdPercent = (105.0 - clampedSensitivity) * 0.45
                                         if (avgDiffPercent >= thresholdPercent) {
                                             val now = System.currentTimeMillis()
@@ -387,21 +387,21 @@ class DefaultCameraRepository(
                                                         .MotionDetectedEvent(photoFile = photoFile),
                                                 )
                                             } else {
-                                                // В рамках периода кулдауна не спамим отправку фото
+                                                // Do not spam photos during cooldown period
                                                 try {
                                                     photoFile.delete()
                                                 } catch (_: Exception) {
                                                 }
                                             }
                                         } else {
-                                            // Движения нет, удаляем временный кадр
+                                            // No motion detected, delete temporary frame
                                             try {
                                                 photoFile.delete()
                                             } catch (_: Exception) {
                                             }
                                         }
                                     } else {
-                                        // Первый опорный кадр, удаляем
+                                        // First reference frame, delete
                                         try {
                                             photoFile.delete()
                                         } catch (_: Exception) {

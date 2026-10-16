@@ -1,77 +1,79 @@
-# Инструкция: Как получить свой Firebase конфиг (`google-services.json`) для Remote Bot
+[English](FIREBASE_SETUP.md) | [Русский](FIREBASE_SETUP_RU.md)
 
-Данная инструкция описывает пошаговое создание личного проекта в Google Firebase и получение файла конфигурации `google-services.json` для работы функции **FCM Push Wakeup** (пробуждение бота через push-сообщения).
+# Guide: How to Get Your Firebase Configuration (`google-services.json`) for Remote Bot
 
----
-
-## 1. Регистрация и создание проекта в Firebase
-
-1. Перейдите в [Firebase Console](https://console.firebase.google.com/) и войдите под вашим Google-аккаунтом.
-2. Нажмите кнопку **«Добавить проект» (Add project)** или **«Создать проект» (Create project)**.
-3. Введите название проекта (например, `MyRemoteBot` или любое произвольное).
-4. Нажмите **Продолжить (Continue)**.
-5. Пункт *«Включить Google Аналитику»*: можно отключить (тумблер выключен) для ускорения создания и приватности, затем нажмите **«Создать проект» (Create project)**.
-6. Дождитесь окончания создания и нажмите **Продолжить**.
+This guide provides step-by-step instructions for creating a personal Google Firebase project and obtaining the `google-services.json` configuration file required for **FCM Push Wakeup** (waking up the bot via push notifications).
 
 ---
 
-## 2. Добавление Android-приложения в проект
+## 1. Registration and Project Creation in Firebase
 
-1. На главном экране панели управления проекта (Project Overview) нажмите на круглую иконку **Android** (добавить приложение).
-2. Заполните обязательные поля:
-   * **Имя пакета Android (Android package name)**:
+1. Navigate to the [Firebase Console](https://console.firebase.google.com/) and sign in with your Google account.
+2. Click **Add project** or **Create project**.
+3. Enter a project name (e.g., `MyRemoteBot` or any custom name).
+4. Click **Continue**.
+5. *Enable Google Analytics*: you can disable it for faster creation and enhanced privacy, then click **Create project**.
+6. Wait for the project creation to finish and click **Continue**.
+
+---
+
+## 2. Adding Android Application to the Project
+
+1. On the Project Overview dashboard, click the round **Android** icon (Add app).
+2. Fill in the required fields:
+   * **Android package name**:
      ```text
      com.remotebot.app
      ```
      > [!IMPORTANT]
-     > Имя пакета должно **в точности совпадать** с `com.remotebot.app` (пакет нашего приложения).
-   * **Псевдоним приложения (App nickname)**: произвольно (например, `Remote Bot`).
-   * **Сертификат подписи отладки SHA-1 (Debug signing certificate SHA-1)**: необязательно для базового получения пушей, можно оставить пустым.
-3. Нажмите синюю кнопку **«Зарегистрировать приложение» (Register app)**.
+     > The package name must **exactly match** `com.remotebot.app` (our application package).
+   * **App nickname**: optional (e.g., `Remote Bot`).
+   * **Debug signing certificate SHA-1**: optional for basic push delivery, can be left blank.
+3. Click the blue **Register app** button.
 
 ---
 
-## 3. Скачивание `google-services.json`
+## 3. Downloading `google-services.json`
 
-1. На следующем шаге («Скачайте файл конфигурации») нажмите кнопку **«Скачать google-services.json» (Download google-services.json)**.
-2. Файл сохранится на ваш компьютер или телефон.
-3. В консоли Firebase нажмите **«Далее» (Next)**, затем еще раз **«Далее»**, и в конце — **«Перейти в консоль» (Continue to console)**.
+1. In the next step ("Download config file"), click **Download google-services.json**.
+2. Save the file to your computer or phone.
+3. In the Firebase console, click **Next**, then **Next** again, and finally click **Continue to console**.
 
 ---
 
-## 4. Включение необходимых Google API (Критически важно!)
+## 4. Enabling Required Google APIs (Critically Important!)
 
-Чтобы регистрация устройства и получение FCM-токена не завершались ошибкой `Firebase Installations Service is unavailable`, включите системные API проекта:
+To ensure device registration and FCM token retrieval do not fail with `Firebase Installations Service is unavailable`, enable the required project APIs:
 
-1. Откройте библиотеку Google Cloud Console для вашего проекта:
+1. Open the Google Cloud Console library for your project:
    * **Firebase Installations API**:
      👉 [https://console.cloud.google.com/apis/library/firebaseinstallations.googleapis.com](https://console.cloud.google.com/apis/library/firebaseinstallations.googleapis.com)
-     *(Выберите вверху созданный проект и нажмите **«Включить» (Enable)**)*.
+     *(Select your project at the top and click **Enable**)*.
    * **Cloud Messaging API**:
      👉 [https://console.cloud.google.com/apis/library/fcm.googleapis.com](https://console.cloud.google.com/apis/library/fcm.googleapis.com)
-     *(Нажмите **«Включить» (Enable)**)*.
+     *(Click **Enable**)*.
 
 ---
 
-## 5. Загрузка конфигурации в приложение Remote Bot
+## 5. Importing Configuration into the Remote Bot App
 
-1. Откройте приложение **Remote Bot** на устройстве.
-2. В боковом меню (NavigationRail) перейдите во вкладку **🔥 FCM**.
-3. Добавьте конфигурацию одним из двух способов:
-   * **Способ А (Файл)**: Нажмите **«📁 Выбрать файл»** и укажите скачанный `google-services.json`.
-   * **Способ Б (Текст)**: Откройте `google-services.json` в любом текстовом редакторе, скопируйте его содержимое в буфер обмена и нажмите кнопку **«📋 Из буфера»**.
-4. Нажмите оранжевую кнопку **«⚡ Применить и инициализировать Firebase»**.
-5. Приложение выполнит парсинг параметров, подключит `FirebaseApp` и запросит **FCM Device Token**:
-   * Зеленый статус: `✅ Firebase успешно инициализирован!`
-   * Отобразится карточка с токеном устройства и кнопкой «📋 Копировать токен».
-   * Данный токен и URL вашего Push Gateway используются для пробуждения бота без постоянного удержания TCP-сокета.
+1. Open the **Remote Bot** app on your device.
+2. In the side navigation menu (NavigationRail), select the **🔥 FCM** tab.
+3. Add the configuration using one of two methods:
+   * **Method A (File)**: Tap **📁 Choose file** and select the downloaded `google-services.json`.
+   * **Method B (Clipboard)**: Open `google-services.json` in any text editor, copy its contents to the clipboard, and tap **📋 From clipboard**.
+4. Tap the orange button **⚡ Apply and Initialize Firebase**.
+5. The application will parse the parameters, initialize `FirebaseApp`, and request an **FCM Device Token**:
+   * Green status: `✅ Firebase initialized successfully!`
+   * A card will appear displaying your device token with a **📋 Copy token** button.
+   * This token and your Push Gateway URL are used to wake up the bot without maintaining a continuous background TCP socket.
 
 ---
 
-## 6. Решение возможных проблем
+## 6. Troubleshooting
 
-| Проблема / Ошибка | Причина | Решение |
+| Issue / Error | Cause | Solution |
 | :--- | :--- | :--- |
-| `Таймаут (12 сек) ожидания Google Play Services / FCM` | Блокировка серверов Google (РКН) или отсутствие Play Services | Включить VPN на устройстве/эмуляторе либо использовать эмулятор с **Google APIs / Google Play**. |
-| `Firebase Installations Service is unavailable` | В Google Cloud не включен API инсталляций | Включить [Firebase Installations API](https://console.cloud.google.com/apis/library/firebaseinstallations.googleapis.com) по инструкции из п. 4. |
-| `Не найден клиент для пакета com.remotebot.app` | При создании приложения в Firebase указан чужой package name | В Firebase Console добавить Android-приложение именно с пакетом `com.remotebot.app` и скачать обновленный JSON. |
+| `Timeout (12 sec) waiting for Google Play Services / FCM` | Google server blocks or missing Play Services | Enable VPN on the device/emulator or use an emulator with **Google APIs / Google Play**. |
+| `Firebase Installations Service is unavailable` | Installations API is not enabled in Google Cloud | Enable the [Firebase Installations API](https://console.cloud.google.com/apis/library/firebaseinstallations.googleapis.com) as described in section 4. |
+| `No client found for package com.remotebot.app` | Wrong package name specified during app creation | In the Firebase Console, add an Android app with the exact package name `com.remotebot.app` and download the updated JSON. |

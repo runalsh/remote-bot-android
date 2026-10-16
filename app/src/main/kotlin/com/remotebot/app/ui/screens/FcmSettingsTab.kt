@@ -49,7 +49,7 @@ fun FcmSettingsTab(
         mutableStateOf(config.pushProvider)
     }
 
-    // Google FCM состояния
+    // Google FCM states
     var googleJsonText by remember(config.googleServicesJson) {
         mutableStateOf(config.googleServicesJson ?: "")
     }
@@ -58,7 +58,7 @@ fun FcmSettingsTab(
     var isFcmSuccess by remember { mutableStateOf(false) }
     var isFcmProcessing by remember { mutableStateOf(false) }
 
-    // Huawei HMS состояния
+    // Huawei HMS states
     var hmsJsonText by remember(config.agconnectServicesJson) {
         mutableStateOf(config.agconnectServicesJson ?: "")
     }
@@ -67,7 +67,7 @@ fun FcmSettingsTab(
     var isHmsSuccess by remember { mutableStateOf(false) }
     var isHmsProcessing by remember { mutableStateOf(false) }
 
-    // Push Gateway состояния
+    // Push Gateway states
     var pushGatewayUrl by remember(config.pushGatewayUrl) {
         mutableStateOf(config.pushGatewayUrl ?: "")
     }
@@ -89,7 +89,7 @@ fun FcmSettingsTab(
         }
     }
 
-    // Лаунчер для google-services.json
+    // Launcher for google-services.json
     val googlePickerLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -109,7 +109,7 @@ fun FcmSettingsTab(
             }
         }
 
-    // Лаунчер для agconnect-services.json
+    // Launcher for agconnect-services.json
     val hmsPickerLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.OpenDocument(),
@@ -137,7 +137,7 @@ fun FcmSettingsTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // ВЕРХ ЭКРАНА: Статус активности и переключатель режима Push Wakeup
+        // TOP: Active status and Push Wakeup mode toggle
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -215,7 +215,7 @@ fun FcmSettingsTab(
             }
         }
 
-        // Карточка выбора Push-провайдера
+        // Push provider selection card
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -242,7 +242,7 @@ fun FcmSettingsTab(
             }
         }
 
-        // Блок Google FCM (отображается при FCM или HYBRID)
+        // Google FCM block (displayed for FCM or HYBRID)
         if (pushProvider == PushProvider.FCM || pushProvider == PushProvider.HYBRID) {
             FcmGoogleSection(
                 context = context,
@@ -262,7 +262,7 @@ fun FcmSettingsTab(
             )
         }
 
-        // Блок Huawei HMS (отображается при HMS или HYBRID)
+        // Huawei HMS block (displayed for HMS or HYBRID)
         if (pushProvider == PushProvider.HMS || pushProvider == PushProvider.HYBRID) {
             HmsHuaweiSection(
                 context = context,
@@ -282,7 +282,7 @@ fun FcmSettingsTab(
             )
         }
 
-        // Одиночный шлюз (для быстрого подключения одного адреса)
+        // Single gateway (for quick connection of one address)
         PushGatewaySection(
             context = context,
             scope = scope,
@@ -296,7 +296,7 @@ fun FcmSettingsTab(
             onConnectionModeChange = { connectionMode = it },
         )
 
-        // Мульти-серверный пул Push-серверов (Failover, Round-Robin, Lowest Latency)
+        // Multi-server push server pool (Failover, Round-Robin, Lowest Latency)
         PushServersPoolCard(
             context = context,
             scope = scope,
@@ -342,7 +342,7 @@ fun PushProviderSegmentedSlider(
             label = "push_slider_indicator",
         )
 
-        // Плавающий бегунок-слайдер
+        // Floating slider thumb
         Box(
             modifier =
                 Modifier
@@ -354,7 +354,7 @@ fun PushProviderSegmentedSlider(
                     .background(MaterialTheme.colorScheme.primary),
         )
 
-        // Варианты выбора
+        // Selection options
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,

@@ -17,9 +17,9 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Менеджер охранного датчика тряски (Shake Detector) на базе аппаратного акселерометра.
- * Реализует алгоритм вычисления модуля вектора ускорения и динамического отклонения
- * от гравитационной константы Земли (RemoteBot 2.2.4).
+ * Hardware accelerometer shake detector manager.
+ * Calculates acceleration vector magnitude and dynamic deviation
+ * from Earth gravity constant (RemoteBot 2.2.4).
  */
 class ShakeDetectorManager(
     context: Context,
@@ -68,10 +68,10 @@ class ShakeDetectorManager(
                     val y = event.values[1].toDouble()
                     val z = event.values[2].toDouble()
 
-                    // Модуль вектора ускорения и отклонение от гравитации Земли (9.80665)
+                    // Acceleration vector magnitude and deviation from Earth gravity (9.80665)
                     val totalG = sqrt(x * x + y * y + z * z)
                     val deltaG = abs(totalG - SensorManager.GRAVITY_EARTH.toDouble())
-                    // Сглаженное динамическое ускорение с учетом предыдущего изменения
+                    // Smoothed dynamic acceleration accounting for previous delta
                     val accelerationScore = deltaG + ((deltaG - lastValue) * 0.9)
                     lastValue = accelerationScore
 

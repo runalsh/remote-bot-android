@@ -115,7 +115,7 @@ fun PermissionsTab(
             list.toTypedArray()
         }
 
-    // Полный список всех возможных runtime-разрешений (стандартные + SMS + звонки)
+    // Full list of all potential runtime permissions (standard + SMS + calls)
     val allRuntimePermissions =
         remember {
             val list =
@@ -194,7 +194,7 @@ fun PermissionsTab(
     val audioMediaLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { refreshTrigger++ }
     val bluetoothLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refreshTrigger++ }
 
-    // 1. Системный доступ (Root и Установка)
+    // 1. System access (Root and installation)
     val rootStatusState by rootProvider.isRootGranted.collectAsState()
     val isRootGranted = rootStatusState == true || Shell.isAppGrantedRoot() == true
 
@@ -262,7 +262,7 @@ fun PermissionsTab(
             isEnabled
         }
 
-    // 2. Конфиденциальные данные и связь
+    // 2. Confidential data and communications
     val isNotifListenerGranted =
         remember(refreshTrigger) {
             val inCompat = NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
@@ -304,7 +304,7 @@ fun PermissionsTab(
             nm?.isNotificationPolicyAccessGranted == true
         }
 
-    // 3. Мультимедиа и сенсоры (Камера, Звук, Локация, Сеть)
+    // 3. Multimedia and sensors (Camera, Audio, Location, Network)
     val isCameraGranted =
         remember(refreshTrigger) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
@@ -537,7 +537,7 @@ fun PermissionsTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Единая карточка мастера запроса всех разрешений наверху экрана
+        // Unified wizard card for requesting all permissions at top of screen
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =

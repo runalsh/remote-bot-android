@@ -29,7 +29,7 @@ class DefaultAppManagerRepository(
     ): List<InstalledApp> =
         withContext(Dispatchers.IO) {
             if (rootStatusProvider.isRootGrantedSync()) {
-                // Разрешаем MIUI/HyperOS OP_GET_INSTALLED_APPS (10008), если заблокировано вендором
+                // Allow MIUI/HyperOS OP_GET_INSTALLED_APPS (10008) if blocked by vendor
                 try {
                     Shell.cmd("appops set ${context.packageName} 10008 allow").exec()
                 } catch (_: Exception) {
@@ -127,7 +127,7 @@ class DefaultAppManagerRepository(
                 }
             }
 
-            // Fallback: если список пуст или из-за ограничений вендора (MIUI) не нашлось пользовательских приложений
+            // Fallback: if list is empty or vendor restrictions (MIUI) hid user apps
             if ((list.isEmpty() || (!includeSystem && list.all { it.isSystemApp })) && rootStatusProvider.isRootGrantedSync()) {
                 val cmd = if (includeSystem) "pm list packages" else "pm list packages -3"
                 val res = Shell.cmd(cmd).exec()
@@ -232,14 +232,14 @@ class DefaultAppManagerRepository(
                     throw IllegalStateException("Тихая установка APK требует Root-прав.")
                 }
 
-                // Копируем во временную системную директорию /data/local/tmp/,
-                // так как PackageManager (SELinux) не имеет доступа к /storage/emulated/0/ в своем пространстве имен
+                // Copy to temporary system directory /data/local/tmp/,
+                // as PackageManager (SELinux) lacks access to /storage/emulated/0/ in its namespace
                 val tmpApkPath = "/data/local/tmp/remotebot_install_${System.currentTimeMillis()}.apk"
                 val copyCmd = "cp -f \"${apkFile.absolutePath}\" \"$tmpApkPath\" && chmod 666 \"$tmpApkPath\""
                 val copyResult = Shell.cmd(copyCmd).exec()
                 val targetInstallPath = if (copyResult.isSuccess && File(tmpApkPath).exists()) tmpApkPath else apkFile.absolutePath
 
-                // Пробуем установку с расширенными флагами (-r замена, -d даунгрейд, -t тестовые/debug, -g права)
+                // Attempt installation with extended flags (-r replace, -d downgrade, -t test/debug, -g grant permissions)
                 val installCommands =
                     listOf(
                         "pm install -r -d -t -g \"$targetInstallPath\"",
@@ -266,7 +266,7 @@ class DefaultAppManagerRepository(
                     }
                 }
 
-                // Очищаем временный APK
+                // Clean up temporary APK
                 Shell.cmd("rm -f \"$tmpApkPath\"").exec()
 
                 if (!installSuccess) {

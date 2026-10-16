@@ -300,7 +300,7 @@ class DeviceRadioCommandsHandler(
     }
 
     // ==========================================
-    // 3. ФОНАРИК (FLASHLIGHT)
+    // 3. FLASHLIGHT
     // ==========================================
     fun isTorchActive(): Boolean = isTorchOn
 
@@ -381,7 +381,7 @@ class DeviceRadioCommandsHandler(
     }
 
     // ==========================================
-    // 4. РЕЖИМ ПОЛЕТА (AIRPLANE MODE) [ТРЕБУЕТ ROOT]
+    // 4. AIRPLANE MODE [REQUIRES ROOT]
     // ==========================================
     private suspend fun handleAirplane(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {
@@ -470,7 +470,7 @@ class DeviceRadioCommandsHandler(
     }
 
     // ==========================================
-    // 5. ТОЧКА ДОСТУПА (HOTSPOT / TETHERING) [ТРЕБУЕТ ROOT]
+    // 5. HOTSPOT / TETHERING [REQUIRES ROOT]
     // ==========================================
     private suspend fun handleHotspot(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {
@@ -568,7 +568,7 @@ class DeviceRadioCommandsHandler(
     }
 
     // ==========================================
-    // 6. МОБИЛЬНАЯ ПЕРЕДАЧА ДАННЫХ (MOBILE DATA) [ТРЕБУЕТ ROOT]
+    // 6. MOBILE DATA [REQUIRES ROOT]
     // ==========================================
     private suspend fun handleMobileData(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {
@@ -655,7 +655,7 @@ class DeviceRadioCommandsHandler(
     }
 
     // ==========================================
-    // 7. ГЕОЛОКАЦИЯ (GPS / LOCATION) [ТРЕБУЕТ ROOT]
+    // 7. GEOLOCATION (GPS / LOCATION) [REQUIRES ROOT]
     // ==========================================
     private suspend fun handleGps(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {

@@ -13,7 +13,7 @@ class RemoteBotAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        // Обработка системных событий доступности (чтение экрана, USSD-диалоги, клики)
+        // Handle accessibility system events (screen reading, USSD dialogs, clicks)
     }
 
     override fun onInterrupt() {

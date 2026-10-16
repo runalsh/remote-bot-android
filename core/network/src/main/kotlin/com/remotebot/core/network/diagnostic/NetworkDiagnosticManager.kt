@@ -26,7 +26,7 @@ class NetworkDiagnosticManager(
     private val okHttpClient: OkHttpClient,
 ) {
     companion object {
-        // Ключевые Telegram DC (Data Centers 1-5)
+        // Key Telegram DCs (Data Centers 1-5)
         val TELEGRAM_DCS =
             listOf(
                 DiagnosticTarget("Telegram DC1 (Miami)", "149.154.175.53", 443),
@@ -42,7 +42,7 @@ class NetworkDiagnosticManager(
     }
 
     /**
-     * Быстрый замер задержки TCP-соединения (Connect handshake) до хоста
+     * Measure TCP connection latency (connect handshake) to host
      */
     suspend fun pingTarget(
         target: DiagnosticTarget,
@@ -63,7 +63,7 @@ class NetworkDiagnosticManager(
         }
 
     /**
-     * Параллельная проверка списка DC и эндпоинтов
+     * Concurrently check list of DCs and endpoints
      */
     suspend fun checkTargets(
         targets: List<DiagnosticTarget>,
@@ -77,7 +77,7 @@ class NetworkDiagnosticManager(
         }
 
     /**
-     * Замер задержки HTTP-запроса через настроенный OkHttpClient (с учетом SOCKS5/WSS прокси)
+     * Measure HTTP request latency via configured OkHttpClient (including SOCKS5/WSS proxy)
      */
     suspend fun checkHttpEndpoint(url: String): DiagnosticResult =
         withContext(Dispatchers.IO) {

@@ -24,11 +24,11 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Пересыльщик телефонных событий (SMS, входящие и пропущенные звонки).
- * Отвечает за:
- * 1. Прием команд через SMS (префикс rb + опциональный PIN).
- * 2. Пересылку SMS в Telegram с инлайн-кнопкой прямого ответа.
- * 3. Дублирование SMS и звонков на резервные сотовые номера (SMS -> SMS, Calls -> SMS).
+ * Telephony event forwarder (SMS, incoming, and missed calls).
+ * Responsible for:
+ * 1. Command reception via SMS (rb prefix + optional PIN).
+ * 2. Forwarding SMS to Telegram with inline direct reply button.
+ * 3. Relaying SMS and calls to backup cellular numbers (SMS -> SMS, Calls -> SMS).
  */
 class TelephonyEventForwarder(
     private val dispatcher: CommandDispatcher,
@@ -38,7 +38,7 @@ class TelephonyEventForwarder(
     private val isRunning: () -> Boolean,
     private val logger: AppLogger?,
 ) {
-    // Скользящее окно таймстемпов пересылки по отправителям: sender -> list of timestamps
+    // Sliding window forwarding timestamps per sender: sender -> list of timestamps
     private val recentForwardTimestampsBySender = ConcurrentHashMap<String, MutableList<Long>>()
 
     private fun isRateLimited(
@@ -59,7 +59,7 @@ class TelephonyEventForwarder(
     }
 
     fun start(scope: CoroutineScope) {
-        // 1. Входящие SMS
+        // 1. Incoming SMS
         scope.launch {
             SmsReceiver.smsEvents.collect { event ->
                 if (!isRunning()) return@collect
@@ -67,7 +67,7 @@ class TelephonyEventForwarder(
             }
         }
 
-        // 2. События звонков
+        // 2. Call events
         scope.launch {
             PhoneCallReceiver.callEvents.collect { event ->
                 if (!isRunning()) return@collect
@@ -85,7 +85,7 @@ class TelephonyEventForwarder(
         var isBotCommand = false
         var commandStr = ""
 
-        // SMS считается командой ТОЛЬКО если начинается с префикса "rb" (регистронезависимо: rb, RB, Rb, rB)
+        // SMS is treated as command ONLY if starting with "rb" prefix (case-insensitive: rb, RB, Rb, rB)
         val prefixRegex = "^(?i)rb(\\s+|/|:|$)(.*)".toRegex()
         val match = prefixRegex.find(text)
         if (match != null) {
@@ -93,7 +93,7 @@ class TelephonyEventForwarder(
             val remainder = match.groupValues[2].trim()
             val content = if (delimiter == "/") "/$remainder" else remainder
 
-            // Режим 1: Валидный PIN + команда с ЛЮБОГО номера (доверенного или нового)
+            // Mode 1: Valid PIN + command from ANY number (trusted or new)
             if (!pin.isNullOrBlank() && content.startsWith(pin)) {
                 val afterPin = content.removePrefix(pin).trim()
                 if (afterPin.isNotEmpty()) {
@@ -104,7 +104,7 @@ class TelephonyEventForwarder(
                     commandStr = "/status"
                 }
             }
-            // Режим 2: Доверенный номер (из белого списка) — ввод PIN НЕ требуется
+            // Mode 2: Trusted number (whitelisted) — PIN NOT required
             else if (isTrustedSender) {
                 if (content.isNotEmpty()) {
                     isBotCommand = true
@@ -114,7 +114,7 @@ class TelephonyEventForwarder(
                     commandStr = "/status"
                 }
             }
-            // Режим 3: Неавторизованный номер или неверный PIN для команды с префиксом rb
+            // Mode 3: Unauthorized number or invalid PIN for command with rb prefix
             else {
                 com.remotebot.core.common.diagnostics.AppDiagnosticsTracker.recordAuthFailure(
                     com.remotebot.domain.model.AuthChannel.SMS,
@@ -174,8 +174,8 @@ class TelephonyEventForwarder(
                 telephonyRepository?.sendSms(event.sender, finalReply, event.simSlot)
             }
         } else {
-            // Пересылка обычного входящего SMS (или неавторизованного) в чат Telegram
-            // Проверка Rate Limit (анти-спам / защита от флуда в минуту)
+            // Forward standard incoming SMS (or unauthorized) to Telegram chat
+            // Check rate limit (anti-spam / per-minute flood protection)
             if (isRateLimited(event.sender, config.forwardRateLimitPerMinute)) {
                 logger?.w(
                     "TelegramEngine",
@@ -212,7 +212,7 @@ class TelephonyEventForwarder(
                 broadcastMessage(msg, keyboard, SubscriptionEventType.SMS)
             }
 
-            // Пересылка входящего SMS на сотовые номера (SMS ➔ SMS)
+            // Forward incoming SMS to cellular numbers (SMS -> SMS)
             val isRbPrefix = match != null || text.startsWith("rb", ignoreCase = true)
             if (!isRbPrefix && config.smsBotEnabled && config.smsForwardSmsEnabled && config.smsForwardTargetNumbers.isNotEmpty()) {
                 val rawForwardText = "SMS от ${event.sender}: ${event.body}".trim()
@@ -223,7 +223,7 @@ class TelephonyEventForwarder(
                         rawForwardText
                     }
                 for (targetNumber in config.smsForwardTargetNumbers) {
-                    // Анти-петля: не пересылаем SMS отправителю обратно на его же номер
+                    // Anti-loop: do not echo SMS back to sender's own number
                     val cleanTarget = targetNumber.filter { it.isDigit() }
                     val cleanSender = event.sender.filter { it.isDigit() }
                     if (cleanTarget.isNotEmpty() && cleanSender.isNotEmpty() && cleanTarget == cleanSender) {
@@ -254,7 +254,7 @@ class TelephonyEventForwarder(
             broadcastMessage(msg, null, SubscriptionEventType.CALLS)
         }
 
-        // Пересылка пропущенных вызовов по сотовому SMS (Missed Call ➔ SMS)
+        // Relay missed calls via cellular SMS (Missed Call -> SMS)
         if (event.type == CallType.MISSED &&
             config.smsBotEnabled &&
             config.smsForwardMissedCallsEnabled &&

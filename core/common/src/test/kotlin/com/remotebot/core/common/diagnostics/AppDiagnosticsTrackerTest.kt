@@ -65,7 +65,7 @@ class AppDiagnosticsTrackerTest {
 
     @Test
     fun testPerServerConnectionStatsSeparateTracking() {
-        // Сервер 1: Push Gateway
+        // Server 1: Push Gateway
         AppDiagnosticsTracker.recordConnection(
             serverId = "gate_1",
             serverName = "EU Gateway",
@@ -85,7 +85,7 @@ class AppDiagnosticsTrackerTest {
             outcome = ConnectionOutcome.TIMEOUT,
         )
 
-        // Сервер 2: Резервный Push Gateway
+        // Server 2: Backup Push Gateway
         AppDiagnosticsTracker.recordConnection(
             serverId = "gate_2",
             serverName = "US Gateway",
@@ -93,7 +93,7 @@ class AppDiagnosticsTrackerTest {
             outcome = ConnectionOutcome.SUCCESS,
         )
 
-        // Сервер 3: Telegram API официальный
+        // Server 3: Official Telegram API
         AppDiagnosticsTracker.recordConnection(
             serverId = "https://api.telegram.org",
             serverName = "api.telegram.org",
@@ -107,7 +107,7 @@ class AppDiagnosticsTrackerTest {
             outcome = ConnectionOutcome.SUCCESS,
         )
 
-        // Сервер 4: Telegram API кастомное зеркало
+        // Server 4: Custom Telegram API mirror
         AppDiagnosticsTracker.recordConnection(
             serverId = "https://tg-mirror.domain",
             serverName = "tg-mirror.domain",

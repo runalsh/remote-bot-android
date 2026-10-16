@@ -114,7 +114,7 @@ fun NotificationsSettingsTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Карточка 0: Режимы и каналы пересылки (Telegram и SMS)
+        // Card 0: Forwarding modes and channels (Telegram and SMS)
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -136,7 +136,7 @@ fun NotificationsSettingsTab(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 1. Входящие SMS
+                // 1. Incoming SMS
                 ForwardingTypeRow(
                     icon = "📨",
                     title = "Входящие SMS",
@@ -155,7 +155,7 @@ fun NotificationsSettingsTab(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-                // 2. Пропущенные звонки
+                // 2. Missed calls
                 ForwardingTypeRow(
                     icon = "📞",
                     title = "Пропущенные звонки",
@@ -174,7 +174,7 @@ fun NotificationsSettingsTab(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-                // 3. Push-уведомления приложений
+                // 3. App push notifications
                 ForwardingTypeRow(
                     icon = "🔔",
                     title = "Push-уведомления приложений",
@@ -193,7 +193,7 @@ fun NotificationsSettingsTab(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-                // 4. Статус зарядки и разрядки
+                // 4. Charging and discharging status
                 ForwardingTypeRow(
                     icon = "⚡",
                     title = "Статус зарядки и питания",
@@ -212,7 +212,7 @@ fun NotificationsSettingsTab(
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
 
-                // 5. Низкий заряд батареи
+                // 5. Low battery
                 ForwardingTypeRow(
                     icon = "🪫",
                     title = "Низкий заряд батареи (≤ 20%)",
@@ -231,7 +231,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Карточка 1: Выбор приложений
+        // Card 1: App selection
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -273,7 +273,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Карточка 2: Стоп-слова (черный список по тексту)
+        // Card 2: Stop-words (text blacklist)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -396,7 +396,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Карточка 3: Защита от дублей (анти-спам таймаут)
+        // Card 3: Duplicate protection (anti-spam timeout)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -453,7 +453,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Карточка 4: Ограничение частоты (Rate Limiting / Защита от флуда и спама)
+        // Card 4: Rate limiting (anti-flood and spam protection)
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -517,7 +517,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Карточка 5: Безопасность и ответы на неавторизованные запросы
+        // Card 5: Security and replies to unauthorized requests
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
@@ -556,7 +556,7 @@ fun NotificationsSettingsTab(
             }
         }
 
-        // Кнопка сохранения
+        // Save button
         Button(
             onClick = {
                 val dedupSeconds = dedupTimeoutInput.toIntOrNull() ?: 15
@@ -628,7 +628,7 @@ private fun ForwardingTypeRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // Чекбокс Telegram
+            // Telegram checkbox
             Surface(
                 modifier =
                     Modifier
@@ -655,7 +655,7 @@ private fun ForwardingTypeRow(
                 }
             }
 
-            // Чекбокс SMS
+            // SMS checkbox
             Surface(
                 modifier =
                     Modifier

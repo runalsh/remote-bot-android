@@ -5,11 +5,11 @@ import java.util.LinkedHashMap
 import java.util.concurrent.atomic.AtomicLong
 
 /**
- * Кэш путей для инлайн-кнопок Telegram.
- * Telegram API имеет строгое ограничение callback_data в 64 байта.
- * Длинные пути в файловой системе Android часто превышают этот лимит.
- * NavigationCache генерирует короткие уникальные токены (например, "1", "2", "3a"),
- * позволяя передавать в callback_data компактные команды вида "/lsi 1" или "/gf 2".
+ * Path cache for Telegram inline buttons.
+ * Telegram API enforces a strict 64-byte limit on callback_data.
+ * Long Android filesystem paths frequently exceed this limit.
+ * NavigationCache generates short unique tokens (e.g., "1", "2", "3a"),
+ * enabling compact callback_data commands such as "/lsi 1" or "/gf 2".
  */
 object NavigationCache {
     private const val MAX_ENTRIES = 2000

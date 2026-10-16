@@ -101,7 +101,7 @@ class DynamicHmsManagerTest {
 
     @Test
     fun `isInitialized returns false when AGConnectInstance is not configured`() {
-        // В JUnit JVM среде без инициализации вызов возвращает false без падения
+        // In uninitialized JUnit JVM environment, call returns false without crashing
         val initialized = DynamicHmsManager.isInitialized()
         assertFalse(initialized, "Без предварительной инициализации должен возвращаться false")
     }

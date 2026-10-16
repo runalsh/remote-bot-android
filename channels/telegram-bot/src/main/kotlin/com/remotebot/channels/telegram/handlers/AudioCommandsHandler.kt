@@ -59,7 +59,7 @@ class AudioCommandsHandler(
     ): CommandResult {
         val firstArg = args.firstOrNull()?.lowercase()
 
-        // 1. Остановка записи
+        // 1. Stop recording
         if (firstArg in listOf("stop", "off", "cancel")) {
             val stopped = audioRepository.stopAudioRecording()
             operationsTracker?.list()?.filter { it.id.startsWith("audio_rec_") }?.forEach {
@@ -75,7 +75,7 @@ class AudioCommandsHandler(
             }
         }
 
-        // 2. Интерактивная панель без аргументов: /rec или /rec panel
+        // 2. Interactive panel without arguments: /rec or /rec panel
         if (args.isEmpty() || firstArg == "panel") {
             val activeOp = operationsTracker?.list()?.firstOrNull { it.id.startsWith("audio_rec_") }
             val statusText =

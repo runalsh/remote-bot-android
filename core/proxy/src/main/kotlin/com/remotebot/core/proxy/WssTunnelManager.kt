@@ -118,7 +118,7 @@ class WssTunnelManager(
                 },
             )
 
-        // Читаем из локального сокета и шлем в WebSocket
+        // Read from local socket and forward to WebSocket
         try {
             val buffer = ByteArray(8192)
             var bytesRead: Int

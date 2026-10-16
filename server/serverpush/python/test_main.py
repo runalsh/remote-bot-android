@@ -17,7 +17,7 @@ class TestPythonPushGateway(unittest.TestCase):
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
         cls.thread.start()
         main.SERVER_SECRET_KEY = "test_secret_123"
-        # Отключаем внешние прокси для локальных тестов
+        # Disable external proxies for local tests
         cls.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
     @classmethod

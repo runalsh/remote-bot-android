@@ -3,7 +3,7 @@ package com.remotebot.domain.model
 import kotlinx.serialization.Serializable
 
 /**
- * Тип источника пробуждения приложения
+ * Application wakeup source type
  */
 @Serializable
 enum class WakeupSource {
@@ -16,7 +16,7 @@ enum class WakeupSource {
 }
 
 /**
- * Тип сетевого соединения / сервиса
+ * Network connection / service type
  */
 @Serializable
 enum class ServerType {
@@ -25,7 +25,7 @@ enum class ServerType {
 }
 
 /**
- * Исход сетевого подключения
+ * Network connection outcome
  */
 @Serializable
 enum class ConnectionOutcome {
@@ -35,7 +35,7 @@ enum class ConnectionOutcome {
 }
 
 /**
- * Канал авторизации
+ * Authorization channel
  */
 @Serializable
 enum class AuthChannel {
@@ -44,7 +44,7 @@ enum class AuthChannel {
 }
 
 /**
- * Статистика подключений для конкретного сервера в заданном окне
+ * Connection statistics for a specific server within a given window
  */
 data class ServerConnectionStats(
     val serverId: String,
@@ -57,7 +57,7 @@ data class ServerConnectionStats(
 )
 
 /**
- * Сводная статистика за конкретное временное окно (5м, 15м, 30м, 1ч, с запуска)
+ * Summary statistics for a specific time window (5m, 15m, 30m, 1h, since startup)
  */
 data class WindowMetricsSummary(
     val windowName: String,
@@ -70,7 +70,7 @@ data class WindowMetricsSummary(
 )
 
 /**
- * Полный снимок аналитики для отображения в DebugTab
+ * Complete analytics snapshot for display in DebugTab
  */
 data class DebugMetricsSnapshot(
     val isTrackingEnabled: Boolean,

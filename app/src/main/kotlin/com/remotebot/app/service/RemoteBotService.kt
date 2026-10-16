@@ -139,7 +139,7 @@ class RemoteBotService : LifecycleService() {
             }
         }
 
-        // Автоматический перезапуск сервиса операционной системой при убийстве по OOM
+        // Automatic service restart by OS if killed by OOM
         return START_STICKY
     }
 

@@ -59,18 +59,18 @@ class TelegramEventForwarder(
 
     fun startObservers(scope: CoroutineScope): Job {
         return scope.launch(Dispatchers.IO) {
-            // 1. Уведомления от приложений
+            // 1. App notifications
             launch {
                 notificationRepository?.notificationEvents?.collect { notif ->
                     if (!isRunning()) return@collect
                     val config = configRepository.config.value
 
-                    // Фильтр 1: Только выбранные приложения (whitelist)
+                    // Filter 1: Selected apps only (whitelist)
                     if (!config.notificationForwardingApps.contains(notif.packageName)) {
                         return@collect
                     }
 
-                    // Фильтр 2: Стоп-слова / ключ для текста (черный список фраз)
+                    // Filter 2: Stop-words / text key (phrase blacklist)
                     val title = notif.title ?: ""
                     val text = notif.text ?: ""
                     val combinedText = "$title $text"
@@ -83,7 +83,7 @@ class TelegramEventForwarder(
                         return@collect
                     }
 
-                    // Фильтр 2.1: Защита от эхо — не пересылать то, что сам бот только что отправил
+                    // Filter 2.1: Echo prevention — do not forward what bot itself just sent
                     val isOwnEcho =
                         recentSentBotMessages.keys().asSequence().any { sentText ->
                             sentText.isNotBlank() && (combinedText.contains(sentText) || sentText.contains(combinedText))
@@ -93,7 +93,7 @@ class TelegramEventForwarder(
                         return@collect
                     }
 
-                    // Фильтр 3: Защита от дубликатов (анти-спам таймаут из настроек)
+                    // Filter 3: Duplicate protection (anti-spam timeout from settings)
                     val dedupTimeoutMs = config.notificationDedupTimeoutSeconds * 1000L
                     if (dedupTimeoutMs > 0) {
                         val dedupKey = "${notif.packageName}|$title|$text"
@@ -139,8 +139,8 @@ class TelegramEventForwarder(
 
                     val keyboardRows = mutableListOf<List<InlineKeyboardButton>>()
 
-                    // 1. Кнопки действий уведомления (например 2FA: Подтвердить / Отклонить, Accept / Reject)
-                    // Доступно только при включенной экспериментальной функции перехвата 2FA
+                    // 1. Notification action buttons (e.g. 2FA: Confirm / Reject, Accept / Reject)
+                    // Available only when experimental 2FA capture is enabled
                     if (config.enable2FaInterception && notif.actions.isNotEmpty()) {
                         val actionButtons =
                             notif.actions.map { act ->
@@ -152,13 +152,13 @@ class TelegramEventForwarder(
                                     }
                                 InlineKeyboardButton(label, callbackData = "notif_act:${notif.id}:${act.index}")
                             }
-                        // Размещаем до 3 кнопок в ряд
+                        // Arrange up to 3 buttons per row
                         actionButtons.chunked(3).forEach { row ->
                             keyboardRows.add(row)
                         }
                     }
 
-                    // 2. Кнопка быстрого ответа текстом для чатов/мессенджеров
+                    // 2. Quick text reply button for chats/messengers
                     if (notif.hasReplyAction) {
                         keyboardRows.add(
                             listOf(
@@ -178,7 +178,7 @@ class TelegramEventForwarder(
                         broadcastMessage(msg, replyMarkup = keyboard, eventType = SubscriptionEventType.NOTIFICATIONS)
                     }
 
-                    // Пересылка push-уведомления по сотовому SMS (Push ➔ SMS)
+                    // Forward push notification via cellular SMS (Push -> SMS)
                     if (config.smsBotEnabled && config.smsForwardNotificationsEnabled && config.smsForwardTargetNumbers.isNotEmpty()) {
                         val rawSmsText = "[${notif.appName}] ${notif.title ?: ""}: ${notif.text ?: ""}".trim()
                         val finalSmsText =
@@ -199,10 +199,10 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 2. Телефонные события (SMS и звонки)
+            // 2. Telephony events (SMS and calls)
             telephonyForwarder.start(this)
 
-            // 4. Датчик тряски (Shake detector)
+            // 4. Shake detector
             launch {
                 var lastShakeAlertTime = 0L
                 locationRepository?.shakeEvents?.collect {
@@ -218,7 +218,7 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 4.1. Периодическое отслеживание местоположения (Live location)
+            // 4.1. Periodic location tracking (Live location)
             launch {
                 locationRepository?.liveLocationUpdates?.collect { loc ->
                     if (!isRunning()) return@collect
@@ -229,7 +229,7 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 4.2. Детектор звука (Sound detector)
+            // 4.2. Sound detector
             launch {
                 var lastSoundAlertTime = 0L
                 audioRepository?.soundEvents?.collect { event ->
@@ -247,7 +247,7 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 5. Детектор движения (Камера)
+            // 5. Motion detector (Camera)
             launch {
                 cameraRepository?.motionEvents?.collect { event ->
                     if (!isRunning()) return@collect
@@ -275,7 +275,7 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 6. Запланированные таймеры
+            // 6. Scheduled timers
             launch {
                 automationRepository?.timerTriggers?.collect { timer ->
                     if (!isRunning()) return@collect
@@ -305,7 +305,7 @@ class TelegramEventForwarder(
                 }
             }
 
-            // 7. События батареи и питания
+            // 7. Battery and power events
             launch {
                 com.remotebot.core.common.battery.BatteryReceiver.batteryEvents.collect { event ->
                     if (!isRunning()) return@collect

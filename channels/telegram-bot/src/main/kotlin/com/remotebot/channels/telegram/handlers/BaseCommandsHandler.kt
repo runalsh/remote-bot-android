@@ -84,7 +84,7 @@ class BaseCommandsHandler(
                 val activeEndpoint = apiClient?.lastActiveEndpointUrl ?: (config?.customApiRoot ?: "https://api.telegram.org")
                 val mode = config?.connectionMode?.name ?: "LONG_POLLING"
 
-                // Проверяем пинг активного Telegram API эндпоинта
+                // Check ping of active Telegram API endpoint
                 val apiDiag = diagnosticManager?.checkHttpEndpoint(activeEndpoint)
                 val apiStatusStr =
                     if (apiDiag != null && apiDiag.isReachable) {

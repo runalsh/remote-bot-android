@@ -125,7 +125,7 @@ android {
                 keyAlias = keyAliasVal
                 keyPassword = keyPasswordVal ?: storePasswordVal
             } else {
-                // Фоллбэк на debug.keystore, если production ключ не настроен
+                // Fallback to debug.keystore if production key is not configured
                 initWith(getByName("debug"))
             }
         }

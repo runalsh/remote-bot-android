@@ -29,7 +29,7 @@ export default {
     }
 
     // Telegram webhook endpoint:
-    // Поддерживаемые маршруты:
+    // Supported routes:
     // - /tg/:token/:secretKey
     // - /tg/fcm/:token/:secretKey
     // - /tg/hms/:token/:secretKey
@@ -56,7 +56,7 @@ export default {
           provider = provQuery.toLowerCase();
         }
       } else if (parts.length === 4) {
-        // /tg/:provider/:token/:secretKey (например /tg/hms/... или /tg/fcm/...)
+        // /tg/:provider/:token/:secretKey (e.g. /tg/hms/... or /tg/fcm/...)
         provider = parts[1].toLowerCase();
         pushToken = parts[2];
         clientSecret = parts[3];
@@ -89,21 +89,21 @@ export default {
         });
       }
 
-      // Определение провайдера отправки:
+      // Determine dispatch push provider:
       const hasHms = !!(env.HUAWEI_APP_ID && env.HUAWEI_CLIENT_SECRET);
       const hasFcm = !!(env.FIREBASE_SERVICE_ACCOUNT || env.FCM_LEGACY_SERVER_KEY);
 
       const targetHms = provider === "hms" || (provider === "auto" && hasHms && !hasFcm);
       const targetFcm = provider === "fcm" || (provider === "auto" && hasFcm);
 
-      // Отправка Huawei HMS Push в фоне
+      // Dispatch Huawei HMS Push in background
       if (targetHms && hasHms) {
         const clientId = env.HUAWEI_CLIENT_ID || env.HUAWEI_APP_ID;
         const promise = sendHmsWakeup(pushToken, updateId, updateJson, env.HUAWEI_APP_ID, clientId, env.HUAWEI_CLIENT_SECRET);
         if (ctx?.waitUntil) ctx.waitUntil(promise);
       }
 
-      // Отправка Google FCM Push в фоне
+      // Dispatch Google FCM Push in background
       if (targetFcm && hasFcm) {
         let promise;
         if (env.FIREBASE_SERVICE_ACCOUNT) {
@@ -114,7 +114,7 @@ export default {
         if (promise && ctx?.waitUntil) ctx.waitUntil(promise);
       }
 
-      // Мгновенный ответ 200 OK серверу Telegram
+      // Immediate 200 OK response to Telegram server
       return new Response(JSON.stringify({ status: "ok" }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
@@ -171,7 +171,7 @@ async function sendHmsWakeup(hmsToken, updateId, updateJson, appId, clientId, cl
 }
 
 /**
- * Получение OAuth 2.0 Bearer Token от Huawei Cloud
+ * Get OAuth 2.0 Bearer Token from Huawei Cloud
  */
 async function getHuaweiOAuthToken(clientId, clientSecret) {
   const now = Math.floor(Date.now() / 1000);

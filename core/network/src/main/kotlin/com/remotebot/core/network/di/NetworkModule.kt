@@ -76,7 +76,7 @@ class DynamicProxySelector(
         sa: SocketAddress?,
         ioe: IOException?,
     ) {
-        // Ошибка подключения через выбранный прокси
+        // Connection error via selected proxy
     }
 }
 

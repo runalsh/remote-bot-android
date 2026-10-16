@@ -50,7 +50,7 @@ fun LogsTab(
         }
 
     Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-        // Верхняя панель: Фильтры уровней + Экспорт/Очистка
+        // Top panel: Level filters + Export/Clear
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -124,8 +124,8 @@ fun LogsTab(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Плитка фильтров: 3 строки
-        // Строка 1: Все
+        // Filter grid: 3 rows
+        // Row 1: All
         val allLevelNames = remember { LogLevel.entries.map { it.name }.toSet() }
         FilterChip(
             selected = enabledLevelNames.size == LogLevel.entries.size,
@@ -151,7 +151,7 @@ fun LogsTab(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Строка 2: ERR, WARN
+        // Row 2: ERR, WARN
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -197,7 +197,7 @@ fun LogsTab(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Строка 3: INFO, DEBUG, TRACE
+        // Row 3: INFO, DEBUG, TRACE
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -262,7 +262,7 @@ fun LogsTab(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Строка 4: Лимит количества записей (50, 100, 250, 500, 1000)
+        // Row 4: Record limit (50, 100, 250, 500, 1000)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp),

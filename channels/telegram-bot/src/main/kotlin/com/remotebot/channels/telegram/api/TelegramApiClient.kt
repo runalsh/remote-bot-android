@@ -38,8 +38,8 @@ class TelegramApiClient(
         private set
 
     /**
-     * Возвращает упорядоченный список базовых URL (API root) согласно выбранной стратегии:
-     * FAILOVER, ROUND_ROBIN или LOWEST_LATENCY.
+     * Returns ordered list of base URLs (API root) according to chosen strategy:
+     * FAILOVER, ROUND_ROBIN, or LOWEST_LATENCY.
      */
     fun getCandidateRoots(): List<String> {
         val cfg = configProvider()
@@ -60,7 +60,7 @@ class TelegramApiClient(
 
         return when (cfg.endpointSelectionStrategy) {
             com.remotebot.domain.model.EndpointSelectionStrategy.FAILOVER -> {
-                // Если был зафиксирован рабочий индекс, ставим его первым, остальные как fallback
+                // If working index is recorded, place it first, others as fallback
                 if (currentEndpointIndex in roots.indices && currentEndpointIndex > 0) {
                     val active = roots[currentEndpointIndex]
                     listOf(active) + roots.filter { it != active }
@@ -89,7 +89,7 @@ class TelegramApiClient(
         get() = getBaseUrlForRoot(getCandidateRoots().first())
 
     /**
-     * Исполнение сетевого запроса к Telegram API с автоматическим переключением эндпоинтов (Failover)
+     * Execute network request to Telegram API with automatic endpoint failover
      */
     suspend fun <T> executeWithFailover(block: suspend (baseUrl: String) -> T): T {
         val roots = getCandidateRoots()
@@ -218,7 +218,7 @@ class TelegramApiClient(
                 return response.ok
             }
 
-            // Если текст длиннее 4000 символов, разбиваем по границам строк
+            // If text exceeds 4000 characters, split along line breaks
             val chunks = splitTextIntoChunks(text, 4000)
             var allOk = true
             for ((index, chunk) in chunks.withIndex()) {

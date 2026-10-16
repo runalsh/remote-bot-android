@@ -72,7 +72,7 @@ fun AboutTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Заголовок и эмблема приложения
+        // Header and application badge
         AppCard(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -111,7 +111,7 @@ fun AboutTab(
             }
         }
 
-        // Карточка 1: Версия приложения и время сборки
+        // Card 1: App version and build time
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -188,7 +188,7 @@ fun AboutTab(
             )
         }
 
-        // Карточка 2: Ссылка на GitHub
+        // Card 2: GitHub repository link
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -246,7 +246,7 @@ fun AboutTab(
             }
         }
 
-        // Карточка 3: Автор и Telegram
+        // Card 3: Author and Telegram
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -318,7 +318,7 @@ fun AboutTab(
             }
         }
 
-        // Карточка 4: Стек технологий и лицензия
+        // Card 4: Tech stack and license
         AppOutlinedCard(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "⚖️ Лицензия & Архитектура",

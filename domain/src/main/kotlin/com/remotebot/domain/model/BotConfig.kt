@@ -61,13 +61,13 @@ data class BotConfig(
     val hmsClientId: String? = null,
     val hmsClientSecret: String? = null,
     val hmsApiKey: String? = null,
-    // Настройки каналов пересылки в Telegram
+    // Telegram forwarding channel settings
     val tgForwardSmsEnabled: Boolean = true, // Пересылка входящих SMS в Telegram
     val tgForwardCallsEnabled: Boolean = true, // Пересылка звонков/пропущенных в Telegram
     val tgForwardNotificationsEnabled: Boolean = true, // Пересылка push-уведомлений в Telegram
     val tgForwardBatteryChargingEnabled: Boolean = true, // Оповещение о статусе зарядки/разрядки в Telegram
     val tgForwardBatteryLowEnabled: Boolean = true, // Оповещение о низком заряде (≤20% каждые 3%) в Telegram
-    // Настройки независимого SMS-бота и пересылки
+    // Independent SMS bot and forwarding settings
     val smsBotEnabled: Boolean = false, // По умолчанию выключен
     val smsForwardTargetNumbers: Set<String> = emptySet(), // Список номеров назначения для пересылки
     val smsForwardSmsEnabled: Boolean = false, // Пересылка входящих SMS на целевые номера

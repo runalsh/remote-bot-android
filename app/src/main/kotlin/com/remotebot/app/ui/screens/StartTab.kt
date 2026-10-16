@@ -89,7 +89,7 @@ fun StartTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Карточка 1: Фоновая служба
+        // Card 1: Background service
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
                 text = "1. Фоновая служба (Foreground Service)",
@@ -133,7 +133,7 @@ fun StartTab(
             }
         }
 
-        // Карточка 2: Шкала привилегий и разрешений
+        // Card 2: Privileges and permissions gauge
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors =
@@ -202,7 +202,7 @@ fun StartTab(
             }
         }
 
-        // Карточка 3: Doze Mode и оптимизация батареи
+        // Card 3: Doze Mode and battery optimization
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(text = "3. Энергосбережение (Doze Mode)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
@@ -232,7 +232,7 @@ fun StartTab(
             }
         }
 
-        // Карточка 4: Root привилегии
+        // Card 4: Root privileges
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(text = "4. Привилегии Root (Superuser)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))

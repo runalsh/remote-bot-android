@@ -10,7 +10,7 @@ import kotlinx.coroutines.tasks.await
 
 object DynamicFirebaseManager {
     /**
-     * Парсинг структуры google-services.json
+     * Parse google-services.json structure
      */
     fun parseGoogleServicesJson(
         jsonString: String,
@@ -18,7 +18,7 @@ object DynamicFirebaseManager {
     ): Result<ParsedFirebaseConfig> = GoogleServicesJsonParser.parse(jsonString, targetPackage)
 
     /**
-     * Динамическая инициализация FirebaseApp в рантайме с пользовательскими параметрами
+     * Dynamically initialize FirebaseApp at runtime with custom parameters
      */
     fun initialize(
         context: Context,
@@ -57,7 +57,7 @@ object DynamicFirebaseManager {
     }
 
     /**
-     * Проверка, инициализирован ли сейчас FirebaseApp
+     * Check if FirebaseApp is currently initialized
      */
     fun isInitialized(): Boolean =
         try {
@@ -68,7 +68,7 @@ object DynamicFirebaseManager {
         }
 
     /**
-     * Проверка доступности Google Play Services на устройстве
+     * Check Google Play Services availability on device
      */
     fun isGooglePlayServicesAvailable(context: Context): Boolean =
         try {
@@ -80,7 +80,7 @@ object DynamicFirebaseManager {
         }
 
     /**
-     * Текстовое описание статуса Google Play Services
+     * Text description of Google Play Services status
      */
     fun getGooglePlayServicesStatus(context: Context): String =
         try {
@@ -96,7 +96,7 @@ object DynamicFirebaseManager {
         }
 
     /**
-     * Получение текущего FCM Push токена устройства
+     * Retrieve current device FCM push token
      */
     suspend fun getFcmToken(
         context: Context? = null,

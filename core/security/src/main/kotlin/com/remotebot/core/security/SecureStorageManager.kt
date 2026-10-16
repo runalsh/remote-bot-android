@@ -8,8 +8,8 @@ import com.google.crypto.tink.aead.AeadConfig
 import com.google.crypto.tink.integration.android.AndroidKeysetManager
 
 /**
- * Менеджер шифрования конфиденциальных данных на базе Google Tink (AES256-GCM).
- * Не использует Keystore EncryptedSharedPreferences, исключая дедлоки на кастомных прошивках (MIUI/HyperOS/OneUI).
+ * Sensitive data encryption manager based on Google Tink (AES256-GCM).
+ * Bypasses Android Keystore EncryptedSharedPreferences to prevent deadlocks on custom ROMs (MIUI/HyperOS/OneUI).
  */
 class SecureStorageManager(
     context: Context,
@@ -47,7 +47,7 @@ class SecureStorageManager(
             val decryptedBytes = aead.decrypt(cipherBytes, null)
             String(decryptedBytes, Charsets.UTF_8)
         } catch (_: Exception) {
-            // Если расшифровать не удалось (например, это старый незашифрованный токен), возвращаем как есть
+            // If decryption fails (e.g. legacy unencrypted token), return as-is
             cipherText
         }
     }

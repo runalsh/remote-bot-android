@@ -428,7 +428,7 @@ class SecurityManagementCommandsHandler(
 
         val firstArg = args[0].lowercase()
 
-        // 1. Просмотр списка пользователей и их ролей/подписок
+        // 1. View user list, roles, and subscriptions
         if (firstArg == "list") {
             val users = config.allowedUserIds
             if (users.isEmpty()) {
@@ -454,7 +454,7 @@ class SecurityManagementCommandsHandler(
             return CommandResult.Text(sb.toString())
         }
 
-        // 2. Включить / Выключить всё для себя
+        // 2. Enable / Disable all for self
         if (firstArg == "off") {
             val current = config.userSubscriptions[callerId] ?: UserSubscription(userId = callerId)
             val updated =
@@ -486,7 +486,7 @@ class SecurityManagementCommandsHandler(
             )
         }
 
-        // 3. Управление конкретным пользователем по ID: /events <targetId> [off|on|category]
+        // 3. Manage specific user by ID: /events <targetId> [off|on|category]
         val targetId = firstArg.toLongOrNull()
         if (targetId != null) {
             val targetSub = config.userSubscriptions[targetId] ?: UserSubscription(userId = targetId)
@@ -537,7 +537,7 @@ class SecurityManagementCommandsHandler(
             }
         }
 
-        // 4. Текстовое переключение категории для себя: /events <notif|sms|calls|system> <on|off>
+        // 4. Text category toggle for self: /events <notif|sms|calls|system> <on|off>
         val category = firstArg
         val state = args.getOrNull(1)?.lowercase()
         val current = config.userSubscriptions[callerId] ?: UserSubscription(userId = callerId)

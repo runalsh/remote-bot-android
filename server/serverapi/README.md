@@ -1,52 +1,54 @@
+[English](README.md) | [Русский](README_RU.md)
+
 # Telegram Bot API Reverse Proxy (`serverapi`)
 
-В данной папке находятся реализации обратного прокси-сервера (Reverse Proxy) для перенаправления запросов Android-приложения к `api.telegram.org`.
+This directory contains implementations of a Reverse Proxy server designed to forward Android application requests to `api.telegram.org`.
 
-## Зачем это нужно?
-1. **Обход сетевых блокировок и цензуры**: если провайдер блокирует прямые подключения к `api.telegram.org`.
-2. **Единый адрес зеркала**: возможность указать свой домен в настройках приложения (раздел «Telegram» -> «Кастомный API Root / Зеркала»).
-3. **Сохранение полного функционала**: проксируется весь трафик (GET, POST, передача файлов, Long Polling `getUpdates`).
+## Why is this needed?
+1. **Bypass censorship & DPI blocks**: when the mobile carrier or ISP blocks direct access to `api.telegram.org`.
+2. **Dedicated custom mirror**: ability to configure your personal domain in the RemoteBot settings ("Telegram" -> "Custom API Root / Mirrors").
+3. **Full protocol preservation**: transparently proxies all traffic (GET, POST, file uploads, Long Polling `getUpdates`).
 
 ---
 
-## Варианты реализации
+## Implementations
 
-| Вариант | Папка | Описание | Нужен ли Nginx? |
+| Variant | Directory | Description | Requires Nginx? |
 | :--- | :--- | :--- | :--- |
-| **Nginx (Pure Proxy)** | [`nginx/`](./nginx/) | **Самый быстрый и легкий вариант**. Не требует запуска runtime (Node/Python/Go). Nginx сам проксирует весь трафик на `api.telegram.org` по HTTPS. | **Да** (сам Nginx и есть сервер) |
-| **Cloudflare Worker** | [`cloudflare-worker/`](./cloudflare-worker/) | Бессерверный вариант без своего VPS/сервера. Бесплатный SSL и домен `*.workers.dev`. | **Нет** (работает в облаке Cloudflare) |
-| **Go Daemon** | [`go/`](./go/) | Скомпилированный бинарник без внешних зависимостей. Высокая производительность. | Опционально (перед Go как reverse proxy для HTTPS) |
-| **Python Daemon** | [`python/`](./python/) | Zero-dependency скрипт на стандартной библиотеке Python 3. | Опционально (перед Python как reverse proxy для HTTPS) |
+| **Nginx (Pure Proxy)** | [`nginx/`](./nginx/) | **Fastest and lightest option**. Requires zero runtime dependencies (no Node/Python/Go). Nginx directly proxies all traffic to `api.telegram.org` over HTTPS. | **Yes** (Nginx itself is the server) |
+| **Cloudflare Worker** | [`cloudflare-worker/`](./cloudflare-worker/) | Serverless setup without owning a VPS. Free SSL and `*.workers.dev` domain. | **No** (runs on Cloudflare Edge) |
+| **Go Daemon** | [`go/`](./go/) | Compiled static binary with zero external dependencies. High throughput. | Optional (in front of Go as HTTPS termination) |
+| **Python Daemon** | [`python/`](./python/) | Zero-dependency script using pure Python 3 standard library. | Optional (in front of Python as HTTPS termination) |
 
 ---
 
-## 1. Вариант Nginx (Рекомендуемый для VPS, без кода)
+## 1. Nginx Variant (Recommended for VPS, No Code)
 
-Можно обойтись **только одним Nginx**, не запуская никаких демонов на Go, Python или Node.js.
+Can be operated using **Nginx alone** without running any daemons in Go, Python, or Node.js.
 
-### Пошаговая настройка:
-1. Скопируйте готовый конфигурационный файл [`nginx/nginx.conf`](./nginx/nginx.conf) на ваш VPS в `/etc/nginx/sites-available/tg-proxy.conf`.
-2. Замените `tg-api.yourdomain.com` на ваш реальный домен.
-3. Выпустите бесплатный SSL-сертификат через Certbot:
+### Step-by-Step Configuration:
+1. Copy the configuration file [`nginx/nginx.conf`](./nginx/nginx.conf) to your VPS at `/etc/nginx/sites-available/tg-proxy.conf`.
+2. Replace `tg-api.yourdomain.com` with your actual domain name.
+3. Issue a free SSL certificate via Certbot:
    ```bash
    sudo certbot --nginx -d tg-api.yourdomain.com
    ```
-4. Активируйте сайт и перезапустите Nginx:
+4. Enable the virtual host and reload Nginx:
    ```bash
    sudo ln -s /etc/nginx/sites-available/tg-proxy.conf /etc/nginx/sites-enabled/
    sudo nginx -t
    sudo systemctl reload nginx
    ```
-5. В приложении RemoteBot в разделе **«Telegram»** укажите:
+5. In RemoteBot settings under **Telegram**, enter:
    `https://tg-api.yourdomain.com`
 
 ---
 
-## 2. Вариант Cloudflare Worker (Без собственного сервера)
+## 2. Cloudflare Worker Variant (No VPS Needed)
 
-1. Откройте дашборд [Cloudflare Workers](https://dash.cloudflare.com/).
-2. Создайте новый Worker (например, `my-tg-api-proxy`).
-3. Вставьте содержимое [`cloudflare-worker/worker.js`](./cloudflare-worker/worker.js):
+1. Open the [Cloudflare Workers dashboard](https://dash.cloudflare.com/).
+2. Create a new Worker (e.g., `my-tg-api-proxy`).
+3. Paste the contents of [`cloudflare-worker/worker.js`](./cloudflare-worker/worker.js):
    ```javascript
    export default {
      async fetch(request) {
@@ -56,12 +58,12 @@
      },
    };
    ```
-4. Нажмите **Deploy**.
-5. Полученный URL (например, `https://my-tg-api-proxy.yourname.workers.dev`) вставьте в приложение RemoteBot в поле «Кастомный API Root».
+4. Click **Deploy**.
+5. Copy the generated URL (e.g., `https://my-tg-api-proxy.yourname.workers.dev`) and paste it into the RemoteBot "Custom API Root" field.
 
 ---
 
-## 3. Вариант Go Standalone
+## 3. Go Standalone Variant
 
 ```bash
 cd serverapi/go
@@ -86,7 +88,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Если нужно закрыть HTTPS через Nginx:
+To terminate HTTPS via Nginx:
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:8081;
@@ -98,23 +100,22 @@ location / {
 
 ---
 
-## 4. Вариант Python Standalone
+## 4. Python Standalone Variant
 
 ```bash
 cd serverapi/python
 PORT=8081 python3 main.py
 ```
-Аналогично настраивается systemd unit и проксирование Nginx на `http://127.0.0.1:8081`.
+Similarly configure systemd unit and reverse proxy Nginx to `http://127.0.0.1:8081`.
 
 ---
 
-## Запуск тестов
+## Running Tests
 
-Из папки `newapp`:
+From project root:
 ```bash
-make test-serverapi-go   # Тест Go прокси
-make test-serverapi-py   # Тест Python прокси
-make test-serverapi-js   # Тест Cloudflare Worker
-make test-serverapi      # Все 3 теста
+make test-serverapi-go   # Test Go proxy
+make test-serverapi-py   # Test Python proxy
+make test-serverapi-js   # Test Cloudflare Worker
+make test-serverapi      # All 3 tests
 ```
-

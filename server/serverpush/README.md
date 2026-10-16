@@ -1,61 +1,63 @@
+[English](README.md) | [Русский](README_RU.md)
+
 # RemoteBot Push Gateway (`serverpush`)
 
-Серверный шлюз пробуждения (Push Gateway) для Android-бота RemoteBot.
-Принимает входящие Webhook-уведомления от серверов Telegram и отправляет пробуждающий push-сигнал (`Wakeup Data Push`) через **Google Firebase Cloud Messaging (FCM)** и/или **Huawei Push Kit (HMS)** на устройство.
+Wake-up Push Gateway service for RemoteBot Android.
+Receives incoming Webhook notifications from Telegram servers and dispatches a wake-up push signal (`Wakeup Data Push`) via **Google Firebase Cloud Messaging (FCM)** and/or **Huawei Push Kit (HMS)** to the target device.
 
 ---
 
-## Варианты реализации
+## Implementations
 
-| Вариант | Папка | Описание |
+| Variant | Directory | Description |
 | :--- | :--- | :--- |
-| **Cloudflare Worker** | [`cloudflare-worker/`](./cloudflare-worker/) | **Рекомендуемый бессерверный вариант**. Работает без своего VPS. Бесплатный SSL и домен Cloudflare. |
-| **Go Daemon** | [`go/`](./go/) | Скомпилированный бинарник для Linux VPS. Поддержка горутин и параллельной доставки. |
-| **Python Daemon** | [`python/`](./python/) | Zero-dependency скрипт для Linux VPS / Docker (требуется только стандартный Python 3). |
-| **Nginx (OpenResty / Lua)** | [`nginx/`](./nginx/) | Шлюз прямо внутри Nginx без внешних демонов (требует OpenResty или пересборку Nginx с `lua-nginx-module`). |
+| **Cloudflare Worker** | [`cloudflare-worker/`](./cloudflare-worker/) | **Recommended serverless setup**. Zero VPS requirement, free SSL and Cloudflare domain. |
+| **Go Daemon** | [`go/`](./go/) | Compiled Linux binary. Native goroutines with concurrent multi-provider push delivery. |
+| **Python Daemon** | [`python/`](./python/) | Zero-dependency script for Linux VPS / Docker (standard Python 3 only). |
+| **Nginx (OpenResty / Lua)** | [`nginx/`](./nginx/) | In-process proxy directly inside Nginx (requires OpenResty or Nginx built with `lua-nginx-module`). |
 
 ---
 
-## Сетевой контракт API
+## API Network Contract
 
 - **Healthcheck**: `GET /health` $\to$ `{"status":"healthy","fcm":true,"hms":true}` (HTTP 200).
-- **FCM маршрут**: `POST /tg/fcm/:token/:secretKey`
-- **HMS маршрут**: `POST /tg/hms/:token/:secretKey`
-- **Авто-выбор**: `POST /tg/:token/:secretKey`
-- **Выбор через query**: `POST /tg/:token/:secretKey?provider=hms` (или `?provider=fcm`)
+- **FCM Route**: `POST /tg/fcm/:token/:secretKey`
+- **HMS Route**: `POST /tg/hms/:token/:secretKey`
+- **Auto Route**: `POST /tg/:token/:secretKey`
+- **Query Selection**: `POST /tg/:token/:secretKey?provider=hms` (or `?provider=fcm`)
 
-Тело запроса: стандартный JSON Telegram Webhook с полем `update_id`.
-
----
-
-## 1. Деплой через Cloudflare Worker (Без VPS)
-
-Подробное пошаговое руководство со скриншотами находится в [`docs/CLOUDFLARE_WORKER_SETUP.md`](../docs/CLOUDFLARE_WORKER_SETUP.md).
-
-### Кратко:
-1. Зайти в [Cloudflare Dashboard](https://dash.cloudflare.com/) $\to$ **Compute (Workers & Pages)** $\to$ **Create Worker**.
-2. Вставить код из [`cloudflare-worker/worker.js`](./cloudflare-worker/worker.js).
-3. Во вкладке **Settings** $\to$ **Variables and Secrets** задать:
-   - `PUSH_GATEWAY_SECRET`: секретный ключ шлюза (придумайте пароль).
-   - `FIREBASE_SERVICE_ACCOUNT`: содержимое приватного JSON-ключа Firebase Service Account (опционально для FCM).
-   - `HUAWEI_APP_ID`, `HUAWEI_CLIENT_ID`, `HUAWEI_CLIENT_SECRET`: параметры приложения Huawei AppGallery Connect (опционально для HMS).
-4. Нажать **Deploy**.
+Request body: standard Telegram Webhook JSON with `update_id` payload.
 
 ---
 
-## 2. Деплой Go демона на Linux VPS
+## 1. Cloudflare Worker Deployment (Serverless)
 
-### Сборка и запуск:
+Comprehensive step-by-step documentation with screenshots is available at [`docs/CLOUDFLARE_WORKER_SETUP.md`](../../docs/CLOUDFLARE_WORKER_SETUP.md).
+
+### Summary:
+1. Open [Cloudflare Dashboard](https://dash.cloudflare.com/) $\to$ **Compute (Workers & Pages)** $\to$ **Create Worker**.
+2. Paste the source code from [`cloudflare-worker/worker.js`](./cloudflare-worker/worker.js).
+3. In **Settings** $\to$ **Variables and Secrets**, configure:
+   - `PUSH_GATEWAY_SECRET`: secret gateway key.
+   - `FIREBASE_SERVICE_ACCOUNT`: contents of Firebase service account private key JSON (optional for FCM).
+   - `HUAWEI_APP_ID`, `HUAWEI_CLIENT_ID`, `HUAWEI_CLIENT_SECRET`: Huawei AppGallery Connect credentials (optional for HMS).
+4. Click **Deploy**.
+
+---
+
+## 2. Go Daemon Deployment on Linux VPS
+
+### Build and Run:
 ```bash
 cd serverpush/go
 go build -o /usr/local/bin/remotebot-push-gateway main.go
 ```
 
-### Переменные окружения:
-- `PORT`: порт HTTP-сервера (по умолчанию: `8080`).
-- `PUSH_GATEWAY_SECRET`: секретный ключ шлюза.
-- `FIREBASE_SERVICE_ACCOUNT`: JSON-строка ключа Firebase или путь к файлу.
-- `HUAWEI_APP_ID`, `HUAWEI_CLIENT_ID`, `HUAWEI_CLIENT_SECRET`: учетные данные Huawei HMS.
+### Environment Variables:
+- `PORT`: HTTP server port (default: `8080`).
+- `PUSH_GATEWAY_SECRET`: secret authentication key.
+- `FIREBASE_SERVICE_ACCOUNT`: Firebase private key JSON string or file path.
+- `HUAWEI_APP_ID`, `HUAWEI_CLIENT_ID`, `HUAWEI_CLIENT_SECRET`: Huawei HMS credentials.
 
 ### systemd unit (`/etc/systemd/system/remotebot-push-gateway.service`):
 ```ini
@@ -79,9 +81,9 @@ WantedBy=multi-user.target
 
 ---
 
-## 3. Деплой Python демона на Linux VPS
+## 3. Python Daemon Deployment on Linux VPS
 
-### Запуск:
+### Execution:
 ```bash
 cd serverpush/python
 PORT=8080 PUSH_GATEWAY_SECRET=your_secret python3 main.py
@@ -109,9 +111,9 @@ WantedBy=multi-user.target
 
 ---
 
-## 4. Настройка Nginx перед Go / Python шлюзом (SSL Termination)
+## 4. Nginx Reverse Proxy & SSL Termination
 
-Для работы Telegram Webhook требуется валидный публичный HTTPS URL. Рекомендуется настроить стандартный Nginx перед Go или Python сервисом:
+Telegram Webhooks require a valid public HTTPS endpoint. Recommended standard Nginx configuration in front of Go or Python daemon:
 
 ```nginx
 server {
@@ -145,27 +147,25 @@ server {
 
 ---
 
-## 5. Вариант шлюза прямо внутри Nginx (OpenResty / Lua)
+## 5. In-Process Nginx Push Gateway (OpenResty / Lua)
 
-### Возможно ли запустить Push Gateway внутри Nginx без Go/Python?
-**На стандартном чистом Nginx — нет**, потому что Nginx "из коробки" умеет только перенаправлять байты (как в `serverapi`), но не умеет:
-1. Подписывать **RS256 JWT** токены приватным RSA-ключом и обменивать их на Google OAuth2 `access_token` (`https://oauth2.googleapis.com/token`);
-2. Выполнять HTTP POST запрос в Huawei OAuth (`https://oauth-login.cloud.huawei.com/oauth2/v2/token`);
-3. Парсить входящий JSON Telegram (`update_id`) и формировать новый JSON Data Push для FCM/HMS.
+### Can the Push Gateway run directly inside Nginx without Go/Python?
+**On vanilla standard Nginx — no**, because Nginx out of the box only forwards raw TCP/HTTP streams, but cannot:
+1. Sign **RS256 JWT** tokens with private RSA keys to exchange for Google OAuth2 access tokens (`https://oauth2.googleapis.com/token`);
+2. Execute HTTP POST requests to Huawei OAuth endpoints (`https://oauth-login.cloud.huawei.com/oauth2/v2/token`);
+3. Parse incoming Telegram JSON payloads (`update_id`) and construct new outbound FCM/HMS JSON Data Pushes.
 
-**Но это можно сделать, пересобрав Nginx с модулем `lua-nginx-module` (или установив OpenResty).**
+**However, this is fully achievable using Nginx with `lua-nginx-module` (or OpenResty).**
 
-Готовые файлы находятся в папке [`nginx/`](./nginx/):
-- [`nginx/gateway.lua`](./nginx/gateway.lua) — полный скрипт авторизации в Google/Huawei и отправки пушей;
-- [`nginx/nginx.conf`](./nginx/nginx.conf) — конфигурация OpenResty / Nginx.
+Files are located in [`nginx/`](./nginx/):
+- [`nginx/gateway.lua`](./nginx/gateway.lua) — complete authentication and push dispatch script;
+- [`nginx/nginx.conf`](./nginx/nginx.conf) — OpenResty / Nginx configuration.
 
 ---
 
-### Как пересобрать Nginx с поддержкой Lua:
+### Installing OpenResty:
 
-#### Способ 1: Установка готового OpenResty (Рекомендуется, без долгой компиляции)
-
-На Debian / Ubuntu:
+On Debian / Ubuntu:
 ```bash
 sudo apt-get update
 sudo apt-get install -y wget gnupg ca-certificates lsb-release
@@ -174,75 +174,27 @@ echo "deb [signed-by=/usr/share/keyrings/openresty.gpg] http://openresty.org/pac
 sudo apt-get update
 sudo apt-get install -y openresty luarocks
 
-# Установка необходимых библиотек для JWT и HTTPS запросов
+# Install libraries for JWT and HTTPS
 sudo luarocks install lua-resty-http
 sudo luarocks install lua-resty-jwt
 sudo luarocks install lua-cjson
 ```
 
-#### Способ 2: Ручная сборка Nginx из исходников с `lua-nginx-module`
-
-1. **Установка сборочных зависимостей**:
-   ```bash
-   sudo apt-get install -y build-essential libpcre3 libpcre3-dev zlib1g zlib1g-dev libssl-dev libluajit-5.1-dev luarocks
-   ```
-
-2. **Загрузка исходников**:
-   ```bash
-   cd /tmp
-   # Загрузка Nginx
-   wget http://nginx.org/download/nginx-1.24.0.tar.gz
-   tar -zxvf nginx-1.24.0.tar.gz
-
-   # Загрузка модулей Lua и Devel Kit
-   git clone https://github.com/vision5/ngx_devel_kit.git
-   git clone https://github.com/openresty/lua-nginx-module.git
-   ```
-
-3. **Конфигурация и компиляция**:
-   ```bash
-   cd /tmp/nginx-1.24.0
-   export LUAJIT_LIB=/usr/lib/x86_64-linux-gnu
-   export LUAJIT_INC=/usr/include/luajit-2.1
-
-   ./configure \
-       --prefix=/etc/nginx \
-       --sbin-path=/usr/sbin/nginx \
-       --modules-path=/usr/lib/nginx/modules \
-       --conf-path=/etc/nginx/nginx.conf \
-       --error-log-path=/var/log/nginx/error.log \
-       --http-log-path=/var/log/nginx/access.log \
-       --with-http_ssl_module \
-       --with-http_v2_module \
-       --add-module=/tmp/ngx_devel_kit \
-       --add-module=/tmp/lua-nginx-module
-
-   make -j$(nproc)
-   sudo make install
-   ```
-
-4. **Установка Lua-библиотек**:
-   ```bash
-   sudo luarocks install lua-resty-http
-   sudo luarocks install lua-resty-jwt
-   sudo luarocks install lua-cjson
-   ```
-
 ---
 
-### Деплой конфигурации:
+### Deployment Configuration:
 
-1. Скопируйте [`nginx/gateway.lua`](./nginx/gateway.lua) в `/etc/nginx/remotebot/gateway.lua`.
-2. Скопируйте [`nginx/nginx.conf`](./nginx/nginx.conf) в `/etc/nginx/conf.d/remotebot-push.conf`.
-3. Задайте системные переменные окружения в `/etc/environment` или в systemd unit `nginx.service`:
+1. Copy [`nginx/gateway.lua`](./nginx/gateway.lua) to `/etc/nginx/remotebot/gateway.lua`.
+2. Copy [`nginx/nginx.conf`](./nginx/nginx.conf) to `/etc/nginx/conf.d/remotebot-push.conf`.
+3. Set environment variables in `/etc/environment` or the `nginx.service` systemd unit:
    ```bash
-   PUSH_GATEWAY_SECRET="ваш_секретный_ключ"
+   PUSH_GATEWAY_SECRET="your_secret_key"
    FIREBASE_SERVICE_ACCOUNT="/etc/remotebot/firebase.json"
    HUAWEI_APP_ID="12345678"
    HUAWEI_CLIENT_ID="12345678"
-   HUAWEI_CLIENT_SECRET="секрет_huawei"
+   HUAWEI_CLIENT_SECRET="huawei_secret"
    ```
-4. Проверьте синтаксис и перезапустите:
+4. Verify syntax and reload:
    ```bash
    sudo nginx -t
    sudo systemctl reload nginx
@@ -250,13 +202,12 @@ sudo luarocks install lua-cjson
 
 ---
 
-## Запуск тестов
+## Running Tests
 
-Из корня `newapp`:
+From project root:
 ```bash
-make test-serverpush-go   # Тест Go шлюза
-make test-serverpush-py   # Тест Python шлюза
-make test-serverpush-js   # Тест Cloudflare Worker
-make test-serverpush      # Запуск всех 3 тестов
+make test-serverpush-go   # Test Go gateway
+make test-serverpush-py   # Test Python gateway
+make test-serverpush-js   # Test Cloudflare Worker
+make test-serverpush      # Run all 3 tests
 ```
-

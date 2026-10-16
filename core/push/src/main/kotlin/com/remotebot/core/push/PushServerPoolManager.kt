@@ -12,9 +12,9 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.withContext
 
 /**
- * Менеджер пула независимых Push-серверов.
- * Реализует выбор активного сервера по стратегиям FAILOVER, ROUND_ROBIN и LOWEST_LATENCY,
- * аналогично механизму зеркал Telegram Bot API.
+ * Independent push server pool manager.
+ * Implements active server selection via FAILOVER, ROUND_ROBIN, and LOWEST_LATENCY strategies,
+ * similar to Telegram Bot API mirrors mechanism.
  */
 class PushServerPoolManager(
     private val configProvider: () -> BotConfig,
@@ -29,16 +29,16 @@ class PushServerPoolManager(
         private set
 
     /**
-     * Возвращает список всех серверов с учетом одиночных legacy-полей (если pushServers пуст)
+     * Returns list of all servers including legacy single-field fallback (if pushServers is empty)
      */
     fun getAllServers(): List<PushServerConfig> {
         val cfg = configProvider()
         val list = mutableListOf<PushServerConfig>()
 
-        // Пользовательский пул серверов
+        // User-configured server pool
         list.addAll(cfg.pushServers)
 
-        // Обратная совместимость с одиночным pushGatewayUrl
+        // Backward compatibility with single pushGatewayUrl
         val legacyUrl = cfg.pushGatewayUrl
         if (!legacyUrl.isNullOrBlank() && list.none { it.gatewayUrl.trimEnd('/') == legacyUrl.trimEnd('/') }) {
             list.add(
@@ -59,7 +59,7 @@ class PushServerPoolManager(
     }
 
     /**
-     * Возвращает упорядоченный список серверов в соответствии со стратегией
+     * Returns ordered server list according to strategy
      */
     suspend fun getCandidateServers(): List<PushServerConfig> =
         withContext(Dispatchers.IO) {

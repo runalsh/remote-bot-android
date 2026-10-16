@@ -89,13 +89,13 @@ class TelegramBotEngine(
 
                 while (isActive && isRunning.get()) {
                     val config = configRepository.config.value
-                    // Если Telegram-бот выключен тумблером или токен пустой
+                    // If Telegram bot is toggled off or token is empty
                     if (!config.telegramBotEnabled || config.botToken.isBlank()) {
                         delay(3000)
                         continue
                     }
 
-                    // Если включен режим PUSH_WAKEUP, фоновый Long Polling спит
+                    // If PUSH_WAKEUP mode is enabled, background Long Polling stays idle
                     if (config.connectionMode == ConnectionMode.PUSH_WAKEUP) {
                         delay(3000)
                         continue
@@ -127,7 +127,7 @@ class TelegramBotEngine(
     }
 
     /**
-     * Прямая обработка обновления из FCM Data Push
+     * Direct processing of update from FCM Data Push
      */
     override suspend fun processPushUpdate(update: TgUpdate) {
         logger?.i("TelegramEngine", "⚡ Обработка Push Update id=${update.updateId}")
@@ -135,7 +135,7 @@ class TelegramBotEngine(
     }
 
     /**
-     * Обработка пробуждения по сигналу FCM Data Push (wake up)
+     * Handle wakeup triggered by FCM Data Push signal (wake up)
      */
     override suspend fun handlePushWakeup(targetUpdateId: Long) {
         logger?.i("TelegramEngine", "Пробуждение по FCM Push update_id=$targetUpdateId")
@@ -153,7 +153,7 @@ class TelegramBotEngine(
         val senderId = message.from?.id?.toString() ?: return
         val chatId = message.chat.id
 
-        // Если прислан документ, проверяем тип файла
+        // If document received, check file type
         val doc = message.document
         if (doc != null) {
             if (handleDocumentMessage(update, doc, rawText, senderId, chatId)) {
@@ -167,17 +167,17 @@ class TelegramBotEngine(
         recordActiveUser(chatId)
         logger?.i("TelegramEngine", "📥 [$senderId]: $text")
 
-        // 1. Проверяем активные режимы интерактивного ввода ответа на SMS или уведомление
+        // 1. Check active interactive reply modes for SMS or notification
         if (replyHandler.handlePendingReplies(chatId, text)) {
             return
         }
 
-        // 2. Проверяем, является ли это ответом (Reply/цитированием) на ранее пересланное SMS или уведомление
+        // 2. Check if this is a Reply/quote to a previously forwarded SMS or notification
         if (replyHandler.handleReplyToMessage(message, chatId, text)) {
             return
         }
 
-        // Парсинг команды и аргументов
+        // Parse command and arguments
         val parts = text.split("\\s+".toRegex())
         val commandName = parts[0]
         val args = if (parts.size > 1) parts.subList(1, parts.size) else emptyList()
@@ -289,7 +289,7 @@ class TelegramBotEngine(
     ): Boolean {
         val fileName = doc.fileName ?: ""
 
-        // 1. Проверка, является ли присланный документ APK-пакетом
+        // 1. Check if received document is an APK package
         val isApkFile =
             fileName.endsWith(".apk", ignoreCase = true) ||
                 rawText.startsWith("/install", ignoreCase = true)
@@ -366,7 +366,7 @@ class TelegramBotEngine(
             }
         }
 
-        // 2. Проверка, является ли присланный документ резервной копией (.json)
+        // 2. Check if received document is a backup file (.json)
         val isBackupFile =
             !isApkFile &&
                 (

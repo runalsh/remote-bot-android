@@ -22,7 +22,7 @@ class DefaultPermissionsStatusProvider(
     override fun getPermissionsStatus(): List<PermissionItemInfo> {
         val isRoot = rootStatusProvider.isRootGrantedSync()
 
-        // --- Группа 1: Критический системный доступ ---
+        // --- Group 1: Critical System Access ---
         val isInstallApps =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.packageManager.canRequestPackageInstalls()
@@ -58,7 +58,7 @@ class DefaultPermissionsStatusProvider(
                 false
             }
 
-        // --- Группа 2: Связь и приватность ---
+        // --- Group 2: Communications & Privacy ---
         val isNotifListener =
             NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName) ||
                 try {
@@ -80,7 +80,7 @@ class DefaultPermissionsStatusProvider(
         val isDnd =
             (context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager)?.isNotificationPolicyAccessGranted == true
 
-        // --- Группа 3: Мультимедиа и сенсоры ---
+        // --- Group 3: Multimedia & Sensors ---
         val isCamera = ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         val isMic = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         val isLocation =
@@ -130,7 +130,7 @@ class DefaultPermissionsStatusProvider(
             }
 
         return listOf(
-            // Группа: critical
+            // Group: critical
             PermissionItemInfo("root", "Root (Superuser)", "critical", isRoot, "Полный доступ суперпользователя (libsu)"),
             PermissionItemInfo(
                 "install_packages",
@@ -161,7 +161,7 @@ class DefaultPermissionsStatusProvider(
                 "WRITE_SETTINGS управление автояркостью",
             ),
             PermissionItemInfo("overlay", "Поверх других окон", "critical", isOverlay, "SYSTEM_ALERT_WINDOW системные диалоги"),
-            // Группа: confidential
+            // Group: confidential
             PermissionItemInfo(
                 "notification_listener",
                 "Чтение уведомлений",
@@ -172,7 +172,7 @@ class DefaultPermissionsStatusProvider(
             PermissionItemInfo("sms", "SMS (Отправка/Чтение)", "confidential", isSms, "SEND_SMS, RECEIVE_SMS управление через SMS"),
             PermissionItemInfo("calls", "Звонки и журнал", "confidential", isCalls, "CALL_PHONE, READ_CALL_LOG, READ_PHONE_STATE"),
             PermissionItemInfo("dnd", "Режим «Не беспокоить»", "confidential", isDnd, "ACCESS_NOTIFICATION_POLICY профили звука"),
-            // Группа: standard
+            // Group: standard
             PermissionItemInfo("camera", "Камера", "standard", isCamera, "CAMERA съемка фото и видео"),
             PermissionItemInfo("microphone", "Микрофон (Запись звука)", "standard", isMic, "RECORD_AUDIO скрытая аудиозапись"),
             PermissionItemInfo("location", "Геолокация (GPS)", "standard", isLocation, "ACCESS_FINE_LOCATION координаты и трекинг"),

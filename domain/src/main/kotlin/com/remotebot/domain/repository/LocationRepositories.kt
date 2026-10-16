@@ -12,7 +12,7 @@ interface LocationRepository {
 
     fun isGpsEnabled(): Boolean
 
-    // Live / периодическое отслеживание местоположения
+    // Live / periodic location tracking
     val liveTrackingStatus: StateFlow<com.remotebot.domain.model.LiveTrackingStatus>
     val liveLocationUpdates: Flow<LocationData>
 

@@ -68,7 +68,7 @@ class AppLogger(
     }
 
     private fun parseLine(line: String): LogEntry? {
-        // Формат: 1728374829102|INFO|Tag|Message
+        // Format: 1728374829102|INFO|Tag|Message
         val parts = line.split("|", limit = 4)
         if (parts.size < 4) return null
         val ts = parts[0].toLongOrNull() ?: return null
@@ -92,19 +92,19 @@ class AppLogger(
             _logsFlow.value = ArrayList(entries)
         }
 
-        // Асинхронная запись на диск
+        // Asynchronous disk write
         if (logFile != null) {
             ioScope.launch {
                 try {
                     val line = "${entry.timestampMs}|${entry.level.name}|${entry.tag}|${entry.message}\n"
                     logFile.appendText(line)
-                    // Ротация если файл больше 2 МБ
+                    // Rotation if file exceeds 2 MB
                     if (logFile.length() > 2 * 1024 * 1024) {
                         val currentLines = logFile.readLines().takeLast(maxCapacity)
                         logFile.writeText(currentLines.joinToString("\n") + "\n")
                     }
                 } catch (e: Exception) {
-                    // Игнорируем сбой записи лога
+                    // Ignore log write failure
                 }
             }
         }

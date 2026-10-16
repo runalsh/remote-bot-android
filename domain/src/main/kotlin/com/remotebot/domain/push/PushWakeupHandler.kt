@@ -3,8 +3,8 @@ package com.remotebot.domain.push
 import com.remotebot.domain.model.TgUpdate
 
 /**
- * Интерфейс диспетчера push-уведомлений для каналов связи (Telegram, Matrix и т.д.).
- * Позволяет инфраструктурному модулю core:push не зависеть от channels:telegram-bot.
+ * Push notification dispatcher interface for communication channels (Telegram, Matrix, etc.).
+ * Allows the infrastructure core:push module to be decoupled from channels:telegram-bot.
  */
 interface PushWakeupHandler {
     suspend fun processPushUpdate(update: TgUpdate)

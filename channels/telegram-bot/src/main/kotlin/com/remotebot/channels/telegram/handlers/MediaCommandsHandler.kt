@@ -103,7 +103,7 @@ class MediaCommandsHandler(
     private suspend fun handleVideoRec(args: List<String>): CommandResult {
         val firstArg = args.firstOrNull()?.lowercase()
 
-        // 1. Остановка видеозаписи: /videorec stop
+        // 1. Stop video recording: /videorec stop
         if (firstArg in listOf("stop", "off", "cancel")) {
             val stopped = cameraRepository.stopVideoRecording()
             operationsTracker?.list()?.filter { it.id.startsWith("videorec_") }?.forEach {
@@ -119,7 +119,7 @@ class MediaCommandsHandler(
             }
         }
 
-        // 2. Интерактивная панель без аргументов: /videorec или /videorec panel
+        // 2. Interactive panel without arguments: /videorec or /videorec panel
         if (args.isEmpty() || firstArg == "panel") {
             val selectedLens =
                 if (args.any {

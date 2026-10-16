@@ -41,14 +41,14 @@ class LocationCommandsHandler(
     }
 
     /**
-     * Разовый запрос геопозиции:
-     * /location [сек|last]
-     * /trace [сек|last]
+     * Single-shot geolocation request:
+     * /location [sec|last]
+     * /trace [sec|last]
      */
     private suspend fun handleLocation(command: IncomingCommand): CommandResult {
         val args = command.args
 
-        // Однократный запрос координат (поддержка /location last, /location [сек])
+        // Single-shot coordinate query (supports /location last, /location [sec])
         val isLast = args.firstOrNull()?.equals("last", ignoreCase = true) == true
         val timeout = if (isLast) 2 else args.firstOrNull()?.toIntOrNull()?.coerceIn(3, 60) ?: 30
 
@@ -92,14 +92,14 @@ class LocationCommandsHandler(
     }
 
     /**
-     * Периодический трекинг геопозиции:
-     * /track [интервал|stop|status]
+     * Periodic geolocation tracking:
+     * /track [interval|stop|status]
      */
     private fun handleTrack(command: IncomingCommand): CommandResult {
         val args = command.args
         val first = args.firstOrNull()?.lowercase()
 
-        // 1. Остановка трекинга: /track stop | /track off | /track cancel
+        // 1. Stop tracking: /track stop | /track off | /track cancel
         if (first in listOf("stop", "off", "cancel", "disable")) {
             val status = locationRepository.liveTrackingStatus.value
             if (!status.isActive) {
@@ -124,7 +124,7 @@ class LocationCommandsHandler(
             )
         }
 
-        // 2. Статус трекинга: /track status | /track info
+        // 2. Tracking status: /track status | /track info
         if (first in listOf("status", "info")) {
             val status = locationRepository.liveTrackingStatus.value
             val isAct = status.isActive
@@ -151,7 +151,7 @@ class LocationCommandsHandler(
             )
         }
 
-        // 3. Запуск трекинга: /track [30s|1m|5m...] или панель без аргументов
+        // 3. Start tracking: /track [30s|1m|5m...] or panel without arguments
         if (first != null && first !in listOf("on", "start", "panel")) {
             val intervalSeconds = parseIntervalSeconds(first) ?: 60L
             val clampedInterval = intervalSeconds.coerceIn(10L, 86400L)
@@ -177,7 +177,7 @@ class LocationCommandsHandler(
             )
         }
 
-        // Если аргумент on / start с указанием времени: /track start 5m
+        // If argument is on / start with duration: /track start 5m
         if (first in listOf("on", "start") && args.size >= 2) {
             val intervalSeconds = parseIntervalSeconds(args[1]) ?: 60L
             val clampedInterval = intervalSeconds.coerceIn(10L, 86400L)
@@ -203,7 +203,7 @@ class LocationCommandsHandler(
             )
         }
 
-        // Без аргументов или /track panel — панель управления трекингом
+        // No arguments or /track panel — tracking control panel
         val isAct = locationRepository.isLiveTrackingActive()
         val curStatus = locationRepository.liveTrackingStatus.value
         val stateText = if (isAct) "🟢 <b>АКТИВЕН</b> (${formatIntervalReadable(curStatus.intervalSeconds)})" else "⏹ <b>ОСТАНОВЛЕН</b>"
@@ -260,7 +260,7 @@ class LocationCommandsHandler(
                     "📍 <b>Геолокация устройства:</b>"
                 }
 
-            // Способ определения
+            // Detection method
             val methodText =
                 if (loc.determinationMethod.isNotBlank()) {
                     loc.determinationMethod
@@ -270,7 +270,7 @@ class LocationCommandsHandler(
                     "📡 Косвенные признаки (Вышки сотовой связи / Wi-Fi)"
                 }
 
-            // Сигнал GPS
+            // GPS signal
             val signalText =
                 buildString {
                     if (loc.isDirectGps) {
@@ -466,7 +466,7 @@ class LocationCommandsHandler(
         operationsTracker?.unregister("shake_detector")
     }
 
-    // Шкала чувствительности по калибровке оригинального RemoteBot (от 30.0 м/с² до 1.0 м/с² на 10 уровне)
+    // Sensitivity scale calibrated to original RemoteBot (from 30.0 m/s² down to 1.0 m/s² at level 10)
     private val sensitivityLevels = floatArrayOf(30.0f, 25.0f, 20.0f, 15.0f, 10.0f, 7.0f, 5.0f, 3.0f, 2.0f, 1.0f)
 
     private fun levelToThreshold(level: Int): Float {

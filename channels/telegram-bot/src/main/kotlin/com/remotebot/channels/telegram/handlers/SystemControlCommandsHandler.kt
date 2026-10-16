@@ -8,10 +8,10 @@ import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.provider.RootStatusProvider
 
 /**
- * Фасад системного контроля, объединяющий обработчики:
- * - [SystemInfoCommandsHandler] (сводка системы, батарея, сетевые интерфейсы)
- * - [DeviceRadioCommandsHandler] (радиомодули: Wi-Fi, Bluetooth, фонарик, режим полета, hotspot, мобильные данные, GPS)
- * - [SystemSettingsCommandsHandler] (панель переключателей, энергосбережение, автояркость, буфер обмена, синхронизация, ADB/ADB-WiFi)
+ * System control facade combining handlers:
+ * - [SystemInfoCommandsHandler] (system summary, battery, network interfaces)
+ * - [DeviceRadioCommandsHandler] (radio modules: Wi-Fi, Bluetooth, flashlight, airplane mode, hotspot, mobile data, GPS)
+ * - [SystemSettingsCommandsHandler] (toggle switches panel, power save, auto-brightness, clipboard, sync, ADB/ADB-WiFi)
  */
 class SystemControlCommandsHandler(
     context: Context,

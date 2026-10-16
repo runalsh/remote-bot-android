@@ -7,7 +7,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import sys
 import os
 
-# Добавляем текущую директорию в sys.path
+# Add current directory to sys.path
 sys.path.insert(0, os.path.dirname(__file__))
 from main import TelegramProxyHandler
 
@@ -30,17 +30,17 @@ class MockTelegramServerHandler(BaseHTTPRequestHandler):
 class TestPythonApiProxy(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        # Поднимаем Mock сервер Telegram
+        # Start Mock Telegram server
         cls.mock_server = HTTPServer(("127.0.0.1", 18090), MockTelegramServerHandler)
         cls.mock_thread = threading.Thread(target=cls.mock_server.serve_forever, daemon=True)
         cls.mock_thread.start()
 
-        # Патчим TARGET_HOST в модуле main на наш mock-сервер
+        # Patch TARGET_HOST in main module to point to our mock server
         import main
         cls.original_target = main.TARGET_HOST
         main.TARGET_HOST = "127.0.0.1:18090"
 
-        # Поднимаем сам Proxy сервер
+        # Start the Proxy server itself
         cls.proxy_server = HTTPServer(("127.0.0.1", 18091), TelegramProxyHandler)
         cls.proxy_thread = threading.Thread(target=cls.proxy_server.serve_forever, daemon=True)
         cls.proxy_thread.start()

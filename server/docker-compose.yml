@@ -1,11 +1,11 @@
 # ==============================================================================
 # RemoteBot Server Infrastructure Docker Compose
 # ==============================================================================
-# Поддерживает запуск через профили (--profile <name>):
-#   - go      (по умолчанию, рекомендуется): Go 1.27.2 статические бинарники
-#   - python  : Легковесные zero-dependency Python 3.14.8 демоны
+# Supports running via profiles (--profile <name>):
+#   - go      (default, recommended): Go 1.27.2 static binaries
+#   - python  : Lightweight zero-dependency Python 3.14.8 daemons
 #   - nginx   : OpenResty 1.31.1.1-alpine-slim Push Gateway + Nginx 1.30.6-alpine-slim Reverse Proxy
-#   - npx     : Node.js 24.22.0 Cloudflare Worker dev-воркеры
+#   - npx     : Node.js 24.22.0 Cloudflare Worker dev workers
 # ==============================================================================
 
 x-push-env: &push-env
@@ -25,7 +25,7 @@ x-api-env: &api-env
 
 services:
   # ============================================================================
-  # Профиль: "go" (Рекомендуемый / Основной)
+  # Profile: "go" (Recommended / Primary)
   # ============================================================================
   push-gateway-go:
     profiles: ["go"]
@@ -64,7 +64,7 @@ services:
       start_period: 5s
 
   # ============================================================================
-  # Профиль: "python" (Zero-dependency Python 3.11)
+  # Profile: "python" (Zero-dependency Python 3.11)
   # ============================================================================
   push-gateway-python:
     profiles: ["python"]
@@ -103,7 +103,7 @@ services:
       start_period: 5s
 
   # ============================================================================
-  # Профиль: "nginx" (OpenResty Push Gateway + Nginx Reverse Proxy)
+  # Profile: "nginx" (OpenResty Push Gateway + Nginx Reverse Proxy)
   # ============================================================================
   push-gateway-nginx:
     profiles: ["nginx"]
@@ -146,7 +146,7 @@ services:
       start_period: 5s
 
   # ============================================================================
-  # Профиль: "npx" (Cloudflare Workers via Node / Wrangler)
+  # Profile: "npx" (Cloudflare Workers via Node / Wrangler)
   # ============================================================================
   push-gateway-npx:
     profiles: ["npx"]

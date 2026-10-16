@@ -14,7 +14,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 TARGET_HOST = "api.telegram.org"
 PORT = int(os.environ.get("PORT", 8081))
 
-# Заголовки, которые не следует пересылать напрямую
+# Headers that should not be forwarded directly
 HOP_BY_HOP_HEADERS = {
     "connection", "keep-alive", "proxy-authenticate",
     "proxy-authorization", "te", "trailers", "transfer-encoding", "upgrade", "host"
@@ -42,7 +42,7 @@ class TelegramProxyHandler(BaseHTTPRequestHandler):
         )
 
         try:
-            # Если целевой хост локальный (в тестах) или не требует прокси, отключаем локальный env proxy
+            # If target host is local (in tests) or does not require proxy, disable local env proxy
             if "127.0.0.1" in TARGET_HOST or "localhost" in TARGET_HOST:
                 opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
             else:

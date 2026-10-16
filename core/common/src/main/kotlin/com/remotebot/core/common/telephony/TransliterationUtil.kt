@@ -1,9 +1,9 @@
 package com.remotebot.core.common.telephony
 
 /**
- * Утилита транслитерации текста (ГОСТ 7.79-2000 / Система Б)
- * для перевода кириллических сообщений в латиницу (GSM 7-bit).
- * Позволяет уместить в 1 сотовый сегмент SMS до 160 символов вместо 70.
+ * Text transliteration utility (GOST 7.79-2000 / System B)
+ * for converting Cyrillic messages to Latin characters (GSM 7-bit).
+ * Allows fitting up to 160 characters in a single SMS segment instead of 70.
  */
 object TransliterationUtil {
     private val cyrillicToLatinMap =

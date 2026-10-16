@@ -17,7 +17,7 @@ data class PushStats(
 )
 
 /**
- * Синглтон для трекинга метрик Push-уведомлений и шлюза.
+ * Singleton for tracking push notification and gateway metrics.
  */
 object PushStatsTracker {
     private val _stats = MutableStateFlow(PushStats())

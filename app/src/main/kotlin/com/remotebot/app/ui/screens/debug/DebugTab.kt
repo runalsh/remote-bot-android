@@ -100,7 +100,7 @@ fun DebugTab(
                 .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Шапка режима отладки
+        // Debug mode header
         Surface(
             shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
@@ -159,28 +159,28 @@ fun DebugTab(
             }
         }
 
-        // Блок 1.5: Экспериментальные функции (Experimental Features Lab)
+        // Block 1.5: Experimental Features Lab
         DebugExperimentalFeaturesCard(
             config = config,
             configRepo = configRepo,
         )
 
-        // Блок метрик и аналитики работы: Просыпания, Сетевые подключения по серверам, Ошибки auth
+        // Runtime analytics & metrics: Wakeups, Network connections by server, Auth errors
         DebugDiagnosticsMetricsCard()
 
-        // Блок 0: Мониторинг системных ресурсов (CPU, Память, Сеть TX/RX, Диск I/O)
+        // Block 0: System resource monitor (CPU, Memory, Network TX/RX, Disk I/O)
         DebugResourcesProfilerCard(
             context = context,
             logger = logger,
         )
 
-        // Блок 1: Симуляция уведомлений (Notification Simulation Lab)
+        // Block 1: Notification Simulation Lab
         DebugNotificationSimulationCard(
             notificationRepo = notificationRepo,
             logger = logger,
         )
 
-        // Блок 2: Диагностика служб и Doze (Process & Lifecycle Inspector)
+        // Block 2: Process & Lifecycle Inspector
         DebugServiceAndDozeCard(
             context = context,
             isFgServiceRunning = isFgServiceRunning,
@@ -193,7 +193,7 @@ fun DebugTab(
             logger = logger,
         )
 
-        // Блок 2.5: Диагностический дашборд Push Gateway, FCM, HMS и Telegram API серверов
+        // Block 2.5: Push Gateway, FCM, HMS, and Telegram API servers dashboard
         PushGatewayDashboardCard(
             config = config,
             poolManager = poolManager,
@@ -201,7 +201,7 @@ fun DebugTab(
             logger = logger,
         )
 
-        // Блок 3: Сетевой инспектор и Sandbox (Network & Proxy Sandbox)
+        // Block 3: Network & Proxy Sandbox
         DebugNetworkInspectorCard(
             config = config,
             proxyRepo = proxyRepo,
@@ -209,7 +209,7 @@ fun DebugTab(
             logger = logger,
         )
 
-        // Блок 4: Хранилище, Кэш и Базы данных (Storage & Cache Inspector)
+        // Block 4: Storage & Cache Inspector
         DebugStorageAndCacheCard(
             notificationRepo = notificationRepo,
             fileManagerRepo = fileManagerRepo,
@@ -217,7 +217,7 @@ fun DebugTab(
             context = context,
         )
 
-        // Блок 5: Эмуляция окружения и сброс (Environment & State Controls)
+        // Block 5: Environment & State Controls
         DebugEnvironmentControlsCard(
             configRepo = configRepo,
             proxyRepo = proxyRepo,
@@ -230,7 +230,7 @@ fun DebugTab(
 }
 
 // -------------------------------------------------------------
-// Блок 0: Профилировщик системных ресурсов (Память, CPU, Сеть, Диск)
+// Block 0: System resource profiler (Memory, CPU, Network, Disk)
 // -------------------------------------------------------------
 @Composable
 private fun DebugResourcesProfilerCard(
@@ -239,7 +239,7 @@ private fun DebugResourcesProfilerCard(
 ) {
     var refreshKey by remember { mutableStateOf(0) }
 
-    // Метрики памяти
+    // Memory metrics
     val runtime = Runtime.getRuntime()
     val usedJavaHeapMb = remember(refreshKey) { (runtime.totalMemory() - runtime.freeMemory()) / (1024 * 1024) }
     val maxJavaHeapMb = remember(refreshKey) { runtime.maxMemory() / (1024 * 1024) }
@@ -259,12 +259,12 @@ private fun DebugResourcesProfilerCard(
     val totalRamMb = remember(refreshKey) { memInfo.totalMem / (1024 * 1024) }
     val usedRamMb = totalRamMb - availRamMb
 
-    // Метрики CPU
+    // CPU metrics
     val availableCores = remember { Runtime.getRuntime().availableProcessors() }
     val activeThreads = remember(refreshKey) { Thread.activeCount() }
     val cpuArch = remember { Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a" }
 
-    // График памяти в реальном времени (Phase 13 дополнение)
+    // Real-time memory chart (Phase 13 addition)
     var memoryHistory by remember { mutableStateOf<List<Float>>(emptyList()) }
     LaunchedEffect(refreshKey) {
         memoryHistory = List(60) { pssMb.toFloat() }
@@ -281,7 +281,7 @@ private fun DebugResourcesProfilerCard(
         onDispose { job.cancel() }
     }
 
-    // Расчет процессорного времени (Process CPU Time через /proc/self/stat)
+    // Process CPU Time calculation via /proc/self/stat
     val processCpuTimeFormatted =
         remember(refreshKey) {
             try {
@@ -291,7 +291,7 @@ private fun DebugResourcesProfilerCard(
                     if (parts.size >= 15) {
                         val utime = parts[13].toLongOrNull() ?: 0L
                         val stime = parts[14].toLongOrNull() ?: 0L
-                        // такты (ticks) делим на 100 Hz (стандартный sysconf clock tick на Linux)
+                        // Divide ticks by 100 Hz (standard sysconf clock tick on Linux)
                         val totalSec = (utime + stime) / 100.0
                         String.format("%.1f сек CPU (u: %d, s: %d)", totalSec, utime, stime)
                     } else {
@@ -305,7 +305,7 @@ private fun DebugResourcesProfilerCard(
             }
         }
 
-    // Метрики сетевого трафика (Upload / Download через TrafficStats)
+    // Network traffic metrics (Upload / Download via TrafficStats)
     val myUid = remember { Process.myUid() }
     val appRxBytes = remember(refreshKey) { TrafficStats.getUidRxBytes(myUid) }
     val appTxBytes = remember(refreshKey) { TrafficStats.getUidTxBytes(myUid) }
@@ -325,7 +325,7 @@ private fun DebugResourcesProfilerCard(
         }
     }
 
-    // Метрики диска, хранилища и I/O
+    // Disk, storage, and I/O metrics
     val (appInternalFilesMb, appCacheMb, appDbMb) =
         remember(refreshKey) {
             try {
@@ -410,7 +410,7 @@ private fun DebugResourcesProfilerCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Секция 1: Процессор и CPU
+            // Section 1: CPU and processor
             Text(
                 text = "⚙️ Процессор (CPU) и потоки",
                 style = MaterialTheme.typography.labelLarge,
@@ -423,7 +423,7 @@ private fun DebugResourcesProfilerCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // Секция 2: Память (RAM)
+            // Section 2: Memory (RAM)
             Text(
                 text = "🧠 Оперативная память (RAM Profiler)",
                 style = MaterialTheme.typography.labelLarge,
@@ -453,7 +453,7 @@ private fun DebugResourcesProfilerCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // Секция 3: Сетевой трафик (Upload / Download)
+            // Section 3: Network traffic (Upload / Download)
             Text(
                 text = "🌐 Сетевой трафик (Upload / Download)",
                 style = MaterialTheme.typography.labelLarge,
@@ -475,7 +475,7 @@ private fun DebugResourcesProfilerCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
-            // Секция 4: Хранилище, Диск и I/O
+            // Section 4: Storage, disk, and I/O
             Text(
                 text = "💾 Хранилище и запись на диск (Disk I/O)",
                 style = MaterialTheme.typography.labelLarge,
@@ -499,7 +499,7 @@ private fun DebugResourcesProfilerCard(
                 value = String.format("%.2f ГБ / %.2f ГБ", diskFreeGb, diskTotalGb),
             )
 
-            // График потребления памяти PSS (Phase 13 дополнение)
+            // PSS memory consumption chart (Phase 13 addition)
             if (memoryHistory.isNotEmpty()) {
                 val gridColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)
                 val graphColor = MaterialTheme.colorScheme.primary
@@ -528,7 +528,7 @@ private fun DebugResourcesProfilerCard(
                         val minMem = memoryHistory.minOrNull() ?: 0f
                         val range = maxMem - minMem ?: 1f
 
-                        // Сетка
+                        // Grid
                         for (i in 0..4) {
                             val y = padding + (i * (height - 2 * padding) / 4)
                             drawLine(
@@ -539,7 +539,7 @@ private fun DebugResourcesProfilerCard(
                             )
                         }
 
-                        // Линия графика
+                        // Chart line
                         val composePath =
                             androidx.compose.ui.graphics
                                 .Path()
@@ -562,7 +562,7 @@ private fun DebugResourcesProfilerCard(
                             style = Stroke(width = 2.5f),
                         )
 
-                        // Текущее значение
+                        // Current value
                         val currentMem = memoryHistory.last()
                         drawCircle(
                             color = errorColor,
@@ -627,7 +627,7 @@ private fun MetricRow(
 }
 
 // -------------------------------------------------------------
-// Блок 1: Лаборатория симуляции уведомлений
+// Block 1: Notification Simulation Lab
 // -------------------------------------------------------------
 @Composable
 private fun DebugNotificationSimulationCard(
@@ -757,7 +757,7 @@ private fun DebugNotificationSimulationCard(
                 )
             }
 
-            // Флаги симуляции уведомлений (Phase 13 дополнения)
+            // Notification simulation flags (Phase 13 additions)
             Text("Флаги симуляции:", style = MaterialTheme.typography.labelMedium)
 
             Row(
@@ -881,7 +881,7 @@ private fun DebugNotificationSimulationCard(
 }
 
 // -------------------------------------------------------------
-// Блок 2: Диагностика фоновых служб и Doze Mode
+// Block 2: Background service and Doze Mode diagnostics
 // -------------------------------------------------------------
 @Composable
 private fun DebugServiceAndDozeCard(
@@ -920,7 +920,7 @@ private fun DebugServiceAndDozeCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Статусы служб
+            // Service statuses
             StatusRow(
                 label = "RemoteBotService (Foreground)",
                 status = if (isFgServiceRunning) "АКТИВЕН (remoteMessaging)" else "ОСТАНОВЛЕН",
@@ -1075,7 +1075,7 @@ private fun DebugServiceAndDozeCard(
 }
 
 // -------------------------------------------------------------
-// Блок 3: Сетевой инспектор и DPI-песочница
+// Block 3: Network inspector and DPI sandbox
 // -------------------------------------------------------------
 @Composable
 private fun DebugNetworkInspectorCard(
@@ -1172,7 +1172,7 @@ private fun DebugNetworkInspectorCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Тест 1: Запрос getMe() через настроенный стек
+            // Test 1: getMe() query via configured stack
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1212,7 +1212,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 2: Прямой коннект к API эндпоинту (Direct Connection в обход прокси)
+            // Test 2: Direct connection to API endpoint (bypassing proxy)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1276,7 +1276,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 3: Коннект к API эндпоинту через Прокси (если включен)
+            // Test 3: Connect to API endpoint via Proxy (if enabled)
             if (proxyConfig.type != ProxyType.NONE) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1315,13 +1315,13 @@ private fun DebugNetworkInspectorCard(
 
                                     val t0 = System.currentTimeMillis()
 
-                                    // Проверка доступности хоста прокси
+                                    // Check proxy host availability
                                     val proxySocket = Socket()
                                     proxySocket.connect(InetSocketAddress(proxyConfig.host, proxyConfig.port), 8000)
                                     val proxyRtt = System.currentTimeMillis() - t0
                                     proxySocket.close()
 
-                                    // Запрос к API через OkHttp клиент с прокси
+                                    // Request API via OkHttp client with proxy
                                     val client =
                                         okhttp3.OkHttpClient
                                             .Builder()
@@ -1391,7 +1391,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 4: Проверка DNS резолвинга
+            // Test 4: DNS resolution test
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1434,7 +1434,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 5: Push Gateway Health Ping
+            // Test 5: Push Gateway Health Ping
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1483,7 +1483,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 6: Wakeup-пинк на своё устройство (Phase 13 дополнение)
+            // Test 6: Wakeup ping to own device (Phase 13 addition)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1554,7 +1554,7 @@ private fun DebugNetworkInspectorCard(
                 }
             }
 
-            // Тест 7: WSS прокси с проверкой WebSocket рукопожатия (Phase 13 дополнение)
+            // Test 7: WSS proxy with WebSocket handshake verification (Phase 13 addition)
             if (proxyConfig.type != ProxyType.NONE && proxyConfig.host.isNotBlank()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -1576,12 +1576,12 @@ private fun DebugNetworkInspectorCard(
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
                                     val t0 = System.currentTimeMillis()
-                                    // Проверка базового TCP-соединения с прокси
+                                    // Check basic TCP connection to proxy
                                     val socket = Socket()
                                     socket.connect(InetSocketAddress(proxyConfig.host, proxyConfig.port), 8000)
                                     val pingRtt = System.currentTimeMillis() - t0
 
-                                    // Формируем WebSocket Upgrade запрос
+                                    // Build WebSocket Upgrade request
                                     val wsRequest =
                                         """
                                         GET ${config.customApiRoot?.let { java.net.URI(it).path ?: "/"} ?: "/"} HTTP/1.1
@@ -1629,7 +1629,7 @@ private fun DebugNetworkInspectorCard(
 }
 
 // -------------------------------------------------------------
-// Блок 4: Хранилище, Кэш и Базы данных
+// Block 4: Storage, Cache, and Databases
 // -------------------------------------------------------------
 @Composable
 private fun DebugStorageAndCacheCard(
@@ -1745,7 +1745,7 @@ private fun DebugStorageAndCacheCard(
                 }
             }
 
-            // Экспорт логов в буфер обмена (Phase 13 дополнение)
+            // Export logs to clipboard (Phase 13 addition)
             Button(
                 onClick = {
                     coroutineScope.launch {
@@ -1781,7 +1781,7 @@ private fun DebugStorageAndCacheCard(
                 Text("📋 Копировать логи в буфер (последние 500)")
             }
 
-            // Экспорт полного системного дампа в файл (Debug Dump)
+            // Export full system dump to file (Debug Dump)
             OutlinedButton(
                 onClick = {
                     coroutineScope.launch(Dispatchers.IO) {
@@ -1834,7 +1834,7 @@ private fun DebugStorageAndCacheCard(
 }
 
 // -------------------------------------------------------------
-// Блок 5: Эмуляция окружения и сброс настроек
+// Block 5: Environment emulation and settings reset
 // -------------------------------------------------------------
 @Composable
 private fun DebugEnvironmentControlsCard(
@@ -1872,7 +1872,7 @@ private fun DebugEnvironmentControlsCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Эмуляция Root отсутствует
+            // Root emulation absent
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1945,7 +1945,7 @@ private fun DebugEnvironmentControlsCard(
                 }
             }
 
-            // Контролируемый краш для проверки crash-recovery / UncaughtExceptionHandler
+            // Controlled crash to verify crash-recovery / UncaughtExceptionHandler
             OutlinedButton(
                 onClick = {
                     logger.w("DebugEnv", "Инициирован контролируемый краш приложения для проверки crash-recovery")
@@ -1964,7 +1964,7 @@ private fun DebugEnvironmentControlsCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // Кнопка заводского сброса настроек
+            // Factory reset settings button
             Button(
                 onClick = { showResetDialog = true },
                 colors =
@@ -2032,7 +2032,7 @@ private fun StatusRow(
 }
 
 // -------------------------------------------------------------
-// Блок 1.5: Экспериментальные функции
+// Block 1.5: Experimental features
 // -------------------------------------------------------------
 @Composable
 private fun DebugExperimentalFeaturesCard(

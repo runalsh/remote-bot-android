@@ -33,12 +33,12 @@ class DefaultNotificationRepository(
     private val _notificationEvents = MutableSharedFlow<CapturedNotification>(extraBufferCapacity = 64)
     override val notificationEvents: Flow<CapturedNotification> = _notificationEvents.asSharedFlow()
 
-    // Хранилище последних уведомлений по уникальному shortId (с ограничением емкости FIFO)
+    // Storage for recent notifications by unique shortId (FIFO capacity constrained)
     private val recentNotificationsById = ConcurrentHashMap<String, CapturedNotification>()
     private val recentSbnById = ConcurrentHashMap<String, StatusBarNotification>()
     private val recentIdsQueue = ConcurrentLinkedQueue<String>()
 
-    // Выделенный долгоживущий кэш для интерактивных 2FA/Action уведомлений (защищен от вытеснения спамом)
+    // Dedicated long-lived cache for interactive 2FA/Action notifications (protected from spam eviction)
     private val active2FaSbnById = ConcurrentHashMap<String, StatusBarNotification>()
     private val active2FaIdsQueue = ConcurrentLinkedQueue<String>()
 
@@ -50,7 +50,7 @@ class DefaultNotificationRepository(
         // Skip own notifications to prevent loops
         if (packageName == context.packageName) return
 
-        // Пропускаем служебные постоянные уведомления (Ongoing) и сводные группы (Group Summary)
+        // Skip ongoing system notifications and group summaries
         val notifObj = sbn.notification
         if ((notifObj.flags and Notification.FLAG_GROUP_SUMMARY) != 0) {
             AppLogger.d("DefaultNotificationRepository", "🚫 Пропущено: GROUP_SUMMARY уведомление от $packageName")
@@ -77,8 +77,8 @@ class DefaultNotificationRepository(
                 packageName
             }
 
-        // 1. Проверяем кастомные стили (например, LastPass с DecoratedCustomViewStyle)
-        // Если текст пустой, но есть действия (actions) или кастомный шаблон, формируем fallback-описание
+        // 1. Check custom styles (e.g. LastPass with DecoratedCustomViewStyle)
+        // If text is empty but actions exist or custom template is present, build fallback description
         val rawActions = notifObj.actions ?: emptyArray()
         val hasCustomViews =
             notifObj.contentView != null || notifObj.bigContentView != null || extras.containsKey("android.contains.customView")
@@ -111,7 +111,7 @@ class DefaultNotificationRepository(
         val hasReply = hasReplyAction(sbn)
         val extractedActions = extractActionButtons(sbn)
 
-        // Если уведомление содержит интерактивные действия (2FA / авторизация), сохраняем в выделенный кэш
+        // If notification contains interactive actions (2FA / authorization), save to dedicated cache
         if (extractedActions.isNotEmpty()) {
             active2FaSbnById[shortId] = sbn
             active2FaSbnById[fullKey] = sbn
@@ -128,10 +128,10 @@ class DefaultNotificationRepository(
             )
         }
 
-        // Строгая FIFO-ротация общей истории (до 1000 уведомлений)
+        // Strict FIFO rotation of general history (up to 1000 notifications)
         while (recentIdsQueue.size > 1000) {
             val oldestKey = recentIdsQueue.poll() ?: break
-            // Не удаляем из recentSbnById, если это активное 2FA-уведомление
+            // Do not remove from recentSbnById if it is an active 2FA notification
             if (!active2FaSbnById.containsKey(oldestKey)) {
                 recentSbnById.remove(oldestKey)
             }
@@ -175,27 +175,27 @@ class DefaultNotificationRepository(
             .take(limit)
 
     private fun findSbn(notificationId: String): StatusBarNotification? {
-        // 1. Прямой поиск по shortId в recentSbnById
+        // 1. Direct lookup by shortId in recentSbnById
         recentSbnById[notificationId]?.let { return it }
 
-        // 2. Поиск в выделенном 2FA-кэше
+        // 2. Search in dedicated 2FA cache
         active2FaSbnById[notificationId]?.let { return it }
 
-        // 3. Поиск по сопоставленному fullKey
+        // 3. Lookup by mapped fullKey
         val fullKey = idMapping[notificationId]
         if (fullKey != null) {
             recentSbnById[fullKey]?.let { return it }
             active2FaSbnById[fullKey]?.let { return it }
         }
 
-        // 4. Поиск по совпадению sbn.key среди кэшированных SBN
+        // 4. Lookup by matching sbn.key among cached SBNs
         recentSbnById.values.find { it.key == notificationId || (fullKey != null && it.key == fullKey) }?.let { return it }
         active2FaSbnById.values.find { it.key == notificationId || (fullKey != null && it.key == fullKey) }?.let { return it }
 
-        // 5. Fallback: запрос активных системных уведомлений из шторки Android через NotificationListenerService
+        // 5. Fallback: query active system notifications from Android shade via NotificationListenerService
         val activeSbns = NotificationListenerBridge.getActiveNotifications()
         if (activeSbns != null && activeSbns.isNotEmpty()) {
-            // 5.1 Точное совпадение по key
+            // 5.1 Exact match by key
             val byKey = activeSbns.find { it.key == notificationId || (fullKey != null && it.key == fullKey) }
             if (byKey != null) {
                 AppLogger.i("DefaultNotificationRepository", "Найдено активное уведомление в шторке по ключу: ${byKey.key}")
@@ -204,7 +204,7 @@ class DefaultNotificationRepository(
                 return byKey
             }
 
-            // 5.2 Поиск по пакету приложения из CapturedNotification
+            // 5.2 Search by application package from CapturedNotification
             val captured = recentNotificationsById[notificationId]
             val targetPkg = captured?.packageName
             if (!targetPkg.isNullOrBlank()) {
@@ -217,7 +217,7 @@ class DefaultNotificationRepository(
                 }
             }
 
-            // 5.3 Для доверенных 2FA (Multifactor и др.): если в шторке есть активный push с кнопками
+            // 5.3 For trusted 2FA (Multifactor, etc.): if shade contains active push with buttons
             val multifactorSbn = activeSbns.find { sbn ->
                 (sbn.packageName == "ru.multifactor.app" || trusted2FaPackages.contains(sbn.packageName.lowercase())) &&
                     sbn.notification.actions?.isNotEmpty() == true
@@ -288,7 +288,7 @@ class DefaultNotificationRepository(
                 "⚡ Исполнение действия [$title] (индекс $actionIndex) для уведомления $notificationId [${sbn.packageName}]...",
             )
 
-            // Безопасный запуск PendingIntent (с поддержкой Android 14+ background activity starts)
+            // Safe PendingIntent launch (with Android 14+ background activity start support)
             val optionsBundle =
                 if (android.os.Build.VERSION.SDK_INT >= 34) {
                     try {
@@ -443,7 +443,7 @@ class DefaultNotificationRepository(
 
     private fun extractActionButtons(sbn: StatusBarNotification): List<com.remotebot.domain.model.NotificationActionButton> {
         val packageName = sbn.packageName.lowercase()
-        // Строгий белый список: только доверенные аутентификаторы и 2FA приложения
+        // Strict whitelist: only trusted authenticators and 2FA apps
         val isTrusted2Fa =
             trusted2FaPackages.contains(packageName) ||
                 packageName.endsWith(".authenticator") ||
@@ -457,7 +457,7 @@ class DefaultNotificationRepository(
         val result = mutableListOf<com.remotebot.domain.model.NotificationActionButton>()
 
         rawActions.forEachIndexed { index, action ->
-            // Пропускаем действия, которые являются исключительно полем ввода текста (RemoteInput)
+            // Skip actions that are purely text input fields (RemoteInput)
             val hasFreeForm = action.remoteInputs?.any { it.allowFreeFormInput } == true
             if (!hasFreeForm && action.actionIntent != null) {
                 val title = action.title?.toString()?.trim()
@@ -478,15 +478,15 @@ class DefaultNotificationRepository(
         val notif = sbn.notification
         val actions = notif.actions ?: return false
 
-        // Проверяем наличие RemoteInput с возможностью свободного ввода текста (allowFreeFormInput == true)
+        // Check for RemoteInput allowing free-form input (allowFreeFormInput == true)
         val hasFreeFormInput =
             actions.any { action ->
                 action.remoteInputs?.any { it.allowFreeFormInput } == true
             }
         if (!hasFreeFormInput) return false
 
-        // Проверяем категорию уведомления: мессенджеры и чаты (CATEGORY_MESSAGE / CATEGORY_CALL)
-        // либо стиль сообщений MessagingStyle в extras ("android.messagingStyleUser", "android.messages")
+        // Check notification category: messengers and chats (CATEGORY_MESSAGE / CATEGORY_CALL)
+        // or MessagingStyle in extras ("android.messagingStyleUser", "android.messages")
         val isMessageCategory =
             notif.category == Notification.CATEGORY_MESSAGE ||
                 notif.category == Notification.CATEGORY_CALL ||

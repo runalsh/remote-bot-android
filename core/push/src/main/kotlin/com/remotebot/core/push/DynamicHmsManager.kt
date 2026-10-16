@@ -13,7 +13,7 @@ import kotlinx.coroutines.withTimeout
 
 object DynamicHmsManager {
     /**
-     * Парсинг структуры agconnect-services.json
+     * Parse agconnect-services.json structure
      */
     fun parseAgconnectJson(jsonString: String): Result<ParsedAgconnectConfig> {
         AppLogger.d("HMS", "Запуск парсинга agconnect-services.json (длина: ${jsonString.length} симв.)")
@@ -35,7 +35,7 @@ object DynamicHmsManager {
     private var isDynamicallyInitialized: Boolean = false
 
     /**
-     * Динамическая инициализация AGConnectInstance в рантайме с пользовательскими параметрами
+     * Dynamically initialize AGConnectInstance at runtime with custom parameters
      */
     fun initialize(
         context: Context,
@@ -74,19 +74,19 @@ object DynamicHmsManager {
     }
 
     /**
-     * Проверка, инициализирован ли сейчас AGConnectInstance
+     * Check if AGConnectInstance is currently initialized
      */
     fun isInitialized(): Boolean = isDynamicallyInitialized
 
     /**
-     * Сброс состояния инициализации
+     * Reset initialization state
      */
     fun reset() {
         isDynamicallyInitialized = false
     }
 
     /**
-     * Проверка наличия пакета HMS Core на устройстве
+     * Check for HMS Core package availability on device
      */
     fun isHmsCoreInstalled(context: Context): Boolean =
         try {
@@ -97,7 +97,7 @@ object DynamicHmsManager {
         }
 
     /**
-     * Получение текущего Huawei HMS Push токена устройства
+     * Retrieve current device Huawei HMS push token
      */
     suspend fun getHmsToken(
         context: Context,

@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class PushMessageProcessingAndRetryTest {
     private val json = Json { ignoreUnknownKeys = true }
 
-    // Имитация логики обработки входящих Push сообщений
+    // Simulation of incoming push message processing logic
     class TestPushWakeupHandler : PushWakeupHandler {
         val processedUpdates = mutableListOf<TgUpdate>()
         val receivedWakeupTargetIds = mutableListOf<Long>()
@@ -32,22 +32,22 @@ class PushMessageProcessingAndRetryTest {
         assertEquals(3, defaultConfig.pushRetryMaxAttempts)
         assertEquals(5, defaultConfig.pushRetryDelaySeconds)
 
-        // Пресет «Агрессивный»
+        // "Aggressive" preset
         val aggressive = defaultConfig.copy(pushRetryMaxAttempts = 3, pushRetryDelaySeconds = 1)
         assertEquals(3, aggressive.pushRetryMaxAttempts)
         assertEquals(1, aggressive.pushRetryDelaySeconds)
 
-        // Пресет «Умеренный»
+        // "Moderate" preset
         val moderate = defaultConfig.copy(pushRetryMaxAttempts = 5, pushRetryDelaySeconds = 5)
         assertEquals(5, moderate.pushRetryMaxAttempts)
         assertEquals(5, moderate.pushRetryDelaySeconds)
 
-        // Пресет «Экономный»
+        // "Conservative" preset
         val eco = defaultConfig.copy(pushRetryMaxAttempts = 10, pushRetryDelaySeconds = 30)
         assertEquals(10, eco.pushRetryMaxAttempts)
         assertEquals(30, eco.pushRetryDelaySeconds)
 
-        // Граничные значения слайдеров
+        // Slider boundary values
         val clampedMin =
             defaultConfig.copy(
                 pushRetryMaxAttempts = 0.coerceIn(1, 10),
@@ -69,7 +69,7 @@ class PushMessageProcessingAndRetryTest {
     fun testParseAndProcessWakeupPushPayload() {
         val handler = TestPushWakeupHandler()
 
-        // Симуляция получения data push с action = "wakeup" и update_id
+        // Simulate receiving data push with action = "wakeup" and update_id
         val data =
             mapOf(
                 "action" to "wakeup",

@@ -26,7 +26,7 @@ object ProxyClientFactory {
 
         when (config.type) {
             ProxyType.NONE -> {
-                // Прямое подключение
+                // Direct connection
             }
             ProxyType.HTTP -> {
                 val proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress(config.host, config.port))
@@ -65,7 +65,7 @@ object ProxyClientFactory {
                 }
             }
             ProxyType.WEBSOCKET_WSS -> {
-                // Если WSS-туннель активен, трафик перенаправляется на локальный loopback порт
+                // If WSS tunnel is active, route traffic to local loopback port
                 if (loopbackWssPort != null && loopbackWssPort > 0) {
                     val localProxy = Proxy(Proxy.Type.HTTP, InetSocketAddress("127.0.0.1", loopbackWssPort))
                     builder.proxy(localProxy)

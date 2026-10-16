@@ -1289,8 +1289,8 @@ cmd netpolicy add restrict-background-whitelist $uid
 >
 
 ### Фаза 11: Huawei HMS Push Kit интеграция и гибридный Push Gateway
-- [ ] **Тестирование и верификация Huawei HMS Push и Push Gateway**:
-  - [ ] **Верификация HMS Push и шлюзов**: парсер `agconnect-services.json`, динамическая рантайм-инициализация AGC `DynamicHmsManager`, генерация токена `HmsInstanceId`, авто-обработка `onNewToken` и входящих Data Push (`update_json` / wakeup) в `HuaweiHmsPushService`, unit-тесты `:core:push` и 32 теста шлюзов (Go, Python, Cloudflare Worker).
+- [x] **Тестирование и верификация Huawei HMS Push и Push Gateway**:
+  - [x] **Верификация HMS Push и шлюзов**: парсер `agconnect-services.json`, динамическая рантайм-инициализация AGC `DynamicHmsManager`, генерация токена `HmsInstanceId`, авто-обработка `onNewToken` и входящих Data Push (`update_json` / wakeup) в `HuaweiHmsPushService`, unit-тесты `:core:push` и 32 теста шлюзов (Go, Python, Cloudflare Worker).
 - [x] **Модуль `core/push` — поддержка Huawei HMS Push Kit**:
   - [x] Подключение библиотек `com.huawei.hms:push:6.13.0.301` и `com.huawei.agconnect:agconnect-core:1.9.6.300`.
   - [x] Условное подключение Gradle-плагина `com.huawei.agconnect` при наличии файла `agconnect-services.json` в `app/`.
@@ -2649,6 +2649,57 @@ cmd netpolicy add restrict-background-whitelist $uid
     - Добавление пресетов 2FA для Multifactor, LastPass Authenticator, Duo Mobile, Яндекс Ключ, Microsoft Authenticator.
   - [x] Unit-тесты `TelephonyCommandsTest` в `:domain`.
   - [x] Пройдено: `testDebugUnitTest` (все модули), `ktlintFormat`, `assembleDebug`.
+
+---
+
+### Фаза 20: Перевод кодовой базы и документации на английский язык (English Codebase & Dual-Language Documentation)
+
+- [x] **1. Перевод всех комментариев в исходном коде на английский язык**:
+  - [x] **Модули Android (`app`, `channels/*`, `core/*`, `domain`)**:
+    * Перевод всех inline-комментариев (`// ...`) и блочных комментариев (`/* ... */`) в файлах `.kt` и `.kts` на технический английский язык.
+    * Перевод KDoc-документации классов, интерфейсов и функций (`/** ... */`).
+    * Сохранение технических терминов, аннотаций, TODO-меток и логики форматирования.
+  - [x] **Серверные модули и инструменты (`server/*`, `tools/*`)**:
+    * Перевод комментариев в Go коде (`server/**/*.go`).
+    * Перевод комментариев и docstrings в Python коде (`server/**/*.py`).
+    * Перевод комментариев в JS/TS коде (`server/serverpush/cloudflare-worker/**/*.js`, `server/serverapi/cloudflare-worker/**/*.js`).
+    * Перевод bash-скриптов и утилит (`*.sh`).
+
+- [x] **2. Интернационализация сборочных файлов, Makefile и инструкций**:
+  - [x] **Makefile и скрипты сборки**:
+    * Перевод всех комментариев, описаний целей (`help`), сообщений `echo` и инструкций сборки/тестирования на английский язык.
+    * Унификация подсказок и параметров запуска.
+  - [x] **CI/CD и конфигурационные файлы**:
+    * Перевод комментариев и описаний шагов в GitHub Actions workflows (`.github/workflows/*.yml`).
+    * Добавление цели `build-release-testkey` и обновление workflow `release.yml`.
+
+- [x] **3. Двуязычная документация Markdown (English по умолчанию + Русский с суффиксом `_RU.md`)**:
+  - [x] **Основные файлы документации в корне репозитория**:
+    * Основные `.md` файлы ведутся на английском языке: `README.md` (English default).
+    * Русскоязычные версии сохраняются/создаются рядом с суффиксом `_RU`: `README_RU.md`.
+  - [x] **Вложенная документация модулей и подсистем**:
+    * Документация в `docs/` и `server/` ведется на английском с созданием парных версий `*_RU.md` для русскоязычных описаний:
+      - `docs/FIREBASE_SETUP.md` & `docs/FIREBASE_SETUP_RU.md`
+      - `docs/HMS_SETUP.md` & `docs/HMS_SETUP_RU.md`
+      - `docs/CLOUDFLARE_WORKER_SETUP.md` & `docs/CLOUDFLARE_WORKER_SETUP_RU.md`
+      - `docs/CLOUDFLARE_TELEGRAM_REVERSE_PROXY.md` & `docs/CLOUDFLARE_TELEGRAM_REVERSE_PROXY_RU.md`
+      - `server/README.md` & `server/README_RU.md`
+      - `server/serverapi/README.md` & `server/serverapi/README_RU.md`
+      - `server/serverpush/README.md` & `server/serverpush/README_RU.md`
+      - `server/serverpush/go/README.md` & `server/serverpush/go/README_RU.md`
+      - `server/serverpush/python/README.md` & `server/serverpush/python/README_RU.md`
+      - `server/serverpush/cloudflare-worker/README.md` & `server/serverpush/cloudflare-worker/README_RU.md`
+  - [x] **Языковой переключатель (Language Switcher)**:
+    * Добавление перекрестных ссылок в шапку каждого документа: `[English](FILE.md) | [Русский](FILE_RU.md)`.
+
+- [x] **4. Верификация и проверка целостности**:
+  - [x] Проверка всех модулей кодовой базы: 0 кириллических комментариев в `.kt`, `.kts`, `.go`, `.py`, `.js`, `Dockerfile`, `docker-compose.yml`, `ci.yml`.
+  - [x] Проверка серверных тестов: 32 теста (Go, Python, Cloudflare Worker) пройдены успешно (`make test-server`).
+  - [x] Проверка валидности всех ссылок между англоязычными и русскоязычными `.md` файлами.
+
+> **💬 QA Audit и верификация Фазы 20 (октябрь 2026, статус: ЗАВЕРШЕНО НА 100% ✅):**
+>
+> **Итоговый статус реализации: 100%** — все комментарии кодовой базы (Kotlin, Go, Python, JS, Shell, Dockerfile, Compose, CI Workflows), Makefile и документация переведены на английский язык. Созданы парные русскоязычные документы `*_RU.md` с языковыми переключателями. 0 регрессий, все серверные тесты зеленые.
 
 ---
 

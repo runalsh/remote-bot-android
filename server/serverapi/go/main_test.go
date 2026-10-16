@@ -10,7 +10,7 @@ import (
 )
 
 func TestTelegramReverseProxy(t *testing.T) {
-	// Поднимаем mock бэкенд Telegram API
+	// Start mock Telegram API backend
 	mockBackend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/bot12345/getMe" && r.Method == http.MethodGet {
 			w.Header().Set("Content-Type", "application/json")
@@ -36,7 +36,7 @@ func TestTelegramReverseProxy(t *testing.T) {
 		t.Fatalf("Failed to parse mock backend URL: %v", err)
 	}
 
-	// Создаем ReverseProxy, направленный на mockBackend
+	// Create ReverseProxy pointing to mockBackend
 	proxy := newTelegramReverseProxy(mockURL.Host)
 	proxy.Director = func(req *http.Request) {
 		req.URL.Scheme = mockURL.Scheme

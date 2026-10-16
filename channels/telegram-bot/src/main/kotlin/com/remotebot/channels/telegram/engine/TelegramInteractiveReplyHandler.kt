@@ -11,10 +11,10 @@ import com.remotebot.domain.repository.TelephonyRepository
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Обработчик интерактивных ответов на SMS и системные уведомления в Telegram:
- * 1. Инлайн-кнопки «Ответить» (Callback query) с установкой состояния ожидания текста.
- * 2. Ответ свободным текстом из активного состояния ожидания.
- * 3. Нативный Swipe/Reply (цитирование) на пересланные SMS и уведомления в Telegram.
+ * Handler for interactive replies to SMS and system notifications in Telegram:
+ * 1. Inline "Reply" buttons (Callback query) that set text awaiting state.
+ * 2. Free-form text reply from active awaiting state.
+ * 3. Native swipe/reply (quoting) to forwarded SMS and notifications in Telegram.
  */
 class TelegramInteractiveReplyHandler(
     private val apiClient: TelegramApiClient,
@@ -119,7 +119,7 @@ class TelegramInteractiveReplyHandler(
         }
 
         if (data.startsWith("notif_act:")) {
-            // Формат: notif_act:<notificationId>:<actionIndex>
+            // Format: notif_act:<notificationId>:<actionIndex>
             val parts = data.removePrefix("notif_act:").split(":")
             val notifId = parts.getOrNull(0) ?: ""
             val actionIndex = parts.getOrNull(1)?.toIntOrNull() ?: 0
@@ -152,7 +152,7 @@ class TelegramInteractiveReplyHandler(
             } catch (_: Exception) {
             }
 
-            // Редактируем исходное сообщение в Telegram: деактивируем кнопки и добавляем статус
+            // Edit original message in Telegram: deactivate buttons and append status
             val msgId = query.message?.messageId
             val origText = query.message?.text ?: ""
             if (msgId != null && origText.isNotEmpty()) {
@@ -328,7 +328,7 @@ class TelegramInteractiveReplyHandler(
         val replyTo = message.replyToMessage ?: return false
         val replyText = replyTo.text ?: ""
 
-        // Входящее SMS: "Входящее SMS от +79991234567" или запрос "Введите текст ответа для +79991234567"
+        // Incoming SMS matching pattern (e.g. prompt or incoming SMS header with target phone)
         val smsRegex = """(?:Входящее SMS от|Введите текст ответа для)\s*(?:<code>)?([+0-9A-Za-z_-]+)(?:</code>)?""".toRegex()
         val smsMatch = smsRegex.find(replyText)
         if (smsMatch != null) {
@@ -369,7 +369,7 @@ class TelegramInteractiveReplyHandler(
             }
         }
 
-        // Входящее системное уведомление: ищем "/answer <id>"
+        // Incoming system notification: match "/answer <id>"
         val answerRegex = """/answer\s+(\d+)""".toRegex()
         val notifMatch = answerRegex.find(replyText)
         if (notifMatch != null) {

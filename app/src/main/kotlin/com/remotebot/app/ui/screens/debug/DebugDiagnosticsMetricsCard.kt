@@ -22,7 +22,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTracker.clearHistory() }) {
-    // Обновление тикера только пока карточка активна на экране (компонент в композиции)
+    // Update ticker only while card is active on screen (component in composition)
     var refreshTick by remember { mutableStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -57,7 +57,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                     .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Заголовок карточки
+            // Card header
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -104,7 +104,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                 }
             }
 
-            // Переключатель временных окон (5 мин, 15 мин, 30 мин, 1 час, с запуска)
+            // Time window selector (5 min, 15 min, 30 min, 1 hour, since startup)
             val windowLabels = listOf("5 мин", "15 мин", "30 мин", "1 час", "С запуска")
             Row(
                 modifier =
@@ -129,7 +129,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // 1. Секция просыпаний приложения
+            // 1. Application wakeup events section
             SectionHeader(title = "⏰ Просыпания приложения (${currentWindow.windowName})")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -179,7 +179,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // 2. Секция неудачных аутентификаций
+            // 2. Failed authentication attempts section
             SectionHeader(title = "🔒 Ошибки аутентификации (${currentWindow.windowName})")
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -201,7 +201,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            // 3. Секция сетевых коннектов по серверам (Push Gateway & Telegram API)
+            // 3. Network connections by server section (Push Gateway & Telegram API)
             SectionHeader(title = "🌐 Статистика серверов (Удачно / Ошибка / Таймаут)")
 
             val pushServers = currentWindow.serverStats.filter { it.serverType == ServerType.PUSH_GATEWAY }

@@ -63,7 +63,7 @@ class SystemSettingsCommandsHandler(
     private fun isRootGranted(): Boolean = SystemControlUtils.isRootGranted(rootStatusProvider)
 
     // ==========================================
-    // 1. ИНТЕРАКТИВНАЯ ПАНЕЛЬ ПЕРЕКЛЮЧАТЕЛЕЙ
+    // 1. INTERACTIVE TOGGLE SWITCHES PANEL
     // ==========================================
     private suspend fun handleTogglesPanel(): CommandResult =
         withContext(Dispatchers.IO) {
@@ -86,7 +86,7 @@ class SystemSettingsCommandsHandler(
 
             val buttonRows = mutableListOf<List<InlineKeyboardButton>>()
 
-            // Базовые переключатели (доступны всегда)
+            // Basic switches (always available)
             buttonRows.add(
                 listOf(
                     InlineKeyboardButton(if (wifiOn) "📶 Wi-Fi [ВКЛ]" else "📶 Wi-Fi [ВЫКЛ]", "/wifi toggle"),
@@ -165,7 +165,7 @@ class SystemSettingsCommandsHandler(
         }
 
     // ==========================================
-    // 2. ЭКОНОМИЯ ЭНЕРГИИ (POWER SAVE) [ТРЕБУЕТ ROOT]
+    // 2. POWER SAVE [REQUIRES ROOT]
     // ==========================================
     private suspend fun handlePowerSave(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {
@@ -253,7 +253,7 @@ class SystemSettingsCommandsHandler(
     }
 
     // ==========================================
-    // 3. АВТОЯРКОСТЬ (AUTO BRIGHTNESS)
+    // 3. AUTO BRIGHTNESS
     // ==========================================
     private suspend fun handleAutoBrightness(args: List<String>): CommandResult =
         withContext(Dispatchers.IO) {
@@ -347,7 +347,7 @@ class SystemSettingsCommandsHandler(
     }
 
     // ==========================================
-    // 4. СИНХРОНИЗАЦИЯ (SYNC)
+    // 4. SYNC
     // ==========================================
     private fun handleSync(args: List<String>): CommandResult {
         val action = args.firstOrNull()?.lowercase() ?: "status"
@@ -395,7 +395,7 @@ class SystemSettingsCommandsHandler(
     private fun isSyncEnabled(): Boolean = ContentResolver.getMasterSyncAutomatically()
 
     // ==========================================
-    // 5. БУФЕР ОБМЕНА (CLIPBOARD)
+    // 5. CLIPBOARD
     // ==========================================
     private suspend fun handleClipboard(args: List<String>): CommandResult =
         withContext(Dispatchers.Main) {
@@ -444,7 +444,7 @@ class SystemSettingsCommandsHandler(
         }
 
     // ==========================================
-    // 6. ОТЛАДКА ПО USB (ADB)
+    // 6. USB DEBUGGING (ADB)
     // ==========================================
     private fun isAdbEnabled(): Boolean =
         try {
@@ -529,7 +529,7 @@ class SystemSettingsCommandsHandler(
         }
 
     // ==========================================
-    // 7. ОТЛАДКА ПО WI-FI (WIRELESS ADB)
+    // 7. WIRELESS ADB
     // ==========================================
     private fun getAdbWifiPort(): Int {
         val portProp =

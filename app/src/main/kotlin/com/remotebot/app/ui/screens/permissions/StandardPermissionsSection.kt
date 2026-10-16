@@ -61,7 +61,7 @@ fun StandardPermissionsSection(
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     )
 
-    // Баннер пакетного запроса стандартных прав
+    // Batch standard permissions request banner
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)),
         modifier = Modifier.fillMaxWidth(),
@@ -244,7 +244,7 @@ fun StandardPermissionsSection(
             buttonText = "Разрешить безлимитный трафик",
         ) {
             val uid = context.applicationInfo.uid
-            // Если есть Root-права, мгновенно добавляем UID в whitelist сетевой политики
+            // If Root is granted, immediately add UID to network policy whitelist
             if (rootProvider.isRootGrantedSync()) {
                 logger.d("Permissions", "Запрос снятия ограничений Data Saver через Root (UID=$uid)")
                 try {

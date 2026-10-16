@@ -307,7 +307,7 @@ class DomainModelsTest {
             val pin = config.smsPin?.trim()
             val isTrusted = isTrustedPhone(sender)
 
-            // SMS считается командой ТОЛЬКО если начинается с префикса "rb" (регистронезависимо: rb, RB, Rb, rB)
+            // SMS is treated as a command ONLY if it starts with "rb" prefix (case-insensitive: rb, RB, Rb, rB)
             val prefixRegex = "^(?i)rb(\\s+|/|:|$)(.*)".toRegex()
             val match = prefixRegex.find(text) ?: return null
             val delimiter = match.groupValues[1]
@@ -334,7 +334,7 @@ class DomainModelsTest {
             return null
         }
 
-        // Case 1: Все 4 варианта регистра префикса (rb, RB, Rb, rB) с PIN от ЛЮБОГО номера
+        // Case 1: All 4 prefix case variants (rb, RB, Rb, rB) with PIN from ANY number
         assertEquals("/wifi on", parseSmsCommand("+79009990000", "rb 1234 /wifi on"))
         assertEquals("/wifi on", parseSmsCommand("+79009990000", "RB 1234 /wifi on"))
         assertEquals("/wifi on", parseSmsCommand("+79009990000", "Rb 1234 /wifi on"))
@@ -344,7 +344,7 @@ class DomainModelsTest {
         assertEquals("/wifi on", parseSmsCommand("+79009990000", "RB\n1234 /wifi on"))
         assertEquals("/wifi on", parseSmsCommand("+79009990000", "Rb: 1234 /wifi on"))
 
-        // Case 2: Все 4 варианта регистра префикса (rb, RB, Rb, rB) от доверенного номера БЕЗ PIN
+        // Case 2: All 4 prefix case variants (rb, RB, Rb, rB) from trusted number WITHOUT PIN
         assertEquals("/wifi on", parseSmsCommand("+79991112233", "rb /wifi on"))
         assertEquals("/wifi on", parseSmsCommand("+79991112233", "RB /wifi on"))
         assertEquals("/wifi on", parseSmsCommand("+79991112233", "Rb /wifi on"))
@@ -485,18 +485,18 @@ class DomainModelsTest {
         val testSender = "+79991112233"
         val startWindow = 2000000L
 
-        // Первые 3 сообщения проходят
+        // First 3 messages pass
         assertTrue(checkRateLimit(testSender, testLimit, startWindow))
         assertTrue(checkRateLimit(testSender, testLimit, startWindow + 1000L))
         assertTrue(checkRateLimit(testSender, testLimit, startWindow + 2000L))
 
-        // 4-е сообщение в ту же минуту блокируется
+        // 4th message within the same minute is blocked
         assertFalse(checkRateLimit(testSender, testLimit, startWindow + 5000L))
 
-        // Сообщение от другого отправителя проходит
+        // Message from another sender passes
         assertTrue(checkRateLimit("+79998887766", testLimit, startWindow + 6000L))
 
-        // Спустя 61 секунду старые сообщения выпадают из окна -> снова проходит
+        // After 61 seconds old messages leave the window -> passes again
         assertTrue(checkRateLimit(testSender, testLimit, startWindow + 61000L))
 
         // 6. Test replyUnauthorizedResponseEnabled default & toggle
@@ -685,12 +685,12 @@ class DomainModelsTest {
             }
         }
 
-        // 1. По умолчанию выключено -> кнопок нет
+        // 1. Disabled by default -> no buttons
         val defaultCfg = BotConfig()
         val buttonsDefault = buildKeyboard(defaultCfg)
         assertTrue(buttonsDefault.isEmpty(), "Кнопки 2FA не должны создаваться при выключенном флаге")
 
-        // 2. Включено в настройках -> кнопки созданы с эмодзи
+        // 2. Enabled in settings -> buttons created with emoji
         val enabledCfg = defaultCfg.copy(enable2FaInterception = true)
         val buttonsEnabled = buildKeyboard(enabledCfg)
         assertEquals(2, buttonsEnabled.size)
@@ -720,19 +720,19 @@ class DomainModelsTest {
             }
         }
 
-        // Добавляем 2FA уведомление на шаге 100
+        // Add 2FA notification at step 100
         for (i in 1..99) postNotif(i.toString(), is2Fa = false)
         postNotif("100", is2Fa = true)
         for (i in 101..1500) postNotif(i.toString(), is2Fa = false)
 
-        // Проверяем:
-        // 1. Самое свежее уведомление "1500" на месте (нет бага моментального вытеснения)
+        // Verify:
+        // 1. Most recent notification "1500" is present (no instant eviction bug)
         assertTrue(recentMap.containsKey("1500"), "Свежее уведомление не должно вытесняться")
 
-        // 2. Старое обычное уведомление "50" вытеснено по FIFO
+        // 2. Old regular notification "50" evicted via FIFO
         assertFalse(recentMap.containsKey("50"), "Старое обычное уведомление должно вытесниться")
 
-        // 3. 2FA уведомление "100" защищено и сохранено в 2FA кэше
+        // 3. 2FA notification "100" protected and preserved in 2FA cache
         assertTrue(active2FaMap.containsKey("100"), "2FA уведомление защищено в выделенном кэше")
         assertTrue(recentMap.containsKey("100"), "2FA уведомление не удалено из recentMap")
     }
@@ -784,19 +784,19 @@ class DomainModelsTest {
                     ),
             )
 
-        // 1. Подписчик с дефолтными настройками получает notif, sms, calls, но не system
+        // 1. Subscriber with default settings receives notif, sms, calls, but not system
         assertTrue(config.isUserSubscribedTo(subscriberId, SubscriptionEventType.NOTIFICATIONS))
         assertTrue(config.isUserSubscribedTo(subscriberId, SubscriptionEventType.SMS))
         assertTrue(config.isUserSubscribedTo(subscriberId, SubscriptionEventType.CALLS))
         assertFalse(config.isUserSubscribedTo(subscriberId, SubscriptionEventType.SYSTEM))
 
-        // 2. Оператор («Только команды») не получает никаких фоновых событий
+        // 2. Operator ("Commands only") receives no background events
         assertFalse(config.isUserSubscribedTo(commandsOnlyId, SubscriptionEventType.NOTIFICATIONS))
         assertFalse(config.isUserSubscribedTo(commandsOnlyId, SubscriptionEventType.SMS))
         assertFalse(config.isUserSubscribedTo(commandsOnlyId, SubscriptionEventType.CALLS))
         assertFalse(config.isUserSubscribedTo(commandsOnlyId, SubscriptionEventType.SYSTEM))
 
-        // 3. Неавторизованный пользователь не получает ничего
+        // 3. Unauthorized user receives nothing
         assertFalse(config.isUserSubscribedTo(unauthorizedId, SubscriptionEventType.NOTIFICATIONS))
         assertFalse(config.isUserSubscribedTo(unauthorizedId, SubscriptionEventType.SMS))
     }
@@ -822,13 +822,13 @@ class DomainModelsTest {
                     ),
             )
 
-        // Пользователь без явной записи получает стандартный набор: Notif, SMS, Calls
+        // User without explicit entry receives standard set: Notif, SMS, Calls
         assertTrue(config.isUserSubscribedTo(openUserId, SubscriptionEventType.NOTIFICATIONS))
         assertTrue(config.isUserSubscribedTo(openUserId, SubscriptionEventType.SMS))
         assertTrue(config.isUserSubscribedTo(openUserId, SubscriptionEventType.CALLS))
         assertFalse(config.isUserSubscribedTo(openUserId, SubscriptionEventType.SYSTEM))
 
-        // Пользователь с явной подпиской получает только то, на что подписан
+        // User with explicit subscription receives only subscribed types
         assertFalse(config.isUserSubscribedTo(customUserId, SubscriptionEventType.NOTIFICATIONS))
         assertFalse(config.isUserSubscribedTo(customUserId, SubscriptionEventType.SMS))
         assertFalse(config.isUserSubscribedTo(customUserId, SubscriptionEventType.CALLS))
@@ -873,19 +873,19 @@ class DomainModelsTest {
                     ),
             )
 
-        // Проверяем «Только SMS»
+        // Verify "SMS only"
         assertFalse(config.isUserSubscribedTo(smsOnlyId, SubscriptionEventType.NOTIFICATIONS))
         assertTrue(config.isUserSubscribedTo(smsOnlyId, SubscriptionEventType.SMS))
         assertFalse(config.isUserSubscribedTo(smsOnlyId, SubscriptionEventType.CALLS))
         assertFalse(config.isUserSubscribedTo(smsOnlyId, SubscriptionEventType.SYSTEM))
 
-        // Проверяем «Только Push-уведомления»
+        // Verify "Push notifications only"
         assertTrue(config.isUserSubscribedTo(notifOnlyId, SubscriptionEventType.NOTIFICATIONS))
         assertFalse(config.isUserSubscribedTo(notifOnlyId, SubscriptionEventType.SMS))
         assertFalse(config.isUserSubscribedTo(notifOnlyId, SubscriptionEventType.CALLS))
         assertFalse(config.isUserSubscribedTo(notifOnlyId, SubscriptionEventType.SYSTEM))
 
-        // Проверяем «Всё включено (включая System)»
+        // Verify "All enabled (including System)"
         assertTrue(config.isUserSubscribedTo(allOnId, SubscriptionEventType.NOTIFICATIONS))
         assertTrue(config.isUserSubscribedTo(allOnId, SubscriptionEventType.SMS))
         assertTrue(config.isUserSubscribedTo(allOnId, SubscriptionEventType.CALLS))
@@ -895,13 +895,13 @@ class DomainModelsTest {
     @Test
     fun testUserSubscriptionTogglesAndImmutability() {
         val initial = UserSubscription(userId = 333L)
-        // Дефолты: Notif=true, SMS=true, Calls=true, System=false
+        // Defaults: Notif=true, SMS=true, Calls=true, System=false
         assertTrue(initial.receiveNotifications)
         assertTrue(initial.receiveSms)
         assertTrue(initial.receiveCalls)
         assertFalse(initial.receiveSystem)
 
-        // Симуляция действия all_off (Только управление)
+        // Simulate all_off action (Control only)
         val allOff =
             initial.copy(
                 receiveNotifications = false,
@@ -914,7 +914,7 @@ class DomainModelsTest {
         assertFalse(allOff.receiveCalls)
         assertFalse(allOff.receiveSystem)
 
-        // Симуляция действия all_on
+        // Simulate all_on action
         val allOn =
             allOff.copy(
                 receiveNotifications = true,
@@ -927,7 +927,7 @@ class DomainModelsTest {
         assertTrue(allOn.receiveCalls)
         assertFalse(allOn.receiveSystem)
 
-        // Точечное переключение системных событий
+        // Targeted toggle for system events
         val systemToggled = allOn.copy(receiveSystem = !allOn.receiveSystem)
         assertTrue(systemToggled.receiveSystem)
     }
@@ -962,7 +962,7 @@ class DomainModelsTest {
                 override fun isPhoneAllowed(phone: String): Boolean = true
             }
 
-        // Проверяем, что дефолтный метод интерфейса делегирует в конфиг
+        // Verify default interface method delegates to config
         assertFalse(repo.isUserSubscribedTo(testUserId, SubscriptionEventType.NOTIFICATIONS))
         assertTrue(repo.isUserSubscribedTo(testUserId, SubscriptionEventType.SMS))
         assertFalse(repo.isUserSubscribedTo(testUserId, SubscriptionEventType.CALLS))
