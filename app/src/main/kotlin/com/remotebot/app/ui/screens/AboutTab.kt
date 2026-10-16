@@ -327,7 +327,7 @@ fun AboutTab(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text =
-                    "• Лицензия: GNU General Public License v3.0 (GPLv3)\n" +
+                    "• Лицензия: Apache License 2.0\n" +
                         "• Архитектура: Clean Architecture + Модульный Kotlin Gradle проект\n" +
                         "• Стек: Jetpack Compose, Material 3, Coroutines, Flow, Koin, Ktor, Room, CameraX, libsu",
                 style = MaterialTheme.typography.bodySmall,

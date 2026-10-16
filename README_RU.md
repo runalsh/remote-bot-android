@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Платформа-Android_8.0+_--_15_(API_26--35)-brightgreen.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/Язык-Kotlin_2.0-purple.svg" alt="Kotlin" />
   <img src="https://img.shields.io/badge/UI-Jetpack_Compose_Material_3-blue.svg" alt="Compose" />
-  <img src="https://img.shields.io/badge/Лицензия-GPLv3-orange.svg" alt="License" />
+  <img src="https://img.shields.io/badge/Лицензия-Apache_2.0-blue.svg" alt="License" />
 </p>
 
 ---
@@ -239,4 +239,10 @@ cd remote-bot/newapp
 
 ## 📄 Лицензия
 
-Проект распространяется под лицензией **GNU General Public License v3.0 (GPLv3)**. Подробнее в файле [LICENSE](LICENSE).
+Copyright 2026 runalsh (https://github.com/runalsh/remote-bot-android)
+
+Проект распространяется под свободной лицензией **Apache License 2.0**. Вы можете ознакомиться с условиями по адресу:
+
+[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+Подробнее в файле [LICENSE](LICENSE).

@@ -175,10 +175,10 @@ class BaseCommandsHandler(
                     • <b>Сборка:</b> Clean Architecture (SDK 35 / Android 15)
                     • <b>Root статус:</b> $rootText
                     
-                    🐙 <b>GitHub:</b> <a href="https://github.com/runalsh/remote-bot">github.com/runalsh/remote-bot</a>
+                    🐙 <b>GitHub:</b> <a href="https://github.com/runalsh/remote-bot-android">github.com/runalsh/remote-bot-android</a>
                     ✈️ <b>Telegram автора:</b> <a href="https://t.me/runalsh">@runalsh</a>
                     
-                    ⚖️ Лицензия: GNU GPLv3
+                    ⚖️ Лицензия: Apache License 2.0
                     """.trimIndent(),
                 )
             }

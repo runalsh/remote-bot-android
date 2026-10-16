@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Platform-Android_8.0+_--_15_(API_26--35)-brightgreen.svg" alt="Platform" />
   <img src="https://img.shields.io/badge/Language-Kotlin_2.0-purple.svg" alt="Kotlin" />
   <img src="https://img.shields.io/badge/UI-Jetpack_Compose_Material_3-blue.svg" alt="Compose" />
-  <img src="https://img.shields.io/badge/License-GPLv3-orange.svg" alt="License" />
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
 </p>
 
 ---
@@ -240,4 +240,10 @@ cd remote-bot/newapp
 
 ## 📄 License
 
-This project is licensed under the **GNU General Public License v3.0 (GPLv3)**. See [LICENSE](LICENSE) for details.
+Copyright 2026 runalsh (https://github.com/runalsh/remote-bot-android)
+
+This project is licensed under the Apache License, Version 2.0 (the "License"). You may obtain a copy of the License at:
+
+[http://www.apache.org/licenses/LICENSE-2.0](http://www.apache.org/licenses/LICENSE-2.0)
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the [LICENSE](LICENSE) file for details.
