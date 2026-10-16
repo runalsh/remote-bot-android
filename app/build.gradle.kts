@@ -140,6 +140,11 @@ android {
                 "proguard-rules.pro",
             )
         }
+        create("releaseTestkey") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
+        }
     }
 
     compileOptions {

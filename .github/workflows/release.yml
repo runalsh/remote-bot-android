@@ -44,17 +44,20 @@ jobs:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > release.jks
 
-      - name: Assemble Debug & Release APKs
+      - name: Assemble Production Release APK
         env:
           KEYSTORE_FILE: release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleDebug assembleRelease
+        run: ./gradlew :app:assembleRelease
 
       - name: Clean up Release Keystore
         if: always()
         run: rm -f release.jks
+
+      - name: Assemble Testkey Release APK
+        run: ./gradlew :app:assembleReleaseTestkey
 
       - name: Prepare Release Artifacts & Checksums
         run: |
@@ -64,8 +67,8 @@ jobs:
           # Copy & rename Production Release APK
           cp app/build/outputs/apk/release/app-release.apk "release-artifacts/remote-bot-android_${TAG}.apk"
 
-          # Copy & rename Debug testkey APK
-          cp app/build/outputs/apk/debug/app-debug.apk "release-artifacts/remote-bot-android_${TAG}_testkey.apk"
+          # Copy & rename Testkey Release APK
+          cp app/build/outputs/apk/releaseTestkey/app-releaseTestkey.apk "release-artifacts/remote-bot-android_${TAG}_testkey.apk"
 
           # Calculate SHA-256 Checksums
           cd release-artifacts
