@@ -195,12 +195,13 @@ class TelephonyEventForwarder(
                     "<code>$senderClean</code>"
                 }
             val bodyClean = escapeHtml(event.body.trim())
+            val formattedBody = DIGIT_REGEX.replace(bodyClean) { "<code>${it.value}</code>" }
             val msg =
                 buildString {
                     append(
                         "📨 <b>Входящее SMS от ",
                     ).append(senderDisplay).append("</b>").append(simInfo).append(" (<i>").append(timeStr).append("</i>):\n")
-                    append("«").append(bodyClean).append("»\n\n")
+                    append(formattedBody).append("\n\n")
                     append("<i>💬 Нажмите «Ответить» ниже или сделайте Reply на сообщение</i>")
                 }
 
@@ -316,4 +317,8 @@ class TelephonyEventForwarder(
             .replace("&", "&amp;")
             .replace("<", "&lt;")
             .replace(">", "&gt;")
+
+    companion object {
+        private val DIGIT_REGEX = Regex("\\d+")
+    }
 }

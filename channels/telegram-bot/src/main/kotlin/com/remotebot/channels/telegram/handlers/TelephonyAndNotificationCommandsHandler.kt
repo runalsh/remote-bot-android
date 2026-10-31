@@ -107,8 +107,17 @@ class TelephonyAndNotificationCommandsHandler(
                     list.forEachIndexed { index, sms ->
                         val icon = if (sms.isIncoming) "📥" else "📤"
                         val timeStr = dateFormat.format(Date(sms.dateMs))
-                        sb.append("$icon <b>#${index + 1} | ${sms.address}</b> (<i>$timeStr</i>)\n")
-                        sb.append("«${sms.body}»\n\n")
+                        val contactName = telephonyRepository.resolveContactName(sms.address)
+                        val addressDisplay =
+                            if (!contactName.isNullOrBlank()) {
+                                "<b>${escapeHtml(contactName)}</b> (<code>${escapeHtml(sms.address)}</code>)"
+                            } else {
+                                "<code>${escapeHtml(sms.address)}</code>"
+                            }
+                        val bodyClean = escapeHtml(sms.body.trim())
+                        val formattedBody = DIGIT_REGEX.replace(bodyClean) { "<code>${it.value}</code>" }
+                        sb.append("$icon <b>#${index + 1} |</b> $addressDisplay (<i>$timeStr</i>)\n")
+                        sb.append("$formattedBody\n\n")
                     }
                     CommandResult.Text(sb.toString().trimEnd())
                 }
@@ -391,5 +400,15 @@ class TelephonyAndNotificationCommandsHandler(
         return CommandResult.Error(
             "Формат: <code>/notify_rule list</code> или <code>/notify_rule add exclude &lt;pkg&gt;</code> или <code>/notify_rule del &lt;id&gt;</code>",
         )
+    }
+
+    private fun escapeHtml(text: String): String =
+        text
+            .replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+
+    companion object {
+        private val DIGIT_REGEX = Regex("\\d+")
     }
 }

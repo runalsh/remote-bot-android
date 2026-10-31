@@ -211,4 +211,17 @@ class TelephonyCommandsTest {
         assertNotNull(matchPrompt)
         assertEquals("+79033885660", matchPrompt.groupValues[1])
     }
+
+    @Test
+    fun testSmsBodyFormattingDigitsAndQuotes() {
+        val digitRegex = Regex("\\d+")
+
+        val sms1 = "Ооо"
+        val formatted1 = digitRegex.replace(sms1) { "<code>${it.value}</code>" }
+        assertEquals("Ооо", formatted1)
+
+        val sms2 = "Код подтверждения: 948201. Баланс 1500 руб."
+        val formatted2 = digitRegex.replace(sms2) { "<code>${it.value}</code>" }
+        assertEquals("Код подтверждения: <code>948201</code>. Баланс <code>1500</code> руб.", formatted2)
+    }
 }
