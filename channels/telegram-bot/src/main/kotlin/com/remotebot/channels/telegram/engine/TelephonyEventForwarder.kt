@@ -1,5 +1,6 @@
 package com.remotebot.channels.telegram.engine
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.common.telephony.IncomingSmsEvent
 import com.remotebot.core.common.telephony.PhoneCallEvent
@@ -40,6 +41,7 @@ class TelephonyEventForwarder(
 ) {
     // Sliding window forwarding timestamps per sender: sender -> list of timestamps
     private val recentForwardTimestampsBySender = ConcurrentHashMap<String, MutableList<Long>>()
+    private val strings get() = TelegramBotStrings.get(configRepository.config.value.botLanguage)
 
     private fun isRateLimited(
         sender: String,
@@ -268,11 +270,12 @@ class TelephonyEventForwarder(
             }
         val icon =
             when (event.type) {
-                CallType.INCOMING -> "📞 <b>Входящий звонок</b>"
-                CallType.MISSED -> "🔴 <b>Пропущенный звонок</b>"
-                else -> "📞 <b>Звонок (${event.type.name})</b>"
+                CallType.INCOMING -> if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "📞 <b>Incoming Call</b>" else "📞 <b>Входящий звонок</b>"
+                CallType.MISSED -> if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "🔴 <b>Missed Call</b>" else "🔴 <b>Пропущенный звонок</b>"
+                else -> "📞 <b>Call (${event.type.name})</b>"
             }
-        val msg = "$icon от $callerDisplay"
+        val fromLabel = if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "from" else "от"
+        val msg = "$icon $fromLabel $callerDisplay"
         if (config.telegramBotEnabled && config.tgForwardCallsEnabled) {
             broadcastMessage(msg, null, SubscriptionEventType.CALLS)
         }

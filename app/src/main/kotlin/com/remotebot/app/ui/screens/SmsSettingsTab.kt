@@ -18,6 +18,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.RemovableInputRow
 import com.remotebot.app.ui.components.StatusMessageText
 import com.remotebot.core.common.logger.AppLogger
@@ -77,16 +79,16 @@ fun SmsSettingsTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "💬 SMS-бот",
+                            text = stringResource(R.string.sms_card_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text =
                                 if (smsBotEnabled) {
-                                    "Включен: обработка команд и пересылка активны"
+                                    stringResource(R.string.sms_card_enabled_desc)
                                 } else {
-                                    "Выключен (по умолчанию): отправка и пересылка по сотовой связи отключены"
+                                    stringResource(R.string.sms_card_disabled_desc)
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -112,7 +114,7 @@ fun SmsSettingsTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "📤 Номера для пересылки",
+                        text = stringResource(R.string.sms_forward_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -124,14 +126,14 @@ fun SmsSettingsTab(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Добавить номер",
+                            contentDescription = stringResource(R.string.sms_forward_add_btn),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "Куда отправлять входящие SMS и уведомления приложений:",
+                    text = stringResource(R.string.sms_forward_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -139,7 +141,7 @@ fun SmsSettingsTab(
 
                 if (targetNumbersList.isEmpty()) {
                     Text(
-                        text = "⚠️ Список номеров пуст. Нажмите «+» справа, чтобы добавить номер назначения.",
+                        text = stringResource(R.string.sms_forward_empty_warning),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -153,7 +155,7 @@ fun SmsSettingsTab(
                                 targetNumbersList = list
                                 statusMessage = null
                             },
-                            placeholder = "Номер #${index + 1} (+79991234567)",
+                            placeholder = stringResource(R.string.sms_target_placeholder, index + 1),
                             onRemove = {
                                 val list = targetNumbersList.toMutableList()
                                 list.removeAt(index)
@@ -172,7 +174,7 @@ fun SmsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "🔤 Параметры отправки SMS",
+                    text = stringResource(R.string.sms_params_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -190,12 +192,12 @@ fun SmsSettingsTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "🔤 Транслитерация (кириллица ➔ латиница)",
+                            stringResource(R.string.sms_translit_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            "Экономит баланс: 160 символов в одном SMS вместо 70 для русского текста (ГОСТ 7.79)",
+                            stringResource(R.string.sms_translit_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -220,7 +222,7 @@ fun SmsSettingsTab(
                     ) {
                         Text("💡", fontSize = 18.sp)
                         Text(
-                            text = "Выбор типов пересылки (в Telegram и по SMS) для входящих сообщений, звонков и push-уведомлений настраивается в разделе «Уведомления».",
+                            text = stringResource(R.string.sms_types_hint),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -233,13 +235,13 @@ fun SmsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "🎮 Удаленное управление (Offline Bot)",
+                    text = stringResource(R.string.sms_offline_bot_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "💡 Все входящие команды обязаны начинаться с префикса «rb » (например: rb 1234 /wifi on или rb /status).\n\nЗадайте PIN для управления с чужих номеров и укажите доверенные номера для управления без PIN.",
+                    text = stringResource(R.string.sms_offline_bot_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -251,8 +253,8 @@ fun SmsSettingsTab(
                         pinInput = it.trim()
                         statusMessage = null
                     },
-                    label = { Text("SMS PIN-код") },
-                    placeholder = { Text("Например: 1234") },
+                    label = { Text(stringResource(R.string.sms_pin_label)) },
+                    placeholder = { Text(stringResource(R.string.sms_pin_placeholder)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -266,7 +268,7 @@ fun SmsSettingsTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Доверенные номера (без PIN):",
+                        text = stringResource(R.string.sms_trusted_numbers_title),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -278,7 +280,7 @@ fun SmsSettingsTab(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Добавить доверенный номер",
+                            contentDescription = stringResource(R.string.sms_trusted_numbers_add),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -286,7 +288,7 @@ fun SmsSettingsTab(
 
                 if (allowedPhonesList.isEmpty()) {
                     Text(
-                        text = "Список пуст (управление только по PIN). Нажмите «+» справа, чтобы добавить доверенный номер.",
+                        text = stringResource(R.string.sms_trusted_numbers_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -300,7 +302,7 @@ fun SmsSettingsTab(
                                 allowedPhonesList = list
                                 statusMessage = null
                             },
-                            placeholder = "Номер #${index + 1} (+79991234567)",
+                            placeholder = stringResource(R.string.sms_target_placeholder, index + 1),
                             onRemove = {
                                 val list = allowedPhonesList.toMutableList()
                                 list.removeAt(index)
@@ -316,6 +318,8 @@ fun SmsSettingsTab(
         }
 
         // Save button
+        val saveSuccessMsg = stringResource(R.string.sms_saved_success)
+        val saveToastMsg = stringResource(R.string.sms_saved_toast)
         Button(
             onClick = {
                 val cleanPin = pinInput.trim().ifBlank { null }
@@ -336,17 +340,17 @@ fun SmsSettingsTab(
                         )
                     }
                     isSuccess = true
-                    statusMessage = "✅ Настройки SMS-бота успешно сохранены!"
-                    Toast.makeText(context, "Настройки SMS сохранены!", Toast.LENGTH_SHORT).show()
+                    statusMessage = saveSuccessMsg
+                    Toast.makeText(context, saveToastMsg, Toast.LENGTH_SHORT).show()
                     logger.i(
                         "SmsConfig",
-                        "Сохранены настройки SMS: enabled=$effectiveBotEnabled, targets=$cleanTargets, translit=$smsTransliterationEnabled",
+                        "Saved SMS config: enabled=$effectiveBotEnabled, targets=$cleanTargets, translit=$smsTransliterationEnabled",
                     )
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Сохранить настройки SMS-бота")
+            Text(stringResource(R.string.sms_save_button))
         }
 
         StatusMessageText(

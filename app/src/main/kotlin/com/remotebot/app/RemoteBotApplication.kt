@@ -14,6 +14,7 @@ import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import com.remotebot.app.util.AppLocaleManager
 
 class RemoteBotApplication : Application() {
     override fun onCreate() {
@@ -23,6 +24,13 @@ class RemoteBotApplication : Application() {
             androidLogger()
             androidContext(this@RemoteBotApplication)
             modules(appModule)
+        }
+
+        // Apply saved application locale
+        try {
+            val configRepo: BotConfigRepository = get()
+            AppLocaleManager.applyLocale(this, configRepo.config.value.botLanguage)
+        } catch (_: Exception) {
         }
 
         // Attempt dynamic Firebase initialization from saved configuration

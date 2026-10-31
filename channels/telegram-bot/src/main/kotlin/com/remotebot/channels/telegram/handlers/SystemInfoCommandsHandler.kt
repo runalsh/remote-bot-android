@@ -16,11 +16,13 @@ import android.os.StatFs
 import android.os.SystemClock
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.Inet4Address
@@ -32,7 +34,16 @@ class SystemInfoCommandsHandler(
     private val context: Context,
     private val logger: AppLogger,
     private val rootStatusProvider: RootStatusProvider,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private fun isEnglish(): Boolean {
+        val lang = botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO
+        return when (lang) {
+            BotLanguage.EN -> true
+            BotLanguage.RU -> false
+            BotLanguage.AUTO -> !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
+        }
+    }
     override val commandNames: List<String> =
         listOf(
             "system_info",
@@ -89,7 +100,11 @@ class SystemInfoCommandsHandler(
                 val days = TimeUnit.MILLISECONDS.toDays(uptimeMs)
                 val hours = TimeUnit.MILLISECONDS.toHours(uptimeMs) % 24
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMs) % 60
-                val uptimeStr = if (days > 0) "${days}д ${hours}ч ${minutes}м" else "${hours}ч ${minutes}м"
+                val uptimeStr = if (days > 0) {
+                    if (isEnglish()) "${days}d ${hours}h ${minutes}m" else "${days}д ${hours}ч ${minutes}м"
+                } else {
+                    if (isEnglish()) "${hours}h ${minutes}m" else "${hours}ч ${minutes}м"
+                }
 
                 val localIp = SystemControlUtils.getLocalIpAddress() ?: "127.0.0.1"
                 val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -134,15 +149,16 @@ class SystemInfoCommandsHandler(
                     • Локальный IP: <code>$localIp</code>
                     """.trimIndent()
 
+                val isEn = isEnglish()
                 val keyboard =
                     InlineKeyboardMarkup(
                         listOf(
                             listOf(
-                                InlineKeyboardButton("🎛 Панель переключателей", "/toggles"),
-                                InlineKeyboardButton("🔋 Батарея", "/battery"),
+                                InlineKeyboardButton(if (isEn) "🎛 Toggles" else "🎛 Панель переключателей", "/toggles"),
+                                InlineKeyboardButton(if (isEn) "🔋 Battery" else "🔋 Батарея", "/battery"),
                             ),
                             listOf(
-                                InlineKeyboardButton("🌐 Сетевые интерфейсы", "/network"),
+                                InlineKeyboardButton(if (isEn) "🌐 Network Interfaces" else "🌐 Сетевые интерфейсы", "/network"),
                             ),
                         ),
                     )
@@ -228,15 +244,18 @@ class SystemInfoCommandsHandler(
                 """.trimIndent()
 
             val isPowerSave = SystemControlUtils.isPowerSaveModeOn(context)
+            val isEn = isEnglish()
+            val powerSaveText = if (isEn) {
+                if (isPowerSave) "🔋 Battery Saver [ON]" else "🔋 Battery Saver [OFF]"
+            } else {
+                if (isPowerSave) "🔋 Энергосбережение [ВКЛ]" else "🔋 Энергосбережение [ВЫКЛ]"
+            }
             val keyboard =
                 InlineKeyboardMarkup(
                     listOf(
                         listOf(
-                            InlineKeyboardButton(
-                                if (isPowerSave) "🔋 Энергосбережение [ВКЛ]" else "🔋 Энергосбережение [ВЫКЛ]",
-                                "/powersave toggle",
-                            ),
-                            InlineKeyboardButton("🔄 Обновить", "/battery"),
+                            InlineKeyboardButton(powerSaveText, "/powersave toggle"),
+                            InlineKeyboardButton(if (isEn) "🔄 Refresh" else "🔄 Обновить", "/battery"),
                         ),
                     ),
                 )
@@ -364,8 +383,9 @@ class SystemInfoCommandsHandler(
         }
 
     private fun handleUptime(): CommandResult {
+        val isEn = isEnglish()
         val osUptimeMs = SystemClock.elapsedRealtime()
-        val osUptimeStr = formatDuration(osUptimeMs)
+        val osUptimeStr = formatDuration(osUptimeMs, isEn)
 
         val appUptimeMs =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -374,22 +394,29 @@ class SystemInfoCommandsHandler(
             } else {
                 0L
             }
-        val appUptimeStr = if (appUptimeMs > 0) formatDuration(appUptimeMs) else "Н/Д"
+        val appUptimeStr = if (appUptimeMs > 0) formatDuration(appUptimeMs, isEn) else (if (isEn) "N/A" else "Н/Д")
 
         val text =
             buildString {
-                appendLine("⏱️ <b>Время непрерывной работы (Uptime)</b>")
-                appendLine()
-                appendLine("🤖 <b>Служба бота:</b> <code>$appUptimeStr</code>")
-                appendLine("📱 <b>Система Android:</b> <code>$osUptimeStr</code>")
+                if (isEn) {
+                    appendLine("⏱️ <b>Continuous Uptime</b>")
+                    appendLine()
+                    appendLine("🤖 <b>Bot Service:</b> <code>$appUptimeStr</code>")
+                    appendLine("📱 <b>Android System:</b> <code>$osUptimeStr</code>")
+                } else {
+                    appendLine("⏱️ <b>Время непрерывной работы (Uptime)</b>")
+                    appendLine()
+                    appendLine("🤖 <b>Служба бота:</b> <code>$appUptimeStr</code>")
+                    appendLine("📱 <b>Система Android:</b> <code>$osUptimeStr</code>")
+                }
             }.trimEnd()
 
         val keyboard =
             InlineKeyboardMarkup(
                 listOf(
                     listOf(
-                        InlineKeyboardButton("📊 Статус", "/status"),
-                        InlineKeyboardButton("🎛️ Переключатели", "/toggles"),
+                        InlineKeyboardButton(if (isEn) "📊 Status" else "📊 Статус", "/status"),
+                        InlineKeyboardButton(if (isEn) "🎛️ Toggles" else "🎛️ Переключатели", "/toggles"),
                     ),
                 ),
             )
@@ -397,18 +424,22 @@ class SystemInfoCommandsHandler(
         return CommandResult.Text(text, keyboard)
     }
 
-    private fun formatDuration(millis: Long): String {
+    private fun formatDuration(millis: Long, isEn: Boolean = false): String {
         if (millis <= 0) return "—"
         val seconds = millis / 1000
         val days = seconds / 86400
         val hours = (seconds % 86400) / 3600
         val minutes = (seconds % 3600) / 60
         val secs = seconds % 60
+        val dUnit = if (isEn) "d " else "д "
+        val hUnit = if (isEn) "h " else "ч "
+        val mUnit = if (isEn) "m " else "м "
+        val sUnit = if (isEn) "s" else "с"
         return buildString {
-            if (days > 0) append("${days}д ")
-            if (hours > 0) append("${hours}ч ")
-            append("${minutes}м ")
-            append("${secs}с")
+            if (days > 0) append("$days$dUnit")
+            if (hours > 0) append("$hours$hUnit")
+            append("$minutes$mUnit")
+            append("$secs$sUnit")
         }.trim()
     }
 }

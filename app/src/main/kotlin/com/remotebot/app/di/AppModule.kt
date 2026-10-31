@@ -136,6 +136,7 @@ val appModule =
                         context = androidContext(),
                         logger = get(),
                         rootStatusProvider = get(),
+                        botConfigRepository = get(),
                     ),
                 )
                 registerHandler(

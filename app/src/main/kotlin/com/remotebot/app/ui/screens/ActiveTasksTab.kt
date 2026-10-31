@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.AppCard
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.common.tracker.ActiveOperationsTracker
@@ -51,12 +53,16 @@ fun ActiveTasksTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "⏱️ Активные фоновые задачи",
+                            text = stringResource(R.string.tasks_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = if (activeOps.isNotEmpty()) "Выполняется операций: ${activeOps.size}" else "Нет выполняющихся задач",
+                            text = if (activeOps.isNotEmpty()) {
+                                stringResource(R.string.tasks_running_count, activeOps.size)
+                            } else {
+                                stringResource(R.string.tasks_empty)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -71,7 +77,7 @@ fun ActiveTasksTab(
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                         ) {
-                            Text("Остановить все")
+                            Text(stringResource(R.string.tasks_btn_cancel_all))
                         }
                     }
                 }
@@ -94,12 +100,12 @@ fun ActiveTasksTab(
                 ) {
                     Text("☕", fontSize = 32.sp)
                     Text(
-                        text = "Фоновые процессы не запущены",
+                        text = stringResource(R.string.tasks_empty_title),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Здесь в реальном времени отображаются длительные операции бота: скрытая аудиозапись, видеозапись, GPS-трекинг, скачивание и передача тяжелых файлов.",
+                        text = stringResource(R.string.tasks_empty_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -140,12 +146,12 @@ fun ActiveTasksTab(
 
                         OutlinedButton(
                             onClick = {
-                                logger.i("ActiveTasks", "Остановка фоновой операции: ${op.name} (${op.id})")
+                                logger.i("ActiveTasks", "Cancelling background operation: ${op.name} (${op.id})")
                                 operationsTracker.cancel(op.id)
                             },
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         ) {
-                            Text("Отмена")
+                            Text(stringResource(R.string.common_cancel))
                         }
                     }
                 }

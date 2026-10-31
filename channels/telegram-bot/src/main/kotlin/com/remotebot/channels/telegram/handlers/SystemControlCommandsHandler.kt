@@ -17,10 +17,11 @@ class SystemControlCommandsHandler(
     context: Context,
     logger: AppLogger,
     rootStatusProvider: RootStatusProvider,
+    botConfigRepository: com.remotebot.domain.repository.BotConfigRepository? = null,
 ) : CommandHandler {
-    val infoHandler = SystemInfoCommandsHandler(context, logger, rootStatusProvider)
+    val infoHandler = SystemInfoCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)
     val radioHandler = DeviceRadioCommandsHandler(context, logger, rootStatusProvider)
-    val settingsHandler = SystemSettingsCommandsHandler(context, logger, rootStatusProvider, radioHandler)
+    val settingsHandler = SystemSettingsCommandsHandler(context, logger, rootStatusProvider, radioHandler, botConfigRepository)
 
     override val commandNames: List<String> =
         (

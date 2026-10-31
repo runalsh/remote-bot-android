@@ -3,6 +3,7 @@ package com.remotebot.app.data
 import android.content.Context
 import com.remotebot.core.security.SecureStorageManager
 import com.remotebot.domain.model.BotConfig
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.ConnectionMode
 import com.remotebot.domain.model.EndpointSelectionStrategy
 import com.remotebot.domain.model.UserSubscription
@@ -150,6 +151,13 @@ class PreferencesBotConfigRepository(
             } else {
                 emptyMap()
             }
+        val botLangStr = prefs.getString("bot_language", BotLanguage.AUTO.name) ?: BotLanguage.AUTO.name
+        val botLang =
+            try {
+                BotLanguage.valueOf(botLangStr)
+            } catch (_: Exception) {
+                BotLanguage.AUTO
+            }
 
         return BotConfig(
             telegramBotEnabled = telegramEnabled,
@@ -191,6 +199,7 @@ class PreferencesBotConfigRepository(
             isDebugModeEnabled = debugMode,
             enable2FaInterception = enable2Fa,
             userSubscriptions = userSubs,
+            botLanguage = botLang,
         )
     }
 
@@ -246,6 +255,7 @@ class PreferencesBotConfigRepository(
             .putBoolean("is_debug_mode_enabled", newConfig.isDebugModeEnabled)
             .putBoolean("enable_2fa_interception", newConfig.enable2FaInterception)
             .putString("user_subscriptions_json", subsJson)
+            .putString("bot_language", newConfig.botLanguage.name)
             .apply()
     }
 

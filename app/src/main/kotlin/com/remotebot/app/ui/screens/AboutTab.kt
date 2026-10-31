@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remotebot.app.BuildConfig
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.AppCard
 import com.remotebot.app.ui.components.AppOutlinedCard
 import com.remotebot.domain.repository.BotConfigRepository
@@ -103,7 +105,7 @@ fun AboutTab(
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "Удаленный контроль Android через Telegram & SMS",
+                        text = stringResource(R.string.about_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -119,7 +121,7 @@ fun AboutTab(
             ) {
                 Text("ℹ️", fontSize = 18.sp)
                 Text(
-                    text = "Версия и параметры сборки",
+                    text = stringResource(R.string.about_card_version),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -129,8 +131,8 @@ fun AboutTab(
 
             val displayVersion = if (BuildConfig.VERSION_NAME.startsWith("v")) BuildConfig.VERSION_NAME else "v${BuildConfig.VERSION_NAME}"
             AboutInfoRow(
-                title = "Версия приложения",
-                value = "$displayVersion (код: ${BuildConfig.VERSION_CODE})",
+                title = stringResource(R.string.about_app_version),
+                value = "$displayVersion (${stringResource(R.string.about_code)}: ${BuildConfig.VERSION_CODE})",
                 onClick = {
                     val now = System.currentTimeMillis()
                     if (now - lastTapTime > 2000L) {
@@ -142,48 +144,40 @@ fun AboutTab(
 
                     if (tapCount >= 5) {
                         tapCount = 0
-                        Toast.makeText(context, "Вы вошли в режим отладки 🛠️", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Debug mode enabled 🛠️", Toast.LENGTH_SHORT).show()
                         coroutineScope.launch {
                             configRepo?.updateConfig { it.copy(isDebugModeEnabled = true) }
                             onNavigateToDebug?.invoke()
                         }
                     } else if (tapCount >= 2) {
                         val left = 5 - tapCount
-                        val word =
-                            if (left == 1) {
-                                "тап"
-                            } else if (left in 2..4) {
-                                "тапа"
-                            } else {
-                                "тапов"
-                            }
-                        Toast.makeText(context, "Осталось $left $word до открытия Debug меню...", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "$left taps remaining to unlock Debug menu...", Toast.LENGTH_SHORT).show()
                     }
                 },
             )
 
             AboutInfoRow(
-                title = "Дата и время сборки",
+                title = stringResource(R.string.about_build_time),
                 value = BuildConfig.BUILD_TIME,
             )
 
             AboutInfoRow(
-                title = "Идентификатор сборки (Commit)",
+                title = stringResource(R.string.about_build_id),
                 value = BuildConfig.BUILD_ID,
             )
 
             AboutInfoRow(
-                title = "Тип сборки",
+                title = stringResource(R.string.about_build_type),
                 value = "${BuildConfig.BUILD_TYPE.uppercase()} (SDK 35 / Android 15)",
             )
 
             AboutInfoRow(
-                title = "Система устройства",
+                title = stringResource(R.string.about_device_os),
                 value = "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             )
 
             AboutInfoRow(
-                title = "Архитектура CPU",
+                title = stringResource(R.string.about_cpu_arch),
                 value = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a",
             )
         }
@@ -196,7 +190,7 @@ fun AboutTab(
             ) {
                 Text("🐙", fontSize = 18.sp)
                 Text(
-                    text = "Исходный код (GitHub)",
+                    text = stringResource(R.string.about_github_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -205,7 +199,7 @@ fun AboutTab(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Открытый репозиторий проекта, история изменений, документация и релизы:",
+                text = stringResource(R.string.about_github_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -236,12 +230,12 @@ fun AboutTab(
                     onClick = { openUrl(BuildConfig.GITHUB_URL) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("🌐 Открыть GitHub")
+                    Text(stringResource(R.string.about_btn_github))
                 }
                 OutlinedButton(
-                    onClick = { copyToClipboard("Ссылка GitHub", BuildConfig.GITHUB_URL) },
+                    onClick = { copyToClipboard("GitHub URL", BuildConfig.GITHUB_URL) },
                 ) {
-                    Text("📋 Скопировать")
+                    Text(stringResource(R.string.common_copy))
                 }
             }
         }
@@ -254,7 +248,7 @@ fun AboutTab(
             ) {
                 Text("✈️", fontSize = 18.sp)
                 Text(
-                    text = "Автор и поддержка в Telegram",
+                    text = stringResource(R.string.about_author_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
@@ -263,7 +257,7 @@ fun AboutTab(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "По вопросам работы бота, предложениям функций и обратной связи:",
+                text = stringResource(R.string.about_author_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -308,12 +302,12 @@ fun AboutTab(
                     onClick = { openUrl(BuildConfig.TELEGRAM_AUTHOR_URL) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("💬 Открыть Telegram")
+                    Text(stringResource(R.string.about_btn_telegram))
                 }
                 OutlinedButton(
-                    onClick = { copyToClipboard("Telegram автора", BuildConfig.TELEGRAM_AUTHOR_USERNAME) },
+                    onClick = { copyToClipboard("Telegram author", BuildConfig.TELEGRAM_AUTHOR_USERNAME) },
                 ) {
-                    Text("📋 Скопировать")
+                    Text(stringResource(R.string.common_copy))
                 }
             }
         }
@@ -321,16 +315,13 @@ fun AboutTab(
         // Card 4: Tech stack and license
         AppOutlinedCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "⚖️ Лицензия & Архитектура",
+                text = stringResource(R.string.about_license_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text =
-                    "• Лицензия: Apache License 2.0\n" +
-                        "• Архитектура: Clean Architecture + Модульный Kotlin Gradle проект\n" +
-                        "• Стек: Jetpack Compose, Material 3, Coroutines, Flow, Koin, Ktor, Room, CameraX, libsu",
+                text = stringResource(R.string.about_license_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

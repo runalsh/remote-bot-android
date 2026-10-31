@@ -8,11 +8,13 @@ import android.os.Build
 import android.provider.Settings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,6 +24,7 @@ class SystemSettingsCommandsHandler(
     private val logger: AppLogger,
     private val rootStatusProvider: RootStatusProvider,
     private val radioHandler: DeviceRadioCommandsHandler? = null,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
     override val commandNames: List<String> =
         listOf(
@@ -62,11 +65,21 @@ class SystemSettingsCommandsHandler(
 
     private fun isRootGranted(): Boolean = SystemControlUtils.isRootGranted(rootStatusProvider)
 
+    private fun isEnglish(): Boolean {
+        val lang = botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO
+        return when (lang) {
+            BotLanguage.EN -> true
+            BotLanguage.RU -> false
+            BotLanguage.AUTO -> !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
+        }
+    }
+
     // ==========================================
     // 1. INTERACTIVE TOGGLE SWITCHES PANEL
     // ==========================================
     private suspend fun handleTogglesPanel(): CommandResult =
         withContext(Dispatchers.IO) {
+            val isEn = isEnglish()
             val hasRoot = isRootGranted()
             val wifiOn = effectiveRadioHandler.isWifiEnabled()
             val btOn = effectiveRadioHandler.isBluetoothEnabled()
@@ -74,29 +87,48 @@ class SystemSettingsCommandsHandler(
             val syncOn = isSyncEnabled()
             val autoBrightnessOn = isAutoBrightnessEnabled()
 
-            val textBuilder = StringBuilder()
-            textBuilder.append("🎛 <b>Панель быстрых переключателей (Quick Settings)</b>\n")
-            textBuilder.append("<i>Статус Superuser: ${if (hasRoot) "🟢 Предоставлен (UID 0)" else "⚪ Обычный режим (без Root)"}</i>\n\n")
+            val onLabel = if (isEn) "ON" else "ВКЛ"
+            val offLabel = if (isEn) "OFF" else "ВЫКЛ"
 
-            textBuilder.append("• Wi-Fi: ${if (wifiOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Bluetooth: ${if (btOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Фонарик: ${if (flashOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Автояркость: ${if (autoBrightnessOn) "☀️ ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Синхронизация: ${if (syncOn) "🔄 ВКЛ" else "⚪ ВЫКЛ"}\n")
+            val textBuilder = StringBuilder()
+            if (isEn) {
+                textBuilder.append("🎛 <b>Quick Settings (Toggles Panel)</b>\n")
+                textBuilder.append("<i>Superuser status: ${if (hasRoot) "🟢 Granted (UID 0)" else "⚪ Normal mode (no Root)"}</i>\n\n")
+
+                textBuilder.append("• Wi-Fi: ${if (wifiOn) "🟢 ON" else "⚪ OFF"}\n")
+                textBuilder.append("• Bluetooth: ${if (btOn) "🟢 ON" else "⚪ OFF"}\n")
+                textBuilder.append("• Flashlight: ${if (flashOn) "🟢 ON" else "⚪ OFF"}\n")
+                textBuilder.append("• Auto Brightness: ${if (autoBrightnessOn) "☀️ ON" else "⚪ OFF"}\n")
+                textBuilder.append("• Sync: ${if (syncOn) "🔄 ON" else "⚪ OFF"}\n")
+            } else {
+                textBuilder.append("🎛 <b>Панель быстрых переключателей (Quick Settings)</b>\n")
+                textBuilder.append("<i>Статус Superuser: ${if (hasRoot) "🟢 Предоставлен (UID 0)" else "⚪ Обычный режим (без Root)"}</i>\n\n")
+
+                textBuilder.append("• Wi-Fi: ${if (wifiOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
+                textBuilder.append("• Bluetooth: ${if (btOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
+                textBuilder.append("• Фонарик: ${if (flashOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
+                textBuilder.append("• Автояркость: ${if (autoBrightnessOn) "☀️ ВКЛ" else "⚪ ВЫКЛ"}\n")
+                textBuilder.append("• Синхронизация: ${if (syncOn) "🔄 ВКЛ" else "⚪ ВЫКЛ"}\n")
+            }
 
             val buttonRows = mutableListOf<List<InlineKeyboardButton>>()
 
             // Basic switches (always available)
+            val wifiBtn = if (wifiOn) "📶 Wi-Fi [$onLabel]" else "📶 Wi-Fi [$offLabel]"
+            val btBtn = if (btOn) "🦷 BT [$onLabel]" else "🦷 BT [$offLabel]"
+            val flashBtn = if (isEn) (if (flashOn) "🔦 Torch [ON]" else "🔦 Torch [OFF]") else (if (flashOn) "🔦 Фонарик [ВКЛ]" else "🔦 Фонарик [ВЫКЛ]")
+            val syncBtn = if (isEn) (if (syncOn) "🔄 Sync [ON]" else "🔄 Sync [OFF]") else (if (syncOn) "🔄 Синхр [ВКЛ]" else "🔄 Синхр [ВЫКЛ]")
+
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton(if (wifiOn) "📶 Wi-Fi [ВКЛ]" else "📶 Wi-Fi [ВЫКЛ]", "/wifi toggle"),
-                    InlineKeyboardButton(if (btOn) "🦷 BT [ВКЛ]" else "🦷 BT [ВЫКЛ]", "/bluetooth toggle"),
+                    InlineKeyboardButton(wifiBtn, "/wifi toggle"),
+                    InlineKeyboardButton(btBtn, "/bluetooth toggle"),
                 ),
             )
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton(if (flashOn) "🔦 Фонарик [ВКЛ]" else "🔦 Фонарик [ВЫКЛ]", "/flashlight toggle"),
-                    InlineKeyboardButton(if (syncOn) "🔄 Синхр [ВКЛ]" else "🔄 Синхр [ВЫКЛ]", "/sync toggle"),
+                    InlineKeyboardButton(flashBtn, "/flashlight toggle"),
+                    InlineKeyboardButton(syncBtn, "/sync toggle"),
                 ),
             )
 
@@ -109,54 +141,75 @@ class SystemSettingsCommandsHandler(
                 val adbOn = isAdbEnabled()
                 val adbWifiOn = isAdbWifiEnabled()
                 val adbWifiPort = if (adbWifiOn) getAdbWifiPort().takeIf { it > 0 } ?: 5555 else 5555
-                val localIp = SystemControlUtils.getLocalIpAddress() ?: "IP_НЕ_ОПРЕДЕЛЕН"
+                val localIp = SystemControlUtils.getLocalIpAddress() ?: (if (isEn) "IP_NOT_FOUND" else "IP_НЕ_ОПРЕДЕЛЕН")
 
-                textBuilder.append("• Режим полета: ${if (airplaneOn) "✈️ ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Точка доступа: ${if (hotspotOn) "📡 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Моб. данные: ${if (mobileDataOn) "📶 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Геолокация (GPS): ${if (gpsOn) "📍 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Энергосбережение: ${if (powerSaveOn) "🔋 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Отладка по USB (ADB): ${if (adbOn) "🔌 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Отладка по Wi-Fi: ${if (adbWifiOn) "📶 ВКЛ (<code>$localIp:$adbWifiPort</code>)" else "⚪ ВЫКЛ"} ⚡\n")
+                if (isEn) {
+                    textBuilder.append("• Airplane Mode: ${if (airplaneOn) "✈️ ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• Hotspot: ${if (hotspotOn) "📡 ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• Mobile Data: ${if (mobileDataOn) "📶 ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• GPS: ${if (gpsOn) "📍 ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• Battery Saver: ${if (powerSaveOn) "🔋 ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• USB Debugging (ADB): ${if (adbOn) "🔌 ON" else "⚪ OFF"} ⚡\n")
+                    textBuilder.append("• Wireless ADB: ${if (adbWifiOn) "📶 ON (<code>$localIp:$adbWifiPort</code>)" else "⚪ OFF"} ⚡\n")
+                } else {
+                    textBuilder.append("• Режим полета: ${if (airplaneOn) "✈️ ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Точка доступа: ${if (hotspotOn) "📡 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Моб. данные: ${if (mobileDataOn) "📶 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Геолокация (GPS): ${if (gpsOn) "📍 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Энергосбережение: ${if (powerSaveOn) "🔋 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Отладка по USB (ADB): ${if (adbOn) "🔌 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
+                    textBuilder.append("• Отладка по Wi-Fi: ${if (adbWifiOn) "📶 ВКЛ (<code>$localIp:$adbWifiPort</code>)" else "⚪ ВЫКЛ"} ⚡\n")
+                }
+
+                val airplaneBtn = if (isEn) (if (airplaneOn) "✈️ Plane [ON] ⚡" else "✈️ Plane [OFF] ⚡") else (if (airplaneOn) "✈️ Самолёт [ВКЛ] ⚡" else "✈️ Самолёт [ВЫКЛ] ⚡")
+                val hotspotBtn = if (hotspotOn) "📡 Hotspot [$onLabel] ⚡" else "📡 Hotspot [$offLabel] ⚡"
+                val dataBtn = if (isEn) (if (mobileDataOn) "📱 Data [ON] ⚡" else "📱 Data [OFF] ⚡") else (if (mobileDataOn) "📱 Данные [ВКЛ] ⚡" else "📱 Данные [ВЫКЛ] ⚡")
+                val gpsBtn = if (gpsOn) "📍 GPS [$onLabel] ⚡" else "📍 GPS [$offLabel] ⚡"
+                val powerBtn = if (isEn) (if (powerSaveOn) "🔋 Saver [ON] ⚡" else "🔋 Saver [OFF] ⚡") else (if (powerSaveOn) "🔋 Энерго [ВКЛ] ⚡" else "🔋 Энерго [ВЫКЛ] ⚡")
+                val brightBtn = if (isEn) (if (autoBrightnessOn) "☀️ Bright [ON]" else "☀️ Bright [OFF]") else (if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]")
 
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (airplaneOn) "✈️ Самолёт [ВКЛ] ⚡" else "✈️ Самолёт [ВЫКЛ] ⚡", "/airplane toggle"),
-                        InlineKeyboardButton(if (hotspotOn) "📡 Hotspot [ВКЛ] ⚡" else "📡 Hotspot [ВЫКЛ] ⚡", "/hotspot toggle"),
+                        InlineKeyboardButton(airplaneBtn, "/airplane toggle"),
+                        InlineKeyboardButton(hotspotBtn, "/hotspot toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (mobileDataOn) "📱 Данные [ВКЛ] ⚡" else "📱 Данные [ВЫКЛ] ⚡", "/mobile_data toggle"),
-                        InlineKeyboardButton(if (gpsOn) "📍 GPS [ВКЛ] ⚡" else "📍 GPS [ВЫКЛ] ⚡", "/gps toggle"),
+                        InlineKeyboardButton(dataBtn, "/mobile_data toggle"),
+                        InlineKeyboardButton(gpsBtn, "/gps toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (powerSaveOn) "🔋 Энерго [ВКЛ] ⚡" else "🔋 Энерго [ВЫКЛ] ⚡", "/powersave toggle"),
-                        InlineKeyboardButton(if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]", "/auto_brightness toggle"),
+                        InlineKeyboardButton(powerBtn, "/powersave toggle"),
+                        InlineKeyboardButton(brightBtn, "/auto_brightness toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (adbOn) "🔌 USB ADB [ВКЛ] ⚡" else "🔌 USB ADB [ВЫКЛ] ⚡", "/adb toggle"),
-                        InlineKeyboardButton(if (adbWifiOn) "📶 ADB-WiFi [ВКЛ] ⚡" else "📶 ADB-WiFi [ВЫКЛ] ⚡", "/adb_wifi toggle"),
+                        InlineKeyboardButton(if (adbOn) "🔌 USB ADB [$onLabel] ⚡" else "🔌 USB ADB [$offLabel] ⚡", "/adb toggle"),
+                        InlineKeyboardButton(if (adbWifiOn) "📶 ADB-WiFi [$onLabel] ⚡" else "📶 ADB-WiFi [$offLabel] ⚡", "/adb_wifi toggle"),
                     ),
                 )
             } else {
-                textBuilder.append(
-                    "\n<i>💡 Предоставьте Root в приложении (вкладка Диагностика), чтобы разблокировать тумблеры: Самолёт, Hotspot, Моб. данные, GPS, Энергосбережение, USB/Wi-Fi Debugging.</i>\n",
-                )
+                val tip = if (isEn) {
+                    "\n<i>💡 Grant Root in the app to unlock toggles: Airplane mode, Hotspot, Mobile data, GPS, Battery saver, USB/Wi-Fi Debugging.</i>\n"
+                } else {
+                    "\n<i>💡 Предоставьте Root в приложении (вкладка Диагностика), чтобы разблокировать тумблеры: Самолёт, Hotspot, Моб. данные, GPS, Энергосбережение, USB/Wi-Fi Debugging.</i>\n"
+                }
+                textBuilder.append(tip)
+                val brightBtn = if (isEn) (if (autoBrightnessOn) "☀️ Bright [ON]" else "☀️ Bright [OFF]") else (if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]")
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]", "/auto_brightness toggle"),
+                        InlineKeyboardButton(brightBtn, "/auto_brightness toggle"),
                     ),
                 )
             }
 
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton("🔄 Обновить панель", "/toggles"),
+                    InlineKeyboardButton(if (isEn) "🔄 Refresh Panel" else "🔄 Обновить панель", "/toggles"),
                 ),
             )
 

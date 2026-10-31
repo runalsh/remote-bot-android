@@ -24,18 +24,19 @@ internal object SystemControlUtils {
         requiresRoot: Boolean = false,
         hasRoot: Boolean = false,
     ): InlineKeyboardMarkup {
+        val isEn = !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
         val toggleBtnText =
             when {
-                requiresRoot && !hasRoot -> if (isCurrentlyOn) "🔒 Выключить (Root)" else "🔒 Включить (Root)"
-                requiresRoot && hasRoot -> if (isCurrentlyOn) "🔴 Выключить ⚡" else "🟢 Включить ⚡"
-                else -> if (isCurrentlyOn) "🔴 Выключить" else "🟢 Включить"
+                requiresRoot && !hasRoot -> if (isCurrentlyOn) (if (isEn) "🔒 Disable (Root)" else "🔒 Выключить (Root)") else (if (isEn) "🔒 Enable (Root)" else "🔒 Включить (Root)")
+                requiresRoot && hasRoot -> if (isCurrentlyOn) (if (isEn) "🔴 Disable ⚡" else "🔴 Выключить ⚡") else (if (isEn) "🟢 Enable ⚡" else "🟢 Включить ⚡")
+                else -> if (isCurrentlyOn) (if (isEn) "🔴 Disable" else "🔴 Выключить") else (if (isEn) "🟢 Enable" else "🟢 Включить")
             }
 
         return InlineKeyboardMarkup(
             listOf(
                 listOf(
                     InlineKeyboardButton(toggleBtnText, "$cmd toggle"),
-                    InlineKeyboardButton("🎛 Все тумблеры", "/toggles"),
+                    InlineKeyboardButton(if (isEn) "🎛 All Toggles" else "🎛 Все тумблеры", "/toggles"),
                 ),
             ),
         )

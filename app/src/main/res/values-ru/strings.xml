@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App and General -->
+    <string name="app_name">Remote Bot</string>
+    <string name="accessibility_service_description">Служба специальных возможностей Remote Bot для автоматизации интерфейса, чтения экрана, кликов, автоответов и обработки USSD диалогов.</string>
+
+    <!-- Navigation and Tabs -->
+    <string name="nav_start">Старт</string>
+    <string name="nav_start_desc">Служба, Root и системные привилегии</string>
+    <string name="nav_permissions">Права</string>
+    <string name="nav_permissions_desc">Разрешения и системный доступ</string>
+    <string name="nav_tasks">Задачи</string>
+    <string name="nav_tasks_desc">Активные фоновые задачи</string>
+    <string name="nav_telegram">Telegram</string>
+    <string name="nav_telegram_desc">Управление Telegram ботом</string>
+    <string name="nav_sms">SMS</string>
+    <string name="nav_sms_desc">Управление SMS-ботом</string>
+    <string name="nav_notifications">Уведомл.</string>
+    <string name="nav_notifications_desc">Фильтрация и пересылка уведомлений</string>
+    <string name="nav_push">Push</string>
+    <string name="nav_push_desc">Push-уведомления (FCM / HMS) и шлюз</string>
+    <string name="nav_proxy">Прокси</string>
+    <string name="nav_proxy_desc">Настройка сети и обхода DPI</string>
+    <string name="nav_logs">Логи</string>
+    <string name="nav_logs_desc">Журнал событий в реальном времени</string>
+    <string name="nav_backup">Бэкап</string>
+    <string name="nav_backup_desc">Резервная копия и восстановление</string>
+    <string name="nav_about">О боте</string>
+    <string name="nav_about_desc">Версия, сборка и контакты</string>
+    <string name="nav_debug">Debug</string>
+    <string name="nav_debug_desc">Инженерное меню отладки и Doze</string>
+
+    <!-- Common Actions and UI -->
+    <string name="common_save">Сохранить</string>
+    <string name="common_cancel">Отмена</string>
+    <string name="common_refresh">Обновить</string>
+    <string name="common_copy">Копировать</string>
+    <string name="common_copied">Скопировано</string>
+    <string name="common_delete">Удалить</string>
+    <string name="common_error">Ошибка</string>
+    <string name="common_success">Успешно</string>
+    <string name="common_enabled">Включено</string>
+    <string name="common_disabled">Выключено</string>
+    <string name="common_status_running">Работает</string>
+    <string name="common_status_stopped">Остановлена</string>
+    <string name="service_started_toast">Служба запущена</string>
+    <string name="service_stopped_toast">Служба остановлена</string>
+
+    <!-- Start Tab -->
+    <string name="start_foreground_service_title">1. Фоновая служба (Foreground Service)</string>
+    <string name="start_service_status">Статус службы:</string>
+    <string name="start_service_running">✅ Работает</string>
+    <string name="start_service_stopped">❌ Остановлена</string>
+    <string name="start_service_start_button">Запустить службу</string>
+    <string name="start_service_stop_button">Остановить службу</string>
+
+    <string name="start_language_title">1.5 Язык приложения и бота</string>
+    <string name="lang_auto">🌐 Auto (система)</string>
+    <string name="lang_en">🇬🇧 English</string>
+    <string name="lang_ru">🇷🇺 Русский</string>
+
+    <string name="start_permissions_title">2. Системные разрешения</string>
+    <string name="start_permissions_status">Разрешения: %1$d из %2$d выданы</string>
+    <string name="start_permissions_button">Перейти к разрешениям</string>
+    <string name="start_battery_title">3. Оптимизация батареи</string>
+    <string name="start_battery_ok">✅ Исключено из оптимизации батареи: ОС не будет отключать опрос в фоне</string>
+    <string name="start_battery_warning">⚠️ Оптимизация батареи активна: ОС может останавливать опрос в фоне</string>
+    <string name="start_battery_request">Запросить исключение из энергосбережения</string>
+    <string name="start_root_title">4. Привилегии Root (Superuser)</string>
+    <string name="start_root_status">Статус Root:</string>
+    <string name="start_root_granted">✅ Предоставлено</string>
+    <string name="start_root_denied">❌ Отказано</string>
+    <string name="start_root_check_button">Запросить Root доступ</string>
+    <string name="start_root_checking">Запрос su сессии…</string>
+
+    <!-- About Tab -->
+    <string name="about_subtitle">Удаленный контроль Android через Telegram &amp; SMS</string>
+    <string name="about_card_version">Версия и параметры сборки</string>
+    <string name="about_app_version">Версия приложения</string>
+    <string name="about_code">код</string>
+    <string name="about_build_time">Дата и время сборки</string>
+    <string name="about_build_id">Идентификатор сборки (Commit)</string>
+    <string name="about_build_type">Тип сборки</string>
+    <string name="about_device_os">Система устройства</string>
+    <string name="about_cpu_arch">Архитектура CPU</string>
+    <string name="about_github_title">Исходный код (GitHub)</string>
+    <string name="about_github_desc">Открытый репозиторий проекта, история изменений, документация и релизы:</string>
+    <string name="about_btn_github">🌐 Открыть GitHub</string>
+    <string name="about_author_title">Автор и поддержка в Telegram</string>
+    <string name="about_author_desc">По вопросам работы бота, предложениям функций и обратной связи:</string>
+    <string name="about_btn_telegram">💬 Открыть Telegram</string>
+    <string name="about_license_title">⚖️ Лицензия &amp; Архитектура</string>
+    <string name="about_license_desc">• Лицензия: Apache License 2.0\n• Архитектура: Clean Architecture + Модульный Kotlin Gradle проект\n• Стек: Jetpack Compose, Material 3, Coroutines, Flow, Koin, Ktor, Room, CameraX, libsu</string>
+
+    <!-- Active Tasks Tab -->
+    <string name="tasks_title">⏱️ Активные фоновые задачи</string>
+    <string name="tasks_running_count">Выполняется операций: %1$d</string>
+    <string name="tasks_empty">Нет выполняющихся задач</string>
+    <string name="tasks_btn_cancel_all">Остановить все</string>
+    <string name="tasks_empty_title">Фоновые процессы не запущены</string>
+    <string name="tasks_empty_desc">Здесь в реальном времени отображаются длительные операции бота: скрытая аудиозапись, видеозапись, GPS-трекинг, скачивание и передача тяжелых файлов.</string>
+
+    <!-- Logs Tab -->
+    <string name="logs_title">Логи (%1$d/%2$d)</string>
+
+    <!-- SMS Settings Tab -->
+    <string name="sms_card_title">💬 SMS-бот</string>
+    <string name="sms_card_enabled_desc">Включен: обработка команд и пересылка активны</string>
+    <string name="sms_card_disabled_desc">Выключен (по умолчанию): отправка и пересылка по сотовой связи отключены</string>
+    <string name="sms_forward_title">📤 Номера для пересылки</string>
+    <string name="sms_forward_add_btn">Добавить номер</string>
+    <string name="sms_forward_desc">Куда отправлять входящие SMS и уведомления приложений:</string>
+    <string name="sms_forward_empty_warning">⚠️ Список номеров пуст. Нажмите «+» справа, чтобы добавить номер назначения.</string>
+    <string name="sms_target_placeholder">Номер #%1$d (+79991234567)</string>
+    <string name="sms_params_title">🔤 Параметры отправки SMS</string>
+    <string name="sms_translit_title">🔤 Транслитерация (кириллица ➔ латиница)</string>
+    <string name="sms_translit_desc">Экономит баланс: 160 символов в одном SMS вместо 70 для русского текста (ГОСТ 7.79)</string>
+    <string name="sms_types_hint">💡 Выбор типов пересылки (в Telegram и по SMS) для входящих сообщений, звонков и push-уведомлений настраивается в разделе «Уведомления».</string>
+    <string name="sms_offline_bot_title">🎮 Удаленное управление (Offline Bot)</string>
+    <string name="sms_offline_bot_desc">💡 Все входящие команды обязаны начинаться с префикса «rb » (например: rb 1234 /wifi on или rb /status).\n\nЗадайте PIN для управления с чужих номеров и укажите доверенные номера для управления без PIN.</string>
+    <string name="sms_pin_label">SMS PIN-код</string>
+    <string name="sms_pin_placeholder">Например: 1234</string>
+    <string name="sms_trusted_numbers_title">Доверенные номера (без PIN):</string>
+    <string name="sms_trusted_numbers_add">Добавить доверенный номер</string>
+    <string name="sms_trusted_numbers_empty">Список пуст (управление только по PIN). Нажмите «+» справа, чтобы добавить доверенный номер.</string>
+    <string name="sms_save_button">Сохранить настройки SMS-бота</string>
+    <string name="sms_saved_success">✅ Настройки SMS-бота успешно сохранены!</string>
+    <string name="sms_saved_toast">Настройки SMS сохранены!</string>
+
+    <!-- Proxy Settings Tab -->
+    <string name="proxy_title">Настройки прокси (Обход DPI)</string>
+    <string name="proxy_host_placeholder">Хост / IP-адрес</string>
+    <string name="proxy_port_placeholder">Порт</string>
+    <string name="proxy_user_placeholder">Логин</string>
+    <string name="proxy_pass_placeholder">Пароль</string>
+    <string name="proxy_ws_path_placeholder">WSS Path (/ws)</string>
+    <string name="proxy_direct_desc">Прямое сетевое соединение с api.telegram.org без использования прокси-серверов.</string>
+    <string name="proxy_scope_title">ℹ️ Область применения прокси:</string>
+    <string name="proxy_scope_tg">• Telegram Bot API: запросы Long Polling, отправка сообщений, фото и файлов идут через указанный прокси.</string>
+    <string name="proxy_scope_push">• Push Gateway (FCM / HMS) и вебхуки: работают напрямую через системное интернет-соединение Android.</string>
+    <string name="proxy_err_no_token">⚠️ Токен бота не задан! Сначала перейдите на вкладку «Telegram», введите токен и нажмите «Сохранить настройки».</string>
+    <string name="proxy_checking">Применение прокси и проверка пинга...</string>
+    <string name="proxy_check_success">✅ Соединение успешно через %1$s!\nБот: @%2$s</string>
+    <string name="proxy_check_failed">❌ Ошибка проверки через прокси: %1$s</string>
+    <string name="proxy_save_btn">Сохранить прокси и проверить связь</string>
+
+    <!-- Telegram Settings Tab -->
+    <string name="tg_bot_title">🤖 Telegram-бот</string>
+    <string name="tg_bot_enabled_desc">Включен (по умолчанию): опрос и обработка команд активны</string>
+    <string name="tg_bot_disabled_desc">Выключен: опрос сообщений и выполнение команд в Telegram приостановлены</string>
+    <string name="tg_token_title">1. Telegram Bot Token</string>
+    <string name="tg_token_placeholder">Bot Token от @BotFather (123456:ABC-DEF...)</string>
+    <string name="tg_whitelist_title">2. Белый список (Telegram User ID)</string>
+    <string name="tg_whitelist_add">Добавить ID</string>
+    <string name="tg_whitelist_empty">ℹ️ Список пуст (доступ открыт для всех). Нажмите «+» справа вверху, чтобы добавить доверенный Telegram ID.</string>
+    <string name="tg_save_btn">Сохранить настройки Telegram-бота</string>
+    <string name="tg_saved_success">✅ Настройки Telegram-бота успешно сохранены!</string>
+    <string name="tg_saved_toast">Настройки Telegram сохранены!</string>
+</resources>

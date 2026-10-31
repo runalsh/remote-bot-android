@@ -76,6 +76,7 @@
         android:allowBackup="false"
         android:icon="@android:drawable/sym_def_app_icon"
         android:label="Remote Bot"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@android:drawable/sym_def_app_icon"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar"

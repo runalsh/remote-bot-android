@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.RemovableInputRow
 import com.remotebot.app.ui.components.SegmentedSlider
 import com.remotebot.app.ui.components.SliderSegmentItem
@@ -32,6 +34,7 @@ import com.remotebot.app.ui.components.StatusMessageText
 import com.remotebot.channels.telegram.api.TelegramApiClient
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.ConnectionMode
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.EndpointSelectionStrategy
 import com.remotebot.domain.model.UserSubscription
 import com.remotebot.domain.repository.BotConfigRepository
@@ -53,6 +56,7 @@ fun TelegramSettingsTab(
     var telegramBotEnabled by remember(config.telegramBotEnabled) { mutableStateOf(config.telegramBotEnabled) }
     var tokenInput by remember(config.botToken) { mutableStateOf(config.botToken) }
     var connectionMode by remember(config.connectionMode) { mutableStateOf(config.connectionMode) }
+    var botLanguage by remember(config.botLanguage) { mutableStateOf(config.botLanguage) }
     var customApiRoot by remember(config.customApiRoot) { mutableStateOf(config.customApiRoot ?: "") }
     var apiEndpointsList by remember(config.apiEndpoints) { mutableStateOf(config.apiEndpoints) }
     var endpointStrategy by remember(config.endpointSelectionStrategy) { mutableStateOf(config.endpointSelectionStrategy) }
@@ -173,16 +177,16 @@ fun TelegramSettingsTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "🤖 Telegram-бот",
+                            text = stringResource(R.string.tg_bot_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text =
                                 if (telegramBotEnabled) {
-                                    "Включен (по умолчанию): опрос и обработка команд активны"
+                                    stringResource(R.string.tg_bot_enabled_desc)
                                 } else {
-                                    "Выключен: опрос сообщений и выполнение команд в Telegram приостановлены"
+                                    stringResource(R.string.tg_bot_disabled_desc)
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -202,7 +206,7 @@ fun TelegramSettingsTab(
         // Token
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "1. Telegram Bot Token", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.tg_token_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(6.dp))
                 OutlinedTextField(
                     value = tokenInput,
@@ -210,7 +214,7 @@ fun TelegramSettingsTab(
                         tokenInput = it
                         statusMessage = null
                     },
-                    placeholder = { Text("Bot Token от @BotFather (123456:ABC-DEF...)", fontSize = 13.sp) },
+                    placeholder = { Text(stringResource(R.string.tg_token_placeholder), fontSize = 13.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -227,7 +231,7 @@ fun TelegramSettingsTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "2. Белый список (Telegram User ID)",
+                        text = stringResource(R.string.tg_whitelist_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -236,7 +240,7 @@ fun TelegramSettingsTab(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Добавить ID",
+                            contentDescription = stringResource(R.string.tg_whitelist_add),
                             tint = MaterialTheme.colorScheme.primary,
                         )
                     }
@@ -244,7 +248,7 @@ fun TelegramSettingsTab(
 
                 if (allowedIdsList.isEmpty()) {
                     Text(
-                        text = "ℹ️ Список пуст (доступ открыт для всех). Нажмите «+» справа вверху, чтобы добавить доверенный Telegram ID.",
+                        text = stringResource(R.string.tg_whitelist_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -526,6 +530,63 @@ fun TelegramSettingsTab(
             }
         }
 
+        // 3.5 Bot Language
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(14.dp)) {
+                Text(text = "3.5 Язык бота", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(8.dp))
+
+                var expanded by remember { mutableStateOf(false) }
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        onClick = { expanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(
+                            when (botLanguage) {
+                                BotLanguage.AUTO -> "🌐 Auto (система)"
+                                BotLanguage.EN -> "🇬🇧 English"
+                                BotLanguage.RU -> "🇷🇺 Русский"
+                            }
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.fillMaxWidth(0.9f),
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("🌐 Auto (система)") },
+                            onClick = {
+                                botLanguage = BotLanguage.AUTO
+                                expanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("🇬🇧 English") },
+                            onClick = {
+                                botLanguage = BotLanguage.EN
+                                expanded = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("🇷🇺 Русский") },
+                            onClick = {
+                                botLanguage = BotLanguage.RU
+                                expanded = false
+                            }
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Язык ответов Telegram бота",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
         // 4. Directory for saving files and media
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
@@ -627,6 +688,7 @@ fun TelegramSettingsTab(
                             endpointSelectionStrategy = endpointStrategy,
                             storageDirectory = cleanStorageDir,
                             userSubscriptions = userSubs,
+                            botLanguage = botLanguage,
                         )
                     }
 

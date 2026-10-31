@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.remotebot.app.ui.theme.AppColors
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.LogLevel
 import kotlinx.coroutines.launch
@@ -57,7 +59,7 @@ fun LogsTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Логи (${filteredLogs.size}/${logs.size})",
+                text = stringResource(R.string.logs_title, filteredLogs.size, logs.size),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )

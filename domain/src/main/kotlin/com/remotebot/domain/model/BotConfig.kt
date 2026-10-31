@@ -9,6 +9,13 @@ enum class ConnectionMode {
 }
 
 @Serializable
+enum class BotLanguage {
+    AUTO,    // System language
+    EN,      // English
+    RU,      // Russian
+}
+
+@Serializable
 enum class EndpointSelectionStrategy {
     FAILOVER, // По порядку: первый упал -> пробуем второй и т.д.
     ROUND_ROBIN, // Балансировка по кругу
@@ -79,6 +86,7 @@ data class BotConfig(
     val isDebugModeEnabled: Boolean = false, // Скрытое инженерное меню отладки (Phase 13)
     val enable2FaInterception: Boolean = false, // Экспериментальный перехват и подтверждение 2FA (Multifactor и др.)
     val userSubscriptions: Map<Long, UserSubscription> = emptyMap(), // Индивидуальные подписки пользователей на типы событий
+    val botLanguage: BotLanguage = BotLanguage.AUTO, // Bot UI language (AUTO / EN / RU)
 ) {
     fun isUserSubscribedTo(userId: Long, eventType: SubscriptionEventType): Boolean {
         if (allowedUserIds.isNotEmpty() && !allowedUserIds.contains(userId)) {

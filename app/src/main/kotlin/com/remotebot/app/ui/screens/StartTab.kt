@@ -28,7 +28,12 @@ import com.remotebot.app.ui.components.BadgeStatus
 import com.remotebot.app.ui.screens.permissions.PermissionsChecker
 import com.remotebot.app.ui.theme.AppColors
 import com.remotebot.core.common.logger.AppLogger
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
+import com.remotebot.app.util.AppLocaleManager
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.launch
 
@@ -39,6 +44,7 @@ fun StartTab(
     onNavigateToPermissions: () -> Unit,
     logger: AppLogger,
     rootProvider: RootStatusProvider,
+    configRepo: BotConfigRepository,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -46,6 +52,8 @@ fun StartTab(
     val scope = rememberCoroutineScope()
 
     val isServiceRunning by RemoteBotService.isServiceRunning.collectAsState()
+    val config by configRepo.config.collectAsState()
+    var botLanguage by remember(config.botLanguage) { mutableStateOf(config.botLanguage) }
 
     val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as PowerManager }
     var isIgnoringBattery by remember {
@@ -92,16 +100,16 @@ fun StartTab(
         // Card 1: Background service
         AppCard(modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "1. Фоновая служба (Foreground Service)",
+                text = stringResource(R.string.start_foreground_service_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Статус службы: ", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.start_service_status) + " ", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.width(6.dp))
                 AppStatusBadge(
-                    text = if (isServiceRunning) "🟢 АКТИВНА" else "⚪ ОСТАНОВЛЕНА",
+                    text = if (isServiceRunning) stringResource(R.string.start_service_running) else stringResource(R.string.start_service_stopped),
                     status = if (isServiceRunning) BadgeStatus.SUCCESS else BadgeStatus.NEUTRAL,
                 )
             }
@@ -118,7 +126,7 @@ fun StartTab(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = AppColors.success),
                 ) {
-                    Text("▶ Старт")
+                    Text(stringResource(R.string.start_service_start_button))
                 }
                 Button(
                     onClick = {
@@ -128,7 +136,72 @@ fun StartTab(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text("⏹ Стоп")
+                    Text(stringResource(R.string.start_service_stop_button))
+                }
+            }
+        }
+
+        // Card 1.5: Language selector
+        AppCard(modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = stringResource(R.string.start_language_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            var expanded by remember { mutableStateOf(false) }
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(
+                    onClick = { expanded = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(
+                        when (botLanguage) {
+                            BotLanguage.AUTO -> stringResource(R.string.lang_auto)
+                            BotLanguage.EN -> stringResource(R.string.lang_en)
+                            BotLanguage.RU -> stringResource(R.string.lang_ru)
+                        }
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    modifier = Modifier.fillMaxWidth(0.9f),
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.lang_auto)) },
+                        onClick = {
+                            botLanguage = BotLanguage.AUTO
+                            expanded = false
+                            scope.launch {
+                                configRepo.updateConfig { it.copy(botLanguage = BotLanguage.AUTO) }
+                                AppLocaleManager.applyLocale(context, BotLanguage.AUTO)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.lang_en)) },
+                        onClick = {
+                            botLanguage = BotLanguage.EN
+                            expanded = false
+                            scope.launch {
+                                configRepo.updateConfig { it.copy(botLanguage = BotLanguage.EN) }
+                                AppLocaleManager.applyLocale(context, BotLanguage.EN)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.lang_ru)) },
+                        onClick = {
+                            botLanguage = BotLanguage.RU
+                            expanded = false
+                            scope.launch {
+                                configRepo.updateConfig { it.copy(botLanguage = BotLanguage.RU) }
+                                AppLocaleManager.applyLocale(context, BotLanguage.RU)
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -159,12 +232,12 @@ fun StartTab(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "2. Шкала привилегий",
+                        text = stringResource(R.string.start_permissions_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "$grantedCount из $totalCount",
+                        text = stringResource(R.string.start_permissions_status, grantedCount, totalCount),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -174,9 +247,9 @@ fun StartTab(
                 Text(
                     text =
                         if (grantedCount == totalCount) {
-                            "✅ Все 20 системных разрешений и привилегий предоставлены"
+                            "✅ " + stringResource(R.string.start_permissions_status, grantedCount, totalCount)
                         } else {
-                            "Выдано $grantedCount из $totalCount системных разрешений приложения"
+                            stringResource(R.string.start_permissions_status, grantedCount, totalCount)
                         },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -197,19 +270,19 @@ fun StartTab(
                     onClick = onNavigateToPermissions,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("🛡️ Открыть раздел «Права»")
+                    Text(stringResource(R.string.start_permissions_button))
                 }
             }
         }
 
         // Card 3: Doze Mode and battery optimization
         AppCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "3. Энергосбережение (Doze Mode)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.start_battery_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             if (isIgnoringBattery) {
-                Text("✅ Оптимизация отключена: ОС не будет усыплять бота", color = AppColors.success, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.start_battery_ok), color = AppColors.success, fontWeight = FontWeight.Medium)
             } else {
-                Text("⚠️ Оптимизация батареи активна: ОС может останавливать опрос в фоне", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.start_battery_warning), color = MaterialTheme.colorScheme.error)
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = {
@@ -227,20 +300,20 @@ fun StartTab(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Запросить исключение из энергосбережения")
+                    Text(stringResource(R.string.start_battery_request))
                 }
             }
         }
 
         // Card 4: Root privileges
         AppCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "4. Привилегии Root (Superuser)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(text = stringResource(R.string.start_root_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Статус Root: ", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.start_root_status) + " ", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.width(6.dp))
                 AppStatusBadge(
-                    text = if (isRootGranted) "✅ Предоставлено" else "❌ Отказано",
+                    text = if (isRootGranted) stringResource(R.string.start_root_granted) else stringResource(R.string.start_root_denied),
                     status = if (isRootGranted) BadgeStatus.SUCCESS else BadgeStatus.ERROR,
                 )
             }
@@ -274,9 +347,9 @@ fun StartTab(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Запрос su сессии...")
+                    Text(stringResource(R.string.start_root_checking))
                 } else {
-                    Text("Запросить Root доступ")
+                    Text(stringResource(R.string.start_root_check_button))
                 }
             }
         }
