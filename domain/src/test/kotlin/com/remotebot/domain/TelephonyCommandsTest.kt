@@ -177,4 +177,38 @@ class TelephonyCommandsTest {
         val formatted = "${durationSec / 60}м ${durationSec % 60}с"
         assertEquals("2м 25с", formatted)
     }
+
+    @Test
+    fun testTelephonyRepositoryResolveContactNameDefault() {
+        val repo = object : com.remotebot.domain.repository.TelephonyRepository {
+            override suspend fun sendSms(address: String, message: String, simSlot: Int?): Result<Unit> = Result.success(Unit)
+            override suspend fun getRecentSms(limit: Int, simSlot: Int?): Result<List<SmsMessage>> = Result.success(emptyList())
+            override suspend fun getCallHistory(limit: Int): Result<List<CallLogEntry>> = Result.success(emptyList())
+            override suspend fun makeCall(number: String, simSlot: Int?): Result<Unit> = Result.success(Unit)
+            override suspend fun sendUssd(code: String, simSlot: Int?): Result<String> = Result.success("OK")
+        }
+        kotlinx.coroutines.runBlocking {
+            assertEquals(null, repo.resolveContactName("+79033885660"))
+        }
+    }
+
+    @Test
+    fun testSmsReplyRegexWithAndWithoutContactName() {
+        val smsRegex = """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)""".toRegex()
+
+        val textWithoutName = "Входящее SMS от +79033885660 [SIM 1] (13:50:00):\n«Привет»"
+        val matchWithoutName = smsRegex.find(textWithoutName)
+        assertNotNull(matchWithoutName)
+        assertEquals("+79033885660", matchWithoutName.groupValues[1])
+
+        val textWithName = "Входящее SMS от Иван Иванов (+79033885660) [SIM 1] (13:50:00):\n«Привет»"
+        val matchWithName = smsRegex.find(textWithName)
+        assertNotNull(matchWithName)
+        assertEquals("+79033885660", matchWithName.groupValues[1])
+
+        val promptText = "Введите текст ответа для +79033885660:"
+        val matchPrompt = smsRegex.find(promptText)
+        assertNotNull(matchPrompt)
+        assertEquals("+79033885660", matchPrompt.groupValues[1])
+    }
 }

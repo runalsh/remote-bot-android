@@ -218,30 +218,63 @@ class DefaultTelephonyRepository(
         }
 
     @SuppressLint("Range")
-    private fun resolveContactName(phoneNumber: String): String? =
-        try {
-            val uri =
-                Uri.withAppendedPath(
-                    android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
-                    Uri.encode(phoneNumber),
-                )
-            context.contentResolver
-                .query(
-                    uri,
-                    arrayOf(android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME),
-                    null,
-                    null,
-                    null,
-                )?.use { cursor ->
-                    if (cursor.moveToFirst()) {
-                        cursor.getString(cursor.getColumnIndex(android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME))
-                    } else {
-                        null
-                    }
+    override suspend fun resolveContactName(phoneNumber: String): String? =
+        withContext(Dispatchers.IO) {
+            val cleanPhone = phoneNumber.trim()
+            if (cleanPhone.isBlank()) return@withContext null
+            try {
+                // 1. PhoneLookup (standard Android caller ID lookup)
+                val uri =
+                    Uri.withAppendedPath(
+                        android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+                        Uri.encode(cleanPhone),
+                    )
+                val lookupName =
+                    context.contentResolver
+                        .query(
+                            uri,
+                            arrayOf(android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME),
+                            null,
+                            null,
+                            null,
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                cursor.getString(cursor.getColumnIndex(android.provider.ContactsContract.PhoneLookup.DISPLAY_NAME))
+                            } else {
+                                null
+                            }
+                        }
+                if (!lookupName.isNullOrBlank()) return@withContext lookupName
+
+                // 2. Fallback: match by normalized digits in CommonDataKinds.Phone
+                val digitsOnly = cleanPhone.filter { it.isDigit() }
+                if (digitsOnly.length >= 7) {
+                    val lastDigits = digitsOnly.takeLast(7)
+                    val phoneUri = android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI
+                    val fallbackName =
+                        context.contentResolver.query(
+                            phoneUri,
+                            arrayOf(
+                                android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                                android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER,
+                            ),
+                            "${android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER} LIKE ?",
+                            arrayOf("%$lastDigits%"),
+                            null,
+                        )?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                cursor.getString(cursor.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
+                            } else {
+                                null
+                            }
+                        }
+                    if (!fallbackName.isNullOrBlank()) return@withContext fallbackName
                 }
-        } catch (e: Exception) {
-            AppLogger.d("DefaultTelephonyRepository", "Не удалось сопоставить контакт для $phoneNumber: ${e.message}")
-            null
+                null
+            } catch (e: Exception) {
+                AppLogger.d("DefaultTelephonyRepository", "Не удалось сопоставить контакт для $cleanPhone: ${e.message}")
+                null
+            }
         }
 
     @SuppressLint("MissingPermission")

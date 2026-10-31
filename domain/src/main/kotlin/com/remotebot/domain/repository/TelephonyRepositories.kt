@@ -31,6 +31,8 @@ interface TelephonyRepository {
         code: String,
         simSlot: Int? = null,
     ): Result<String>
+
+    suspend fun resolveContactName(phoneNumber: String): String? = null
 }
 
 interface NotificationRepository {

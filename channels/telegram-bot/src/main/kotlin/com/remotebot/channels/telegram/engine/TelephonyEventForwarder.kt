@@ -187,12 +187,19 @@ class TelephonyEventForwarder(
             val simInfo = if (event.simSlot != null) " [SIM ${event.simSlot}]" else ""
             val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(event.timestampMs))
             val senderClean = escapeHtml(event.sender)
+            val contactName = telephonyRepository?.resolveContactName(event.sender)
+            val senderDisplay =
+                if (!contactName.isNullOrBlank()) {
+                    "<b>${escapeHtml(contactName)}</b> (<code>$senderClean</code>)"
+                } else {
+                    "<code>$senderClean</code>"
+                }
             val bodyClean = escapeHtml(event.body.trim())
             val msg =
                 buildString {
                     append(
-                        "📨 <b>Входящее SMS от <code>",
-                    ).append(senderClean).append("</code></b>").append(simInfo).append(" (<i>").append(timeStr).append("</i>):\n")
+                        "📨 <b>Входящее SMS от ",
+                    ).append(senderDisplay).append("</b>").append(simInfo).append(" (<i>").append(timeStr).append("</i>):\n")
                     append("«").append(bodyClean).append("»\n\n")
                     append("<i>💬 Нажмите «Ответить» ниже или сделайте Reply на сообщение</i>")
                 }
@@ -215,7 +222,13 @@ class TelephonyEventForwarder(
             // Forward incoming SMS to cellular numbers (SMS -> SMS)
             val isRbPrefix = match != null || text.startsWith("rb", ignoreCase = true)
             if (!isRbPrefix && config.smsBotEnabled && config.smsForwardSmsEnabled && config.smsForwardTargetNumbers.isNotEmpty()) {
-                val rawForwardText = "SMS от ${event.sender}: ${event.body}".trim()
+                val senderLabel =
+                    if (!contactName.isNullOrBlank()) {
+                        "$contactName (${event.sender})"
+                    } else {
+                        event.sender
+                    }
+                val rawForwardText = "SMS от $senderLabel: ${event.body}".trim()
                 val finalForwardText =
                     if (config.smsTransliterationEnabled) {
                         TransliterationUtil.transliterate(rawForwardText)
@@ -242,14 +255,23 @@ class TelephonyEventForwarder(
 
     private suspend fun handlePhoneCallEvent(event: PhoneCallEvent) {
         val config = configRepository.config.value
-        val caller = event.number ?: "Неизвестный номер"
+        val callerNumber = event.number
+        val contactName = callerNumber?.let { telephonyRepository?.resolveContactName(it) }
+        val callerDisplay =
+            when {
+                !contactName.isNullOrBlank() && !callerNumber.isNullOrBlank() ->
+                    "<b>${escapeHtml(contactName)}</b> (<code>${escapeHtml(callerNumber)}</code>)"
+                !callerNumber.isNullOrBlank() ->
+                    "<code>${escapeHtml(callerNumber)}</code>"
+                else -> "Неизвестный номер"
+            }
         val icon =
             when (event.type) {
                 CallType.INCOMING -> "📞 <b>Входящий звонок</b>"
                 CallType.MISSED -> "🔴 <b>Пропущенный звонок</b>"
                 else -> "📞 <b>Звонок (${event.type.name})</b>"
             }
-        val msg = "$icon от <code>$caller</code>"
+        val msg = "$icon от $callerDisplay"
         if (config.telegramBotEnabled && config.tgForwardCallsEnabled) {
             broadcastMessage(msg, null, SubscriptionEventType.CALLS)
         }
@@ -260,7 +282,13 @@ class TelephonyEventForwarder(
             config.smsForwardMissedCallsEnabled &&
             config.smsForwardTargetNumbers.isNotEmpty()
         ) {
-            val rawCallText = "Пропущенный звонок от: $caller".trim()
+            val callerLabel =
+                when {
+                    !contactName.isNullOrBlank() && !callerNumber.isNullOrBlank() -> "$contactName ($callerNumber)"
+                    !callerNumber.isNullOrBlank() -> callerNumber
+                    else -> "Неизвестный номер"
+                }
+            val rawCallText = "Пропущенный звонок от: $callerLabel".trim()
             val finalCallText =
                 if (config.smsTransliterationEnabled) {
                     TransliterationUtil.transliterate(rawCallText)

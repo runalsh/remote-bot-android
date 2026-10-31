@@ -328,8 +328,8 @@ class TelegramInteractiveReplyHandler(
         val replyTo = message.replyToMessage ?: return false
         val replyText = replyTo.text ?: ""
 
-        // Incoming SMS matching pattern (e.g. prompt or incoming SMS header with target phone)
-        val smsRegex = """(?:Входящее SMS от|Введите текст ответа для)\s*(?:<code>)?([+0-9A-Za-z_-]+)(?:</code>)?""".toRegex()
+        // Incoming SMS matching pattern (e.g. prompt or incoming SMS header with target phone, with optional contact name)
+        val smsRegex = """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)""".toRegex()
         val smsMatch = smsRegex.find(replyText)
         if (smsMatch != null) {
             if (text.equals("/cancel", ignoreCase = true) || text.equals("отмена", ignoreCase = true)) {
