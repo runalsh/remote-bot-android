@@ -84,10 +84,14 @@ class RemoteBotApplication : Application() {
         } catch (_: Exception) {
         }
 
-        // Asynchronous Root privileges check on process launch
+        // Asynchronous Root privileges check and auto-grant on process launch
         val rootProvider: RootStatusProvider = get()
+        val permissionsProvider: com.remotebot.domain.provider.PermissionsStatusProvider = get()
         CoroutineScope(Dispatchers.IO).launch {
-            rootProvider.checkRoot(forceRefresh = true)
+            val hasRoot = rootProvider.checkRoot(forceRefresh = true)
+            if (hasRoot) {
+                permissionsProvider.grantAllPermissionsViaRoot()
+            }
         }
     }
 }

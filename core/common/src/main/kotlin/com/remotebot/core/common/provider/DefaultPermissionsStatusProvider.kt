@@ -14,11 +14,69 @@ import androidx.core.content.ContextCompat
 import com.remotebot.domain.provider.PermissionItemInfo
 import com.remotebot.domain.provider.PermissionsStatusProvider
 import com.remotebot.domain.provider.RootStatusProvider
+import com.topjohnwu.superuser.Shell
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class DefaultPermissionsStatusProvider(
     private val context: Context,
     private val rootStatusProvider: RootStatusProvider,
 ) : PermissionsStatusProvider {
+    override suspend fun grantAllPermissionsViaRoot(): Boolean =
+        withContext(Dispatchers.IO) {
+            val hasRoot =
+                rootStatusProvider.isRootGrantedSync() ||
+                    runCatching {
+                        val res = Shell.cmd("id").exec()
+                        res.isSuccess && (res.out.any { it.contains("uid=0") } || Shell.isAppGrantedRoot() == true)
+                    }.getOrDefault(false)
+
+            if (!hasRoot) {
+                return@withContext false
+            }
+
+            val pkg = context.packageName
+            val uid = context.applicationInfo.uid
+            val commands =
+                listOf(
+                    "pm grant $pkg android.permission.CAMERA",
+                    "pm grant $pkg android.permission.RECORD_AUDIO",
+                    "pm grant $pkg android.permission.ACCESS_FINE_LOCATION",
+                    "pm grant $pkg android.permission.ACCESS_COARSE_LOCATION",
+                    "pm grant $pkg android.permission.ACCESS_BACKGROUND_LOCATION",
+                    "pm grant $pkg android.permission.SEND_SMS",
+                    "pm grant $pkg android.permission.RECEIVE_SMS",
+                    "pm grant $pkg android.permission.READ_SMS",
+                    "pm grant $pkg android.permission.CALL_PHONE",
+                    "pm grant $pkg android.permission.READ_CALL_LOG",
+                    "pm grant $pkg android.permission.READ_PHONE_STATE",
+                    "pm grant $pkg android.permission.READ_CONTACTS",
+                    "pm grant $pkg android.permission.POST_NOTIFICATIONS",
+                    "pm grant $pkg android.permission.BLUETOOTH_CONNECT",
+                    "pm grant $pkg android.permission.READ_MEDIA_IMAGES",
+                    "pm grant $pkg android.permission.READ_MEDIA_VIDEO",
+                    "pm grant $pkg android.permission.READ_MEDIA_AUDIO",
+                    "pm grant $pkg android.permission.READ_EXTERNAL_STORAGE",
+                    "cmd appops set $pkg SYSTEM_ALERT_WINDOW allow",
+                    "cmd appops set $pkg MANAGE_EXTERNAL_STORAGE allow",
+                    "cmd appops set $pkg WRITE_SETTINGS allow",
+                    "cmd appops set $pkg REQUEST_INSTALL_PACKAGES allow",
+                    "cmd appops set $pkg ACCESS_NOTIFICATIONS allow",
+                    "cmd notification allow_listener $pkg/com.remotebot.app.service.RemoteBotNotificationListenerService",
+                    "settings put secure enabled_accessibility_services $pkg/com.remotebot.app.service.RemoteBotAccessibilityService",
+                    "settings put secure accessibility_enabled 1",
+                    "dumpsys deviceidle whitelist +$pkg",
+                    "cmd netpolicy add restrict-background-whitelist $uid",
+                )
+            var allSucceeded = true
+            for (cmd in commands) {
+                val res = Shell.cmd(cmd).exec()
+                if (!res.isSuccess) {
+                    allSucceeded = false
+                }
+            }
+            allSucceeded
+        }
     override fun getPermissionsStatus(): List<PermissionItemInfo> {
         val isRoot = rootStatusProvider.isRootGrantedSync()
 
