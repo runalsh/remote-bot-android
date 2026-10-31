@@ -1,4 +1,4 @@
-.PHONY: all build build-apk build-debug build-release build-release-testkey install reinstall run build-server check check-compile check-app check-ui lint lint-ktlint lint-detekt lint-android lint-fix test test-coverage test-android test-domain test-server test-serverpush test-serverpush-go test-serverpush-py test-serverpush-js test-serverapi test-serverapi-go test-serverapi-py test-serverapi-js docker-build-all docker-build-push docker-build-api docker-compose-build clean help
+.PHONY: all build build-apk build-debug build-release build-release-testkey install install-debug install-release reinstall reinstall-debug reinstall-release run build-server check check-compile check-app check-ui lint lint-ktlint lint-detekt lint-android lint-fix test test-coverage test-android test-domain test-server test-serverpush test-serverpush-go test-serverpush-py test-serverpush-js test-serverapi test-serverapi-go test-serverapi-py test-serverapi-js docker-build-all docker-build-push docker-build-api docker-compose-build clean help
 
 # Export environment variable for headless builds on Linux
 export ANDROID_HOME ?= /opt/android-sdk
@@ -9,7 +9,9 @@ ADB_HOST ?= 127.0.0.1
 ADB_PORT ?= 5037
 PACKAGE_NAME ?= com.remotebot.app
 MAIN_ACTIVITY ?= com.remotebot.app/.MainActivity
-APK_PATH ?= app/build/outputs/apk/debug/app-debug.apk
+DEBUG_APK_PATH ?= app/build/outputs/apk/debug/app-debug.apk
+RELEASE_APK_PATH ?= app/build/outputs/apk/release/app-release.apk
+APK_PATH ?= $(RELEASE_APK_PATH)
 
 # Host and port flags for ADB
 ADB_CMD := $(ADB)
@@ -48,8 +50,11 @@ help:
 	@echo "  make build-apk      - Build Android Debug APK (./gradlew assembleDebug)"
 	@echo "  make build-release  - Build Android Release APK (./gradlew assembleRelease)"
 	@echo "  make build-release-testkey - Build Android Release APK signed with testkey (./gradlew assembleReleaseTestkey)"
-	@echo "  make install        - Build, install on device via ADB, and launch application"
-	@echo "  make reinstall      - Build, completely uninstall from device, clean install, and launch"
+	@echo "  make install        - Build release APK (build-release), install on device via ADB, and launch application"
+	@echo "  make install-debug  - Build debug APK (build-debug), install on device via ADB, and launch application"
+	@echo "  make install-release- Alias for make install"
+	@echo "  make reinstall      - Build release APK, completely uninstall from device, clean install, and launch"
+	@echo "  make reinstall-debug- Build debug APK, completely uninstall from device, clean install, and launch"
 	@echo "  make run            - Launch installed application on target device"
 	@echo "  make test           - Run all project tests (Android + Push Gateway + API Proxy)"
 	@echo "  make test-coverage  - Run tests and generate Jacoco code coverage report (:domain:jacocoTestReport)"
@@ -121,21 +126,41 @@ build-release-testkey:
 	@$(call run_gradle,assembleReleaseTestkey)
 	@echo "APK built: app/build/outputs/apk/releaseTestkey/app-releaseTestkey.apk"
 
-install: build-apk
-	@echo "=== Installing APK on device via ADB ($(ADB_HOST)) ==="
-	@$(ADB_CMD) install -r $(APK_PATH)
+install: build-release
+	@echo "=== Installing Release APK on device via ADB ($(ADB_HOST)) ==="
+	@$(ADB_CMD) install -r $(RELEASE_APK_PATH)
 	@echo "=== Launching application $(MAIN_ACTIVITY) ==="
 	@$(ADB_CMD) shell am start -n $(MAIN_ACTIVITY)
-	@echo "✅ Application successfully installed and launched!"
+	@echo "✅ Release application successfully installed and launched!"
 
-reinstall: build-apk
+install-release: install
+
+install-debug: build-debug
+	@echo "=== Installing Debug APK on device via ADB ($(ADB_HOST)) ==="
+	@$(ADB_CMD) install -r $(DEBUG_APK_PATH)
+	@echo "=== Launching application $(MAIN_ACTIVITY) ==="
+	@$(ADB_CMD) shell am start -n $(MAIN_ACTIVITY)
+	@echo "✅ Debug application successfully installed and launched!"
+
+reinstall: build-release
 	@echo "=== Uninstalling existing application $(PACKAGE_NAME) from device ==="
 	@$(ADB_CMD) uninstall $(PACKAGE_NAME) || true
-	@echo "=== Clean installing APK on device via ADB ($(ADB_HOST)) ==="
-	@$(ADB_CMD) install -r $(APK_PATH)
+	@echo "=== Clean installing Release APK on device via ADB ($(ADB_HOST)) ==="
+	@$(ADB_CMD) install -r $(RELEASE_APK_PATH)
 	@echo "=== Launching application $(MAIN_ACTIVITY) ==="
 	@$(ADB_CMD) shell am start -n $(MAIN_ACTIVITY)
-	@echo "✅ Application successfully reinstalled and launched!"
+	@echo "✅ Release application successfully reinstalled and launched!"
+
+reinstall-release: reinstall
+
+reinstall-debug: build-debug
+	@echo "=== Uninstalling existing application $(PACKAGE_NAME) from device ==="
+	@$(ADB_CMD) uninstall $(PACKAGE_NAME) || true
+	@echo "=== Clean installing Debug APK on device via ADB ($(ADB_HOST)) ==="
+	@$(ADB_CMD) install -r $(DEBUG_APK_PATH)
+	@echo "=== Launching application $(MAIN_ACTIVITY) ==="
+	@$(ADB_CMD) shell am start -n $(MAIN_ACTIVITY)
+	@echo "✅ Debug application successfully reinstalled and launched!"
 
 run:
 	@echo "=== Launching application $(MAIN_ACTIVITY) on device ==="
