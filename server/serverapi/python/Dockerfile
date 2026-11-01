@@ -1,4 +1,4 @@
-FROM python:3.14.8-alpine
+FROM python:3.15.0-alpine
 
 RUN apk --no-cache add ca-certificates tzdata wget && \
     addgroup -S appgroup && adduser -S appuser -G appgroup
