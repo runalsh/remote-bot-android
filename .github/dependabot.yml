@@ -6,6 +6,18 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    ignore:
+      # AGP 9+ requires experimental Android SDK 36/37 and breaks Huawei AGC plugin
+      - dependency-name: "com.android.tools.build:gradle"
+        update-types: ["version-update:semver-major"]
+      # Gradle 9+ requires AGP 9+
+      - dependency-name: "gradle"
+        update-types: ["version-update:semver-major"]
+      # Compose BOM > 2025.11.01 includes Compose UI 1.10+ (requires compileSdk 36+ and AGP 9.1+)
+      - dependency-name: "androidx.compose:compose-bom"
+        versions: [">= 2025.12.00"]
+      - dependency-name: "androidx.core:core-ktx"
+        versions: [">= 1.16.0"]
     groups:
       compose:
         patterns:
@@ -26,55 +38,18 @@ updates:
           - "actions/*"
           - "docker/*"
 
-  # 3. Node.js (Cloudflare Workers)
-  - package-ecosystem: "npm"
-    directory: "/server/serverpush/cloudflare-worker"
-    schedule:
-      interval: "weekly"
 
   - package-ecosystem: "npm"
-    directory: "/server/serverapi/cloudflare-worker"
-    schedule:
-      interval: "weekly"
-
-  # 4. Go microservices (Push Gateway & API Reverse Proxy)
-  - package-ecosystem: "gomod"
-    directory: "/server/serverpush/go"
+    directory: "/server"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "gomod"
-    directory: "/server/serverapi/go"
-    schedule:
-      interval: "weekly"
-
-  # 5. Docker base images (Go, Python, Nginx)
-  - package-ecosystem: "docker"
-    directory: "/server/serverpush/python"
+    directory: "/server"
     schedule:
       interval: "weekly"
 
   - package-ecosystem: "docker"
-    directory: "/server/serverapi/python"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/server/serverpush/go"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/server/serverapi/go"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/server/serverpush/nginx"
-    schedule:
-      interval: "weekly"
-
-  - package-ecosystem: "docker"
-    directory: "/server/serverapi/nginx"
+    directory: "/server"
     schedule:
       interval: "weekly"
