@@ -179,17 +179,26 @@ build-server:
 test: test-android test-server
 	@echo "🎉 All project tests (Android + Push Gateway + API Proxy) passed successfully!"
 
-test-android: test-domain
+test-android:
+	@echo "=== [Android] Running unit tests across all modules ==="
+	@$(call run_gradle,testDebugUnitTest :domain:test -Pcoverage)
 	@echo "✅ All Android/Kotlin module tests passed successfully!"
 
 test-domain:
 	@echo "=== [Android] Running Kotlin Domain module unit tests ==="
 	@$(call run_gradle,:domain:test --info)
 
-test-coverage:
+test-coverage: test-android
 	@echo "=== Generating Jacoco code coverage report ==="
 	@$(call run_gradle,:domain:jacocoTestReport -Pcoverage)
 	@echo "Report generated: domain/build/reports/jacoco/test/html/index.html"
+	@python3 -c "\
+import xml.etree.ElementTree as ET;\
+tree = ET.parse('domain/build/reports/jacoco/test/jacocoTestReport.xml');\
+root = tree.getroot();\
+print('\n📊 Code Coverage Summary:');\
+[print(f'  {c.get(\"type\"):12}: {(int(c.get(\"covered\"))/(int(c.get(\"missed\"))+int(c.get(\"covered\")))*100):.2f}% ({c.get(\"covered\")}/{int(c.get(\"missed\"))+int(c.get(\"covered\"))})') for c in root.findall('counter') if (int(c.get('missed'))+int(c.get('covered')))>0];\
+print('')" 2>/dev/null || true
 
 test-server: test-serverpush test-serverapi
 	@echo "🎉 All server gateway tests (Push Gateway + API Proxy) passed!"

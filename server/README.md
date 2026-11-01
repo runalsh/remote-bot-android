@@ -57,18 +57,18 @@ Each gateway is implemented across 4 technology stacks. Each subdirectory includ
 ### 1. Push Gateway (`serverpush/`)
 | Directory | Stack | Features | Dockerfile |
 |---|---|---|---|
-| [`serverpush/go/`](serverpush/go) | **Go 1.27.2** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static binary, SSL root certificates, standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverpush/go/Dockerfile) |
-| [`serverpush/python/`](serverpush/python) | **Python 3.14.8** | Zero-dependency (pure Python standard library), instant startup without compilation. | [`Dockerfile`](serverpush/python/Dockerfile) |
-| [`serverpush/nginx/`](serverpush/nginx) | **OpenResty 1.31.1.1-alpine-slim** | Ultra-high throughput Nginx + Lua, shared memory OAuth token caching. | [`Dockerfile`](serverpush/nginx/Dockerfile) |
-| [`serverpush/cloudflare-worker/`](serverpush/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Serverless Edge worker. Free execution on Cloudflare global edge without renting a server. | [`Dockerfile`](serverpush/cloudflare-worker/Dockerfile) |
+| [`serverpush/go/`](serverpush/go) | **Go** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static binary, SSL root certificates, standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverpush/go/Dockerfile) |
+| [`serverpush/python/`](serverpush/python) | **Python** | Zero-dependency (pure Python standard library), instant startup without compilation. | [`Dockerfile`](serverpush/python/Dockerfile) |
+| [`serverpush/nginx/`](serverpush/nginx) | **OpenResty** | Ultra-high throughput Nginx + Lua, shared memory OAuth token caching. | [`Dockerfile`](serverpush/nginx/Dockerfile) |
+| [`serverpush/cloudflare-worker/`](serverpush/cloudflare-worker) | **Cloudflare Workers** | Serverless Edge worker. Free execution on Cloudflare global edge without renting a server. | [`Dockerfile`](serverpush/cloudflare-worker/Dockerfile) |
 
 ### 2. API Reverse Proxy (`serverapi/`)
 | Directory | Stack | Features | Dockerfile |
 |---|---|---|---|
-| [`serverapi/go/`](serverapi/go) | **Go 1.27.2** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static `httputil.ReverseProxy`, unbuffered streaming, Long Polling support (`getUpdates`), standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverapi/go/Dockerfile) |
-| [`serverapi/python/`](serverapi/python) | **Python 3.14.8** | Lightweight proxy based on `http.server` and `urllib`. | [`Dockerfile`](serverapi/python/Dockerfile) |
-| [`serverapi/nginx/`](serverapi/nginx) | **Nginx 1.30.6-alpine-slim** | Classic production reverse proxy with optimized TLS buffers and `client_max_body_size 50M`. | [`Dockerfile`](serverapi/nginx/Dockerfile) |
-| [`serverapi/cloudflare-worker/`](serverapi/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Single-file JavaScript edge proxy routed via Cloudflare global network. | [`Dockerfile`](serverapi/cloudflare-worker/Dockerfile) |
+| [`serverapi/go/`](serverapi/go) | **Go** | **Primary / Recommended**. Pure Scratch (0 MB OS, zero attack surface), static `httputil.ReverseProxy`, unbuffered streaming, Long Polling support (`getUpdates`), standalone Healthcheck (`-healthcheck`). | [`Dockerfile`](serverapi/go/Dockerfile) |
+| [`serverapi/python/`](serverapi/python) | **Python** | Lightweight proxy based on `http.server` and `urllib`. | [`Dockerfile`](serverapi/python/Dockerfile) |
+| [`serverapi/nginx/`](serverapi/nginx) | **Nginx** | Classic production reverse proxy with optimized TLS buffers and `client_max_body_size 50M`. | [`Dockerfile`](serverapi/nginx/Dockerfile) |
+| [`serverapi/cloudflare-worker/`](serverapi/cloudflare-worker) | **Cloudflare Workers** | Single-file JavaScript edge proxy routed via Cloudflare global network. | [`Dockerfile`](serverapi/cloudflare-worker/Dockerfile) |
 
 ---
 
