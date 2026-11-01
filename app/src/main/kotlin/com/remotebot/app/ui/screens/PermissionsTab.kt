@@ -56,6 +56,8 @@ import com.remotebot.app.ui.screens.permissions.ConfidentialPermissionsSection
 import com.remotebot.app.ui.screens.permissions.CriticalPermissionsSection
 import com.remotebot.app.ui.screens.permissions.StandardPermissionsSection
 import com.remotebot.app.ui.theme.AppColors
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.provider.RootStatusProvider
 import com.topjohnwu.superuser.Shell
@@ -156,13 +158,13 @@ fun PermissionsTab(
             contract = ActivityResultContracts.RequestMultiplePermissions(),
         ) { results ->
             val grantedCount = results.values.count { it }
-            logger.i("Permissions", "Результат общего запроса всех прав: выдано $grantedCount из ${results.size}")
+            logger.i("Permissions", "Result of the batch request for all permissions: granted $grantedCount of ${results.size}")
             refreshTrigger++
             showManualPermissionsDialog = true
             Toast
                 .makeText(
                     context,
-                    "Из-за ограничений Android остальные разрешения необходимо выдать по одному",
+                    context.getString(R.string.perm_android_limits_hint),
                     Toast.LENGTH_LONG,
                 ).show()
         }
@@ -172,13 +174,13 @@ fun PermissionsTab(
             contract = ActivityResultContracts.RequestMultiplePermissions(),
         ) { results ->
             val grantedCount = results.values.count { it }
-            logger.i("Permissions", "Результат пакетного запроса стандартных прав: выдано $grantedCount из ${results.size}")
+            logger.i("Permissions", "Result of the batch standard-permissions request: granted $grantedCount of ${results.size}")
             refreshTrigger++
             showManualPermissionsDialog = true
             Toast
                 .makeText(
                     context,
-                    "Из-за ограничений Android остальные разрешения необходимо выдать по одному",
+                    context.getString(R.string.perm_android_limits_hint),
                     Toast.LENGTH_LONG,
                 ).show()
         }
@@ -452,8 +454,8 @@ fun PermissionsTab(
 
             if (hasRoot) {
                 withContext(Dispatchers.Main) {
-                    logger.d("Permissions", "Запрос пакета всех прав через Root (Superuser)")
-                    Toast.makeText(context, "Выдача всех прав через Root...", Toast.LENGTH_SHORT).show()
+                    logger.d("Permissions", "Requesting the full permission set via Root (Superuser)")
+                    Toast.makeText(context, context.getString(R.string.perm_granting_all_root_toast), Toast.LENGTH_SHORT).show()
                 }
                 val pkg = context.packageName
                 val commands =
@@ -496,13 +498,13 @@ fun PermissionsTab(
                 }
                 withContext(Dispatchers.Main) {
                     refreshTrigger++
-                    logger.i("Permissions", "Все права успешно выданы через Root (${commands.size} команд)")
-                    Toast.makeText(context, "Все права успешно выданы через Root!", Toast.LENGTH_LONG).show()
+                    logger.i("Permissions", "All permissions granted successfully via Root (${commands.size} commands)")
+                    Toast.makeText(context, context.getString(R.string.perm_all_granted_root_toast), Toast.LENGTH_LONG).show()
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    logger.d("Permissions", "Запрос пакета Runtime-разрешений вручную (${allRuntimePermissions.size} разрешений)")
-                    logger.t("Permissions", "Разрешения: ${allRuntimePermissions.joinToString(", ")}")
+                    logger.d("Permissions", "Manual request of the runtime permission set (${allRuntimePermissions.size} permissions)")
+                    logger.t("Permissions", "Permissions: ${allRuntimePermissions.joinToString(", ")}")
                     masterAllLauncher.launch(allRuntimePermissions)
 
                     if (!isBatteryIgnored) {
@@ -525,7 +527,7 @@ fun PermissionsTab(
     LaunchedEffect(isRootGranted, grantedCount, totalCount) {
         if (isRootGranted && grantedCount < totalCount && !autoRootGrantAttempted) {
             autoRootGrantAttempted = true
-            logger.i("Permissions", "Обнаружен активный Root и недостающие права ($grantedCount/$totalCount). Автовыдача...")
+            logger.i("Permissions", "Active Root and missing permissions detected ($grantedCount/$totalCount). Auto-granting...")
             requestAllPermissions()
         }
     }
@@ -560,7 +562,7 @@ fun PermissionsTab(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Разрешения приложения",
+                    text = stringResource(R.string.perms_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -568,9 +570,9 @@ fun PermissionsTab(
                 Text(
                     text =
                         if (grantedCount == totalCount) {
-                            "✅ Все разрешения выданы ($grantedCount из $totalCount)"
+                            stringResource(R.string.perms_all_granted, grantedCount, totalCount)
                         } else {
-                            "Предоставлено $grantedCount из $totalCount разрешений"
+                            stringResource(R.string.perms_count_granted, grantedCount, totalCount)
                         },
                     style = MaterialTheme.typography.bodySmall,
                     color =
@@ -601,9 +603,9 @@ fun PermissionsTab(
                         Text(
                             text =
                                 if (isRootGranted) {
-                                    "⚡ Выдать все права через Root"
+                                    stringResource(R.string.perms_btn_grant_root)
                                 } else {
-                                    "⚡ Запросить все разрешения вручную"
+                                    stringResource(R.string.perms_btn_request_all)
                                 },
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
@@ -708,19 +710,19 @@ fun PermissionsTab(
             icon = { Text("ℹ️", fontSize = 28.sp) },
             title = {
                 Text(
-                    text = "Ограничения Android",
+                    text = stringResource(R.string.perms_dialog_restrictions_title),
                     fontWeight = FontWeight.Bold,
                 )
             },
             text = {
                 Text(
-                    text = "Обычные разрешения получены.\n\nИз-за ограничений безопасности Android системные разрешения (доступ ко всем файлам, чтение уведомлений, специальные возможности, поверх окон и др.) невозможно выдать пакетно без Root — их необходимо выдать по одному вручную в списке ниже.",
+                    text = stringResource(R.string.perms_dialog_restrictions_desc),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
                 Button(onClick = { showManualPermissionsDialog = false }) {
-                    Text("Понятно")
+                    Text(stringResource(R.string.perms_dialog_btn_ok))
                 }
             },
         )

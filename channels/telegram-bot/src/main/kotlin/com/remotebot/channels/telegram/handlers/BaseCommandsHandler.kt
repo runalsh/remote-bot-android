@@ -60,7 +60,7 @@ class BaseCommandsHandler(
             "menu_cat_auto" -> handleCategoryAuto()
             "about" -> {
                 val isRoot = rootStatusProvider.isRootGrantedSync()
-                val rootText = if (isRoot) "✅ Доступен (UID 0)" else "❌ Отсутствует / Не выдан"
+                val rootText = if (isRoot) strings.bsRootAvail() else strings.bsRootMissing()
                 CommandResult.Text(strings.aboutTitle(versionDisplay, rootText))
             }
             "chat_id" -> {
@@ -73,15 +73,14 @@ class BaseCommandsHandler(
                 val config = botConfigRepository?.config?.value
                 val activeEndpoint = apiClient?.lastActiveEndpointUrl ?: (config?.customApiRoot ?: "https://api.telegram.org")
                 val mode = config?.connectionMode?.name ?: "LONG_POLLING"
-                val isEn = strings is com.remotebot.channels.telegram.strings.BotStringsEn
-
+                
                 // Check ping of active Telegram API endpoint
                 val apiDiag = diagnosticManager?.checkHttpEndpoint(activeEndpoint)
                 val apiStatusStr =
                     if (apiDiag != null && apiDiag.isReachable) {
-                        if (isEn) "🟢 Available (${apiDiag.latencyMs}ms)" else "🟢 Доступен (${apiDiag.latencyMs}ms)"
+                        strings.bsApiOk(apiDiag.latencyMs)
                     } else {
-                        if (isEn) "🔴 Error (${apiDiag?.error ?: "Timeout"})" else "🔴 Ошибка (${apiDiag?.error ?: "Таймаут"})"
+                        strings.bsApiErr(apiDiag?.error ?: strings.bsTimeoutWord())
                     }
 
                 val strategyStr = config?.endpointSelectionStrategy?.name ?: "FAILOVER"
@@ -89,77 +88,55 @@ class BaseCommandsHandler(
 
                 val text =
                     buildString {
-                        if (isEn) {
-                            appendLine("📊 <b>Remote Bot Status Summary</b>")
-                            appendLine()
-                            appendLine("🤖 <b>Service state:</b> 🟢 Active")
-                            appendLine("👑 <b>Root (Superuser):</b> ${if (isRoot) "✅ Granted (UID 0)" else "❌ Denied"}")
-                            appendLine("📡 <b>Connection mode:</b> <code>$mode</code>")
-                            appendLine()
-                            appendLine("🌐 <b>Telegram Bot API:</b>")
-                            appendLine("• <b>Active node:</b> $apiStatusStr")
-                            appendLine("  <code>$activeEndpoint</code>")
-                            appendLine("• <b>Selection strategy:</b> <code>$strategyStr</code>")
-                            appendLine("• <b>Endpoints pool:</b>")
-                            if (candidateRoots.isNotEmpty()) {
-                                candidateRoots.forEach { root ->
-                                    appendLine("  • <code>$root</code>")
-                                }
-                            } else {
-                                appendLine("  • <code>$activeEndpoint</code>")
+                        appendLine(strings.statusTitle())
+                        appendLine()
+                        appendLine(strings.statusServiceRunning())
+                        appendLine(strings.statusRoot(isRoot))
+                        appendLine(strings.statusConnectionMode(mode))
+                        appendLine()
+                        appendLine(strings.statusTelegramApiTitle())
+                        appendLine(strings.statusActiveNode(apiStatusStr))
+                        appendLine(strings.bsIndented(activeEndpoint))
+                        appendLine(strings.statusStrategy(strategyStr))
+                        appendLine(strings.statusEndpointsPool())
+                        if (candidateRoots.isNotEmpty()) {
+                            candidateRoots.forEach { root ->
+                                appendLine(strings.bsEndpointItem(root))
                             }
-                            appendLine()
-                            appendLine("🚀 <b>Push Services Network Reachability:</b>")
-                            val gwUrl = config?.pushGatewayUrl
-                            if (!gwUrl.isNullOrBlank()) {
-                                val gwDiag = diagnosticManager?.checkHttpEndpoint(gwUrl)
-                                val gwStatus = if (gwDiag != null && gwDiag.isReachable) "🟢 ${gwDiag.latencyMs}ms" else "🔴 Timeout"
-                                appendLine("• <b>Webhook Push Gateway:</b> $gwStatus")
-                                appendLine("  <code>$gwUrl</code>")
-                            }
-                            val fcmDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.FCM_ENDPOINT, 2500)
-                            val fcmStatus = if (fcmDiag != null && fcmDiag.isReachable) "🟢 ${fcmDiag.latencyMs}ms" else "🔴 Unreachable"
-                            appendLine("• <b>Google FCM:</b> $fcmStatus (<code>fcm.googleapis.com</code>)")
-
-                            val hmsDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.HMS_ENDPOINT, 2500)
-                            val hmsStatus = if (hmsDiag != null && hmsDiag.isReachable) "🟢 ${hmsDiag.latencyMs}ms" else "🔴 Unreachable"
-                            appendLine("• <b>Huawei HMS:</b> $hmsStatus (<code>push-api.cloud.huawei.com</code>)")
                         } else {
-                            appendLine("📊 <b>Сводный статус Remote Bot</b>")
-                            appendLine()
-                            appendLine("🤖 <b>Состояние службы:</b> 🟢 Активен")
-                            appendLine("👑 <b>Root (Superuser):</b> ${if (isRoot) "✅ Доступен (UID 0)" else "❌ Не предоставлен"}")
-                            appendLine("📡 <b>Режим связи:</b> <code>$mode</code>")
-                            appendLine()
-                            appendLine("🌐 <b>Telegram Bot API:</b>")
-                            appendLine("• <b>Активный узел:</b> $apiStatusStr")
-                            appendLine("  <code>$activeEndpoint</code>")
-                            appendLine("• <b>Стратегия выбора:</b> <code>$strategyStr</code>")
-                            appendLine("• <b>Пул эндпоинтов:</b>")
-                            if (candidateRoots.isNotEmpty()) {
-                                candidateRoots.forEach { root ->
-                                    appendLine("  • <code>$root</code>")
-                                }
-                            } else {
-                                appendLine("  • <code>$activeEndpoint</code>")
-                            }
-                            appendLine()
-                            appendLine("🚀 <b>Сетевая доступность Push сервисов:</b>")
-                            val gwUrl = config?.pushGatewayUrl
-                            if (!gwUrl.isNullOrBlank()) {
-                                val gwDiag = diagnosticManager?.checkHttpEndpoint(gwUrl)
-                                val gwStatus = if (gwDiag != null && gwDiag.isReachable) "🟢 ${gwDiag.latencyMs}ms" else "🔴 Таймаут"
-                                appendLine("• <b>Webhook Push Gateway:</b> $gwStatus")
-                                appendLine("  <code>$gwUrl</code>")
-                            }
-                            val fcmDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.FCM_ENDPOINT, 2500)
-                            val fcmStatus = if (fcmDiag != null && fcmDiag.isReachable) "🟢 ${fcmDiag.latencyMs}ms" else "🔴 Недоступен"
-                            appendLine("• <b>Google FCM:</b> $fcmStatus (<code>fcm.googleapis.com</code>)")
-
-                            val hmsDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.HMS_ENDPOINT, 2500)
-                            val hmsStatus = if (hmsDiag != null && hmsDiag.isReachable) "🟢 ${hmsDiag.latencyMs}ms" else "🔴 Недоступен"
-                            appendLine("• <b>Huawei HMS:</b> $hmsStatus (<code>push-api.cloud.huawei.com</code>)")
+                            appendLine(strings.bsEndpointItem(activeEndpoint))
                         }
+                        appendLine()
+                        appendLine(strings.bsPushTitle())
+                        val gwUrl = config?.pushGatewayUrl
+                        if (!gwUrl.isNullOrBlank()) {
+                            val gwDiag = diagnosticManager?.checkHttpEndpoint(gwUrl)
+                            val gwStatus =
+                                if (gwDiag != null && gwDiag.isReachable) {
+                                    strings.bsLatency(gwDiag.latencyMs)
+                                } else {
+                                    strings.bsTimeout()
+                                }
+                            appendLine(strings.bsGwLine(gwStatus))
+                            appendLine(strings.bsIndented(gwUrl))
+                        }
+                        val fcmDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.FCM_ENDPOINT, 2500)
+                        val fcmStatus =
+                            if (fcmDiag != null && fcmDiag.isReachable) {
+                                strings.bsLatency(fcmDiag.latencyMs)
+                            } else {
+                                strings.bsUnreachable()
+                            }
+                        appendLine(strings.bsFcmLine(fcmStatus))
+
+                        val hmsDiag = diagnosticManager?.pingTarget(NetworkDiagnosticManager.HMS_ENDPOINT, 2500)
+                        val hmsStatus =
+                            if (hmsDiag != null && hmsDiag.isReachable) {
+                                strings.bsLatency(hmsDiag.latencyMs)
+                            } else {
+                                strings.bsUnreachable()
+                            }
+                        appendLine(strings.bsHmsLine(hmsStatus))
                     }.trimEnd()
 
                 val keyboard =
@@ -167,10 +144,10 @@ class BaseCommandsHandler(
                         listOf(
                             listOf(
                                 InlineKeyboardButton(strings.btnBack(), "/menu_main"),
-                                InlineKeyboardButton(if (isEn) "🎛️ Toggles" else "🎛️ Переключатели", "/toggles"),
+                                InlineKeyboardButton(strings.btnToggles(), "/toggles"),
                             ),
                             listOf(
-                                InlineKeyboardButton(if (isEn) "🔄 Refresh Status" else "🔄 Обновить статус", "/status"),
+                                InlineKeyboardButton(strings.bsRefreshStatus(), "/status"),
                             ),
                         ),
                     )
@@ -181,28 +158,22 @@ class BaseCommandsHandler(
             "ping" -> {
                 val now = System.currentTimeMillis()
                 val delta = now - command.receivedAtMs
-                val text = if (strings is com.remotebot.channels.telegram.strings.BotStringsEn) {
-                    "🏓 Pong! Processing latency: ${delta}ms"
-                } else {
-                    "🏓 Pong! Задержка обработки: ${delta}ms"
-                }
-                CommandResult.Text(text)
+                CommandResult.Text(strings.bsPing(delta))
             }
             "echo" -> {
                 val text = command.args.joinToString(" ")
-                val isEn = strings is com.remotebot.channels.telegram.strings.BotStringsEn
-                val emptyMsg = if (isEn) "Empty input." else "Пустой ввод."
-                val echoPrefix = if (isEn) "📢 Echo: " else "📢 Эхо: "
+                                val emptyMsg = strings.bsEchoEmpty()
+                val echoPrefix = strings.bsEchoPrefix()
                 CommandResult.Text(if (text.isBlank()) emptyMsg else "$echoPrefix$text")
             }
-            else -> CommandResult.Error("Неизвестная сервисная команда: $cmd")
+            else -> CommandResult.Error(strings.bsUnknownCmd(cmd))
         }
     }
 
     private suspend fun handlePermissions(args: List<String>): CommandResult {
         val provider =
             permissionsStatusProvider
-                ?: return CommandResult.Error("Провайдер разрешений не инициализирован.")
+                ?: return CommandResult.Error(strings.bsPermProviderMissing())
 
         val filter = args.firstOrNull()?.lowercase()
         val allPermissions = provider.getPermissionsStatus()
@@ -221,9 +192,9 @@ class BaseCommandsHandler(
 
         val text =
             buildString {
-                appendLine("🛡️ <b>Статус Android-разрешений</b> ($grantedCount/$totalCount)")
+                appendLine(strings.permissionsTitle(grantedCount, totalCount))
                 if (!filter.isNullOrBlank()) {
-                    appendLine("Фильтр: <code>$filter</code>")
+                    appendLine(strings.filterLabel(filter))
                 }
                 appendLine()
 
@@ -233,27 +204,28 @@ class BaseCommandsHandler(
                     val list = grouped[groupKey] ?: continue
                     val groupTitle =
                         when (groupKey) {
-                            "critical" -> "🔴 <b>Критические (Система/Сеть/Фон):</b>"
-                            "confidential" -> "🟡 <b>Конфиденциальные (Камера/Микрофон/СМС):</b>"
-                            else -> "🟢 <b>Стандартные (Базовые функции):</b>"
+                            "critical" -> strings.groupCriticalTitle()
+                            "confidential" -> strings.groupConfidentialTitle()
+                            else -> strings.groupStandardTitle()
                         }
                     appendLine(groupTitle)
                     for (item in list) {
                         val icon = if (item.isGranted) "✅" else "❌"
-                        appendLine("$icon <b>${item.name}:</b> ${if (item.isGranted) "Выдано" else "Отклонено"}")
-                        if (!item.isGranted && item.description.isNotBlank()) {
-                            appendLine("   ↳ <i>${item.description}</i>")
+                        appendLine(strings.bsPermLine(icon, strings.permName(item.id), if (item.isGranted) strings.statusGranted() else strings.statusDenied()))
+                        val permDesc = strings.permDesc(item.id)
+                        if (!item.isGranted && permDesc.isNotBlank()) {
+                            appendLine("   ↳ <i>$permDesc</i>")
                         }
                     }
                     appendLine()
                 }
 
                 if (filtered.isEmpty()) {
-                    appendLine("По заданному фильтру ничего не найдено.")
+                    appendLine(strings.noPermissionsFound())
                     appendLine()
                 }
 
-                appendLine("💡 <i>Использование: /permissions [critical|confidential|standard|denied]</i>")
+                appendLine(strings.permissionsUsageHint())
             }.trimEnd()
 
         return CommandResult.Text(text)
@@ -271,7 +243,7 @@ class BaseCommandsHandler(
 
     private fun handleMainMenu(versionDisplay: String): CommandResult {
         val isRoot = rootStatusProvider.isRootGrantedSync()
-        val rootText = if (isRoot) "✅ АКТИВЕН (UID 0)" else "❌ Отсутствует / Не выдан"
+        val rootText = if (isRoot) strings.bsRootActive0() else strings.bsRootMissing()
         val text =
             """
             ${strings.startMenuTitle(versionDisplay, rootText)}
@@ -337,7 +309,7 @@ class BaseCommandsHandler(
 
     private fun handleFullHelp(versionDisplay: String): CommandResult {
         val isRoot = rootStatusProvider.isRootGrantedSync()
-        val rootText = if (isRoot) "✅ АКТИВЕН (UID 0)" else "⚠️ ОГРАНИЧЕН (без Root)"
+        val rootText = if (isRoot) strings.bsRootActive0() else strings.bsRootRestricted()
         val keyboard =
             InlineKeyboardMarkup(
                 listOf(

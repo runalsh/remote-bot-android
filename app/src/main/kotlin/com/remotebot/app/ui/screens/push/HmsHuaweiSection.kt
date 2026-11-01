@@ -13,10 +13,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.StatusMessageText
 import com.remotebot.app.ui.theme.AppColors
 import com.remotebot.core.push.DynamicHmsManager
@@ -51,12 +53,12 @@ fun HmsHuaweiSection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Huawei Mobile Services (HMS Push)",
+                        text = stringResource(R.string.push_hms_card_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Динамическая загрузка agconnect-services.json",
+                        text = stringResource(R.string.push_hms_card_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -71,7 +73,7 @@ fun HmsHuaweiSection(
                     onClick = { hmsPickerLauncher.launch(arrayOf("application/json", "text/*", "*/*")) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("📁 Выбрать файл")
+                    Text(stringResource(R.string.push_hms_choose_file))
                 }
 
                 OutlinedButton(
@@ -83,21 +85,21 @@ fun HmsHuaweiSection(
                                 val text = clip.getItemAt(0).text?.toString() ?: ""
                                 if (text.isNotBlank()) {
                                     onHmsJsonTextChange(text)
-                                    Toast.makeText(context, "Вставлено из буфера (${text.length} симв.)", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.push_paste_clipboard_toast, text.length), Toast.LENGTH_SHORT).show()
                                 }
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Ошибка буфера: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.push_clipboard_error_toast, e.message ?: ""), Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("📋 Из буфера")
+                    Text(stringResource(R.string.push_hms_from_clipboard))
                 }
 
                 if (hmsJsonText.isNotBlank()) {
                     IconButton(onClick = { onHmsJsonTextChange("") }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Очистить")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete))
                     }
                 }
             }
@@ -112,14 +114,14 @@ fun HmsHuaweiSection(
             OutlinedTextField(
                 value = hmsJsonText,
                 onValueChange = onHmsJsonTextChange,
-                label = { Text("Содержимое agconnect-services.json") },
+                label = { Text(stringResource(R.string.push_hms_json_label)) },
                 placeholder = { Text("{\n  \"client\": {\n    \"app_id\": \"105581234\", ...\n  }\n}") },
                 isError = hmsValidationError != null,
                 supportingText = {
                     if (hmsValidationError != null) {
                         Text("❌ $hmsValidationError", color = MaterialTheme.colorScheme.error)
                     } else if (hmsJsonText.isNotBlank()) {
-                        Text("✅ JSON валиден и готов к инициализации", color = AppColors.success)
+                        Text(stringResource(R.string.push_hms_json_valid), color = AppColors.success)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -131,7 +133,7 @@ fun HmsHuaweiSection(
             Button(
                 onClick = {
                     if (hmsJsonText.isBlank()) {
-                        onHmsStatusMessageChange("Вставьте agconnect JSON перед инициализацией")
+                        onHmsStatusMessageChange(context.getString(R.string.push_hms_need_json))
                         onIsHmsSuccessChange(false)
                         return@Button
                     }
@@ -140,7 +142,7 @@ fun HmsHuaweiSection(
                         val parseResult = DynamicHmsManager.parseAgconnectJson(hmsJsonText)
                         if (parseResult.isFailure) {
                             onIsHmsProcessingChange(false)
-                            onHmsStatusMessageChange("Ошибка парсинга: ${parseResult.exceptionOrNull()?.localizedMessage}")
+                            onHmsStatusMessageChange(context.getString(R.string.push_hms_parse_error, parseResult.exceptionOrNull()?.localizedMessage ?: ""))
                             onIsHmsSuccessChange(false)
                             return@launch
                         }
@@ -149,7 +151,7 @@ fun HmsHuaweiSection(
                         val initResult = DynamicHmsManager.initialize(context, parsed)
                         if (initResult.isFailure) {
                             onIsHmsProcessingChange(false)
-                            onHmsStatusMessageChange("Ошибка инициализации HMS: ${initResult.exceptionOrNull()?.localizedMessage}")
+                            onHmsStatusMessageChange(context.getString(R.string.push_hms_init_error, initResult.exceptionOrNull()?.localizedMessage ?: ""))
                             onIsHmsSuccessChange(false)
                             return@launch
                         }
@@ -170,11 +172,11 @@ fun HmsHuaweiSection(
                             val token = tokenResult.getOrThrow()
                             onHmsTokenChange(token)
                             onIsHmsSuccessChange(true)
-                            onHmsStatusMessageChange("✅ Huawei HMS Push инициализирован! Токен получен.")
-                            Toast.makeText(context, "Huawei HMS инициализирован!", Toast.LENGTH_SHORT).show()
+                            onHmsStatusMessageChange(context.getString(R.string.push_hms_initialized_token))
+                            Toast.makeText(context, context.getString(R.string.push_hms_init_success), Toast.LENGTH_SHORT).show()
                         } else {
                             onIsHmsSuccessChange(false)
-                            val errorMsg = tokenResult.exceptionOrNull()?.localizedMessage ?: "Сбой получения токена"
+                            val errorMsg = tokenResult.exceptionOrNull()?.localizedMessage ?: context.getString(R.string.push_token_error)
                             onHmsStatusMessageChange("❌ $errorMsg")
                         }
                     }
@@ -190,9 +192,9 @@ fun HmsHuaweiSection(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Инициализация...")
+                    Text(stringResource(R.string.push_fcm_btn_initializing))
                 } else {
-                    Text("⚡ Применить и инициализировать HMS")
+                    Text(stringResource(R.string.push_hms_btn_init))
                 }
             }
 
@@ -222,7 +224,7 @@ fun HmsHuaweiSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Статус Huawei HMS:",
+                            text = stringResource(R.string.push_hms_status_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                         )
@@ -244,13 +246,13 @@ fun HmsHuaweiSection(
                             Text(
                                 text =
                                     if (!isHmsCoreInstalled) {
-                                        "🔴 Нет HMS Core"
+                                        stringResource(R.string.push_status_no_hms)
                                     } else if (isInit && !hmsToken.isNullOrBlank()) {
-                                        "🟢 Активен"
+                                        stringResource(R.string.push_status_active_dot)
                                     } else if (isInit) {
-                                        "🟡 Ожидание токена"
+                                        stringResource(R.string.push_status_waiting_token)
                                     } else {
-                                        "⚪ Не инициализирован"
+                                        stringResource(R.string.push_status_not_init)
                                     },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
@@ -270,7 +272,7 @@ fun HmsHuaweiSection(
                     if (!isHmsCoreInstalled) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "⚠️ Внимание: системный пакет HMS Core (com.huawei.hwid) не установлен на устройстве. Для работы Huawei Push установите HMS Core через AppGallery или используйте Google FCM.",
+                            text = stringResource(R.string.push_hms_core_warning),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -281,7 +283,7 @@ fun HmsHuaweiSection(
 
                     if (!hmsToken.isNullOrBlank()) {
                         Text(
-                            "✅ Токен Huawei HMS готов к приему пушей:",
+                            stringResource(R.string.push_hms_token_ready),
                             style = MaterialTheme.typography.bodySmall,
                             color = AppColors.success,
                             fontWeight = FontWeight.Bold,
@@ -298,15 +300,15 @@ fun HmsHuaweiSection(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = ClipData.newPlainText("HMS Device Token", hmsToken)
                                 clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "HMS токен скопирован в буфер!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.push_hms_token_copied), Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text("📋 Скопировать HMS токен")
+                            Text(stringResource(R.string.push_hms_copy_token))
                         }
                     } else {
                         Text(
-                            "⚪ Huawei HMS не инициализирован. Загрузите файл agconnect-services.json выше.",
+                            stringResource(R.string.push_hms_not_init_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

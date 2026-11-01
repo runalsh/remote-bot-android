@@ -11,6 +11,7 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
+import com.remotebot.app.R
 import com.remotebot.channels.telegram.engine.TelegramBotEngine
 import org.koin.android.ext.android.inject
 
@@ -41,7 +42,7 @@ class RemoteBotService : LifecycleService() {
             return if (startTime > 0) System.currentTimeMillis() - startTime else 0L
         }
 
-        fun formatUptime(millis: Long): String {
+        fun formatUptime(millis: Long, context: Context): String {
             if (millis <= 0) return "—"
             val seconds = millis / 1000
             val days = seconds / 86400
@@ -49,10 +50,10 @@ class RemoteBotService : LifecycleService() {
             val minutes = (seconds % 3600) / 60
             val secs = seconds % 60
             return buildString {
-                if (days > 0) append("${days}д ")
-                if (hours > 0) append("${hours}ч ")
-                append("${minutes}мин ")
-                append("${secs}с")
+                if (days > 0) append(context.getString(R.string.svc_unit_days, days.toInt()))
+                if (hours > 0) append(context.getString(R.string.svc_unit_hours, hours.toInt()))
+                append(context.getString(R.string.svc_unit_minutes, minutes.toInt()))
+                append(context.getString(R.string.svc_unit_seconds, secs.toInt()))
             }.trim()
         }
 
@@ -200,10 +201,10 @@ class RemoteBotService : LifecycleService() {
             val channel =
                 NotificationChannel(
                     CHANNEL_ID,
-                    "Фоновая служба Remote Bot",
+                    getString(R.string.svc_channel_name),
                     NotificationManager.IMPORTANCE_LOW,
                 ).apply {
-                    description = "Обеспечивает постоянное присутствие и прием удаленных команд"
+                    description = getString(R.string.svc_channel_desc)
                 }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)

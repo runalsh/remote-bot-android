@@ -125,9 +125,9 @@ class TelephonyEventForwarder(
                 if (config.replyUnauthorizedResponseEnabled) {
                     val errorMsg =
                         if (!pin.isNullOrBlank()) {
-                            "Ошибка: неверный SMS PIN или неавторизованный номер"
+                            strings.tfUnauthorizedPin()
                         } else {
-                            "Ошибка: неавторизованный номер отправителя"
+                            strings.tfUnauthorizedNumber()
                         }
                     val finalReply =
                         if (config.smsTransliterationEnabled) {
@@ -136,9 +136,9 @@ class TelephonyEventForwarder(
                             errorMsg
                         }
                     telephonyRepository?.sendSms(event.sender, finalReply, event.simSlot)
-                    logger?.w("TelegramEngine", "🔒 Неавторизованная попытка SMS-команды от ${event.sender}, отправлен ответ об ошибке")
+                    logger?.w("TelegramEngine", "🔒 Unauthorized SMS command attempt from ${event.sender}, error reply sent")
                 } else {
-                    logger?.w("TelegramEngine", "🔒 Неавторизованная попытка SMS-команды от ${event.sender}, ответ подавлен (тихий режим)")
+                    logger?.w("TelegramEngine", "🔒 Unauthorized SMS command attempt from ${event.sender}, reply suppressed (silent mode)")
                 }
             }
         }
@@ -162,7 +162,7 @@ class TelephonyEventForwarder(
             val replyText =
                 when (result) {
                     is CommandResult.Text -> result.message.replace(Regex("<[^>]*>"), "")
-                    is CommandResult.Error -> "Ошибка: ${result.errorMsg}"
+                    is CommandResult.Error -> strings.tfErrorReply(result.errorMsg ?: "")
                     is CommandResult.Acknowledged -> "OK"
                     else -> null
                 }
@@ -181,7 +181,7 @@ class TelephonyEventForwarder(
             if (isRateLimited(event.sender, config.forwardRateLimitPerMinute)) {
                 logger?.w(
                     "TelegramEngine",
-                    "⚠️ Rate limit: входящее SMS от ${event.sender} превысило лимит (${config.forwardRateLimitPerMinute}/мин), пропуск пересылки",
+                    "⚠️ Rate limit: incoming SMS from ${event.sender} exceeded the limit (${config.forwardRateLimitPerMinute}/min), skipping forwarding",
                 )
                 return
             }
@@ -200,11 +200,9 @@ class TelephonyEventForwarder(
             val formattedBody = DIGIT_REGEX.replace(bodyClean) { "<code>${it.value}</code>" }
             val msg =
                 buildString {
-                    append(
-                        "📨 <b>Входящее SMS от ",
-                    ).append(senderDisplay).append("</b>").append(simInfo).append(" (<i>").append(timeStr).append("</i>):\n")
+                    append(strings.tfIncomingSmsHeader(senderDisplay, simInfo, timeStr))
                     append(formattedBody).append("\n\n")
-                    append("<i>💬 Нажмите «Ответить» ниже или сделайте Reply на сообщение</i>")
+                    append(strings.tfReplyHint())
                 }
 
             val keyboard =
@@ -212,7 +210,7 @@ class TelephonyEventForwarder(
                     listOf(
                         listOf(
                             InlineKeyboardButton(
-                                text = "💬 Ответить по SMS",
+                                text = strings.tfBtnReplySms(),
                                 callbackData = "sms_reply:${event.sender}${if (event.simSlot != null) ":${event.simSlot}" else ""}",
                             ),
                         ),
@@ -231,7 +229,7 @@ class TelephonyEventForwarder(
                     } else {
                         event.sender
                     }
-                val rawForwardText = "SMS от $senderLabel: ${event.body}".trim()
+                val rawForwardText = strings.tfSmsForwardText(senderLabel, event.body).trim()
                 val finalForwardText =
                     if (config.smsTransliterationEnabled) {
                         TransliterationUtil.transliterate(rawForwardText)
@@ -247,9 +245,9 @@ class TelephonyEventForwarder(
                     }
                     try {
                         telephonyRepository?.sendSms(targetNumber, finalForwardText, event.simSlot)
-                        logger?.i("TelegramEngine", "📤 Входящее SMS от ${event.sender} переслано по SMS на $targetNumber")
+                        logger?.i("TelegramEngine", "📤 Incoming SMS from ${event.sender} forwarded via SMS to $targetNumber")
                     } catch (e: Exception) {
-                        logger?.w("TelegramEngine", "Ошибка пересылки SMS на $targetNumber: ${e.message}")
+                        logger?.w("TelegramEngine", "SMS forwarding error to $targetNumber: ${e.message}")
                     }
                 }
             }
@@ -266,15 +264,15 @@ class TelephonyEventForwarder(
                     "<b>${escapeHtml(contactName)}</b> (<code>${escapeHtml(callerNumber)}</code>)"
                 !callerNumber.isNullOrBlank() ->
                     "<code>${escapeHtml(callerNumber)}</code>"
-                else -> "Неизвестный номер"
+                else -> strings.tfUnknownNumber()
             }
         val icon =
             when (event.type) {
-                CallType.INCOMING -> if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "📞 <b>Incoming Call</b>" else "📞 <b>Входящий звонок</b>"
-                CallType.MISSED -> if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "🔴 <b>Missed Call</b>" else "🔴 <b>Пропущенный звонок</b>"
+                CallType.INCOMING -> strings.tfCallIncoming()
+                CallType.MISSED -> strings.tfCallMissed()
                 else -> "📞 <b>Call (${event.type.name})</b>"
             }
-        val fromLabel = if (config.botLanguage == com.remotebot.domain.model.BotLanguage.EN) "from" else "от"
+        val fromLabel = strings.tfFrom()
         val msg = "$icon $fromLabel $callerDisplay"
         if (config.telegramBotEnabled && config.tgForwardCallsEnabled) {
             broadcastMessage(msg, null, SubscriptionEventType.CALLS)
@@ -290,9 +288,9 @@ class TelephonyEventForwarder(
                 when {
                     !contactName.isNullOrBlank() && !callerNumber.isNullOrBlank() -> "$contactName ($callerNumber)"
                     !callerNumber.isNullOrBlank() -> callerNumber
-                    else -> "Неизвестный номер"
+                    else -> strings.tfUnknownNumber()
                 }
-            val rawCallText = "Пропущенный звонок от: $callerLabel".trim()
+            val rawCallText = strings.tfMissedCallText(callerLabel).trim()
             val finalCallText =
                 if (config.smsTransliterationEnabled) {
                     TransliterationUtil.transliterate(rawCallText)
@@ -307,9 +305,9 @@ class TelephonyEventForwarder(
                 }
                 try {
                     telephonyRepository?.sendSms(targetNumber, finalCallText)
-                    logger?.i("TelegramEngine", "📤 Пропущенный вызов от ${event.number} переслан по SMS на $targetNumber")
+                    logger?.i("TelegramEngine", "📤 Missed call from ${event.number} forwarded via SMS to $targetNumber")
                 } catch (e: Exception) {
-                    logger?.w("TelegramEngine", "Ошибка пересылки инфо о пропущенном звонке по SMS на $targetNumber: ${e.message}")
+                    logger?.w("TelegramEngine", "Missed call forwarding error via SMS to $targetNumber: ${e.message}")
                 }
             }
         }

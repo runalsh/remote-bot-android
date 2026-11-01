@@ -45,7 +45,7 @@ class PushServerPoolManager(
                 0,
                 PushServerConfig(
                     id = "legacy_main",
-                    name = "Основной шлюз",
+                    name = "Primary gateway",
                     gatewayUrl = legacyUrl,
                     secretKey = cfg.pushSecretKey ?: "",
                     provider = cfg.pushProvider,
@@ -110,7 +110,7 @@ class PushServerPoolManager(
 
                         logger?.d(
                             "PushServerPool",
-                            "LOWEST_LATENCY сортировка серверов: ${sorted.joinToString { "${it.name.ifBlank { it.gatewayUrl }}" }}",
+                            "LOWEST_LATENCY server sorting: ${sorted.joinToString { "${it.name.ifBlank { it.gatewayUrl }}" }}",
                         )
                         sorted
                     }
@@ -136,7 +136,7 @@ class PushServerPoolManager(
             serverType = com.remotebot.domain.model.ServerType.PUSH_GATEWAY,
             outcome = com.remotebot.domain.model.ConnectionOutcome.SUCCESS,
         )
-        logger?.d("PushServerPool", "Успешная доставка/ответ через Push-сервер: $srvName")
+        logger?.d("PushServerPool", "Successful delivery/response via push server: $srvName")
     }
 
     fun markFailure(
@@ -160,11 +160,11 @@ class PushServerPoolManager(
             serverType = com.remotebot.domain.model.ServerType.PUSH_GATEWAY,
             outcome = outcome,
         )
-        logger?.w("PushServerPool", "Ошибка Push-сервера [$srvName]: $errorMsg")
+        logger?.w("PushServerPool", "Push server error [$srvName]: $errorMsg")
         val servers = getAllServers()
         if (servers.size > 1) {
             currentServerIndex = (currentServerIndex + 1) % servers.size
-            logger?.i("PushServerPool", "Переключение на следующий Push-сервер (индекс: $currentServerIndex)")
+            logger?.i("PushServerPool", "Switching to the next push server (index: $currentServerIndex)")
         }
     }
 }

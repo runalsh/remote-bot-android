@@ -47,7 +47,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                             pendingRingingJob?.cancel()
                             pendingRingingJob = null
                             incomingCallEmitted = true
-                            AppLogger.i("PhoneCallReceiver", "📞 Входящий звонок: $cleanNumber")
+                            AppLogger.i("PhoneCallReceiver", "📞 Incoming call: $cleanNumber")
                             com.remotebot.core.common.diagnostics.AppDiagnosticsTracker.recordWakeup(
                                 com.remotebot.domain.model.WakeupSource.PHONE_CALL,
                             )
@@ -70,7 +70,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                     if (cleanNumber != null) {
                         // Number is already known in first broadcast
                         incomingCallEmitted = true
-                        AppLogger.i("PhoneCallReceiver", "📞 Входящий звонок: $cleanNumber")
+                        AppLogger.i("PhoneCallReceiver", "📞 Incoming call: $cleanNumber")
                         _callEvents.tryEmit(
                             PhoneCallEvent(
                                 number = cleanNumber,
@@ -81,7 +81,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                         // Number is null in initial broadcast (common on Android 9-15).
                         // Wait briefly for secondary broadcast with caller ID before emitting "hidden number".
                         incomingCallEmitted = false
-                        AppLogger.d("PhoneCallReceiver", "📞 Входящий звонок (номер пока не определен, ожидание...)")
+                        AppLogger.d("PhoneCallReceiver", "📞 Incoming call (number not resolved yet, waiting...)")
                         pendingRingingJob?.cancel()
                         pendingRingingJob =
                             receiverScope.launch {
@@ -89,7 +89,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                                 synchronized(lock) {
                                     if (lastState == TelephonyManager.CALL_STATE_RINGING && !incomingCallEmitted) {
                                         incomingCallEmitted = true
-                                        AppLogger.i("PhoneCallReceiver", "📞 Входящий звонок: номер скрыт")
+                                        AppLogger.i("PhoneCallReceiver", "📞 Incoming call: hidden number")
                                         _callEvents.tryEmit(
                                             PhoneCallEvent(
                                                 number = savedNumber,
@@ -106,9 +106,9 @@ class PhoneCallReceiver : BroadcastReceiver() {
                     pendingRingingJob = null
                     if (lastState == TelephonyManager.CALL_STATE_RINGING) {
                         isIncomingAnswered = true
-                        AppLogger.i("PhoneCallReceiver", "📲 Входящий звонок принят: ${savedNumber ?: "номер скрыт"}")
+                        AppLogger.i("PhoneCallReceiver", "📲 Incoming call answered: ${savedNumber ?: "hidden number"}")
                     } else {
-                        AppLogger.d("PhoneCallReceiver", "📤 Исходящий вызов или поднятие трубки")
+                        AppLogger.d("PhoneCallReceiver", "📤 Outgoing call or off-hook")
                     }
                     lastState = TelephonyManager.CALL_STATE_OFFHOOK
                 }
@@ -117,7 +117,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                     pendingRingingJob = null
                     if (lastState == TelephonyManager.CALL_STATE_RINGING) {
                         // Missed call
-                        AppLogger.w("PhoneCallReceiver", "❌ Пропущенный звонок от: ${savedNumber ?: "номер скрыт"}")
+                        AppLogger.w("PhoneCallReceiver", "❌ Missed call from: ${savedNumber ?: "hidden number"}")
                         _callEvents.tryEmit(
                             PhoneCallEvent(
                                 number = savedNumber,
@@ -125,7 +125,7 @@ class PhoneCallReceiver : BroadcastReceiver() {
                             ),
                         )
                     } else if (isIncomingAnswered) {
-                        AppLogger.i("PhoneCallReceiver", "⏹️ Разговор завершен: ${savedNumber ?: "номер скрыт"}")
+                        AppLogger.i("PhoneCallReceiver", "⏹️ Call ended: ${savedNumber ?: "hidden number"}")
                     }
                     lastState = TelephonyManager.CALL_STATE_IDLE
                     isIncomingAnswered = false

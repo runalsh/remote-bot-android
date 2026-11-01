@@ -34,6 +34,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.InstalledApp
 import com.remotebot.domain.repository.AppManagerRepository
@@ -62,7 +64,7 @@ fun AppPickerDialog(
                     appManagerRepo
                         .getInstalledApps(includeSystem = showSystem, filter = null)
                         .sortedBy { it.appName.lowercase() }
-                logger?.d("AppPickerDialog", "Загружен список приложений: ${list.size} шт. (showSystem=$showSystem)")
+                logger?.d("AppPickerDialog", "App list loaded: ${list.size} items (showSystem=$showSystem)")
                 list
             }
         allApps = apps
@@ -85,7 +87,7 @@ fun AppPickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Выбор приложений (${selectedPackages.size})",
+                text = stringResource(R.string.app_picker_selected_count, selectedPackages.size),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
@@ -101,7 +103,7 @@ fun AppPickerDialog(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Поиск по названию или пакету") },
+                    label = { Text(stringResource(R.string.app_picker_search_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -118,7 +120,7 @@ fun AppPickerDialog(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(
-                        text = "Показывать системные приложения",
+                        text = stringResource(R.string.app_picker_show_system_apps),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     Switch(
@@ -141,7 +143,7 @@ fun AppPickerDialog(
                         },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Выбрать все", fontSize = 12.sp)
+                        Text(stringResource(R.string.app_picker_select_all), fontSize = 12.sp)
                     }
                     OutlinedButton(
                         onClick = {
@@ -150,7 +152,7 @@ fun AppPickerDialog(
                         },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Снять все", fontSize = 12.sp)
+                        Text(stringResource(R.string.app_picker_clear_all), fontSize = 12.sp)
                     }
                 }
 
@@ -175,7 +177,7 @@ fun AppPickerDialog(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "Приложения не найдены",
+                            text = stringResource(R.string.app_picker_empty),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -231,7 +233,7 @@ fun AppPickerDialog(
                                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                             ) {
                                                 Text(
-                                                    text = "система",
+                                                    text = stringResource(R.string.app_picker_system_badge),
                                                     fontSize = 10.sp,
                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
                                                 )
@@ -253,15 +255,15 @@ fun AppPickerDialog(
         },
         confirmButton = {
             Button(onClick = {
-                logger?.i("AppPickerDialog", "Выбрано пакетов: ${selectedPackages.size}")
+                logger?.i("AppPickerDialog", "Selected packages: ${selectedPackages.size}")
                 onConfirm(selectedPackages)
             }) {
-                Text("Готово (${selectedPackages.size})")
+                Text(stringResource(R.string.app_picker_done, selectedPackages.size))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена")
+                Text(stringResource(R.string.app_picker_cancel))
             }
         },
     )

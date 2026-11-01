@@ -1,5 +1,6 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.CommandSource
@@ -10,6 +11,9 @@ import com.remotebot.domain.repository.BotConfigRepository
 class SecurityManagementCommandsHandler(
     private val botConfigRepository: BotConfigRepository,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository.config.value.botLanguage)
+
     override val commandNames: List<String> =
         listOf(
             "whitelist_user",
@@ -49,7 +53,7 @@ class SecurityManagementCommandsHandler(
             "del_forward" -> handleDelForward(command)
             "list_forwards" -> handleSmsForward(command, listOf("list"))
             "events", "subs" -> handleEventsCommand(command, command.args)
-            else -> CommandResult.Error("Неизвестная команда безопасности: $cmd")
+            else -> CommandResult.Error(strings.secUnknownCmd(cmd))
         }
     }
 
@@ -61,21 +65,12 @@ class SecurityManagementCommandsHandler(
         if (args.isEmpty() || args[0].equals("list", ignoreCase = true)) {
             val listStr =
                 if (currentList.isEmpty()) {
-                    "<i>Список пуст (доступ разрешен всем или только первому подключившемуся)</i>"
+                    strings.secUserListEmpty()
                 } else {
                     currentList.mapIndexed { idx, id -> "${idx + 1}. <code>$id</code>" }.joinToString("\n")
                 }
             return CommandResult.Text(
-                """
-                👥 <b>Белый список пользователей Telegram (User ID):</b>
-                
-                $listStr
-                
-                <i>Управление:</i>
-                <code>/add_user [id]</code> — добавить пользователя (по умолч. ваш ID)
-                <code>/del_user &lt;id&gt;</code> — удалить пользователя
-                <code>/whitelist_user clear</code> — очистить список
-                """.trimIndent(),
+                strings.secUserListBody(listStr),
             )
         }
 
@@ -85,34 +80,34 @@ class SecurityManagementCommandsHandler(
                 val id: Long =
                     args.getOrNull(1)?.toLongOrNull()
                         ?: (if (command.source == CommandSource.TELEGRAM) command.senderId.toLongOrNull() else null)
-                        ?: return CommandResult.Error("Укажите числовой User ID: <code>/add_user 123456789</code>")
+                        ?: return CommandResult.Error(strings.secAddUserIdHint())
                 if (currentList.contains(id)) {
-                    return CommandResult.Text("ℹ️ Пользователь <code>$id</code> уже есть в белом списке.")
+                    return CommandResult.Text(strings.secUserExists(id.toString()))
                 }
                 botConfigRepository.updateConfig { it.copy(allowedUserIds = currentList + id) }
-                CommandResult.Text("✅ Пользователь <code>$id</code> добавлен в белый список Telegram.")
+                CommandResult.Text(strings.secUserAdded(id.toString()))
             }
             "del", "remove" -> {
                 val id =
                     args.getOrNull(1)?.toLongOrNull()
-                        ?: return CommandResult.Error("Укажите числовой User ID: <code>/del_user 123456789</code>")
+                        ?: return CommandResult.Error(strings.secDelUserIdHint())
                 if (!currentList.contains(id)) {
-                    return CommandResult.Error("Пользователь <code>$id</code> не найден в списке.")
+                    return CommandResult.Error(strings.secUserNotFound(id.toString()))
                 }
                 botConfigRepository.updateConfig { it.copy(allowedUserIds = currentList - id) }
-                CommandResult.Text("🗑 Пользователь <code>$id</code> удален из белого списка.")
+                CommandResult.Text(strings.secUserDeleted(id.toString()))
             }
             "clear" -> {
                 botConfigRepository.updateConfig { it.copy(allowedUserIds = emptySet()) }
-                CommandResult.Text("⚠️ Белый список пользователей Telegram полностью очищен.")
+                CommandResult.Text(strings.secUserListCleared())
             }
             else -> {
                 val directId = sub.toLongOrNull()
                 if (directId != null) {
                     botConfigRepository.updateConfig { it.copy(allowedUserIds = currentList + directId) }
-                    CommandResult.Text("✅ Пользователь <code>$directId</code> добавлен в белый список Telegram.")
+                    CommandResult.Text(strings.secUserAdded(directId.toString()))
                 } else {
-                    CommandResult.Error("Формат: <code>/add_user &lt;id&gt;</code> или <code>/del_user &lt;id&gt;</code>")
+                    CommandResult.Error(strings.secAddDelUserFmt())
                 }
             }
         }
@@ -122,25 +117,25 @@ class SecurityManagementCommandsHandler(
         val id: Long =
             command.args.firstOrNull()?.toLongOrNull()
                 ?: (if (command.source == CommandSource.TELEGRAM) command.senderId.toLongOrNull() else null)
-                ?: return CommandResult.Error("Укажите числовой Telegram User ID: <code>/add_user 123456789</code>")
+                ?: return CommandResult.Error(strings.secUserIdTgHint())
         val currentList = botConfigRepository.config.value.allowedUserIds
         if (currentList.contains(id)) {
-            return CommandResult.Text("ℹ️ Пользователь <code>$id</code> уже есть в белом списке Telegram.")
+            return CommandResult.Text(strings.secUserExistsTg(id.toString()))
         }
         botConfigRepository.updateConfig { it.copy(allowedUserIds = currentList + id) }
-        return CommandResult.Text("✅ Пользователь <code>$id</code> добавлен в белый список Telegram.")
+        return CommandResult.Text(strings.secUserAdded(id.toString()))
     }
 
     private suspend fun handleDelUser(command: IncomingCommand): CommandResult {
         val id =
             command.args.firstOrNull()?.toLongOrNull()
-                ?: return CommandResult.Error("Укажите числовой Telegram User ID: <code>/del_user 123456789</code>")
+                ?: return CommandResult.Error(strings.secDelUserIdTgHint())
         val currentList = botConfigRepository.config.value.allowedUserIds
         if (!currentList.contains(id)) {
-            return CommandResult.Error("Пользователь <code>$id</code> не найден в белом списке.")
+            return CommandResult.Error(strings.secUserNotFoundTg(id.toString()))
         }
         botConfigRepository.updateConfig { it.copy(allowedUserIds = currentList - id) }
-        return CommandResult.Text("🗑 Пользователь <code>$id</code> удален из белого списка Telegram.")
+        return CommandResult.Text(strings.secUserDeletedTg(id.toString()))
     }
 
     private suspend fun handleWhitelistPhone(
@@ -151,21 +146,12 @@ class SecurityManagementCommandsHandler(
         if (args.isEmpty() || args[0].equals("list", ignoreCase = true)) {
             val listStr =
                 if (currentList.isEmpty()) {
-                    "<i>Список пуст (управление без PIN отключено)</i>"
+                    strings.secPhoneListEmpty()
                 } else {
                     currentList.mapIndexed { idx, p -> "${idx + 1}. <code>$p</code>" }.joinToString("\n")
                 }
             return CommandResult.Text(
-                """
-                📱 <b>Доверенные номера SMS-управления (без PIN):</b>
-                
-                $listStr
-                
-                <i>Управление:</i>
-                <code>/add_phone [номер]</code> — добавить номер (по умолч. ваш номер при SMS)
-                <code>/del_phone &lt;номер&gt;</code> — удалить номер
-                <code>/whitelist_phone clear</code> — очистить список
-                """.trimIndent(),
+                strings.secPhoneListBody(listStr),
             )
         }
 
@@ -175,35 +161,35 @@ class SecurityManagementCommandsHandler(
                 val phone: String =
                     args.getOrNull(1)?.trim()
                         ?: (if (command.source == CommandSource.SMS && command.senderId.isNotBlank()) command.senderId.trim() else null)
-                        ?: return CommandResult.Error("Укажите номер: <code>/add_phone +79991234567</code>")
+                        ?: return CommandResult.Error(strings.secAddPhoneHint())
                 if (currentList.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-                    return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в доверенном списке SMS.")
+                    return CommandResult.Text(strings.secPhoneExists(phone))
                 }
                 botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = currentList + phone) }
-                CommandResult.Text("✅ Номер <code>$phone</code> добавлен в доверенный список SMS-управления.")
+                CommandResult.Text(strings.secPhoneAdded(phone))
             }
             "del", "remove" -> {
                 val phone =
                     args.getOrNull(1)?.trim()
-                        ?: return CommandResult.Error("Укажите номер: <code>/del_phone +79991234567</code>")
+                        ?: return CommandResult.Error(strings.secDelPhoneHint())
                 val matched = currentList.firstOrNull { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }
                 if (matched == null) {
-                    return CommandResult.Error("Номер <code>$phone</code> не найден в доверенном списке.")
+                    return CommandResult.Error(strings.secPhoneNotFound(phone))
                 }
                 botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = currentList - matched) }
-                CommandResult.Text("🗑 Номер <code>$phone</code> удален из доверенного списка SMS.")
+                CommandResult.Text(strings.secPhoneDeleted(phone))
             }
             "clear" -> {
                 botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = emptySet()) }
-                CommandResult.Text("⚠️ Доверенный список SMS-управления очищен.")
+                CommandResult.Text(strings.secPhoneListCleared())
             }
             else -> {
                 val phone = args[0].trim()
                 if (currentList.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-                    return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в доверенном списке SMS.")
+                    return CommandResult.Text(strings.secPhoneExists(phone))
                 }
                 botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = currentList + phone) }
-                CommandResult.Text("✅ Номер <code>$phone</code> добавлен в доверенный список SMS-управления.")
+                CommandResult.Text(strings.secPhoneAdded(phone))
             }
         }
     }
@@ -212,26 +198,26 @@ class SecurityManagementCommandsHandler(
         val phone: String =
             command.args.firstOrNull()?.trim()
                 ?: (if (command.source == CommandSource.SMS && command.senderId.isNotBlank()) command.senderId.trim() else null)
-                ?: return CommandResult.Error("Укажите номер телефона: <code>/add_phone +79991234567</code>")
+                ?: return CommandResult.Error(strings.secAddPhonePhoneHint())
         val currentList = botConfigRepository.config.value.allowedPhoneNumbers
         if (currentList.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-            return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в доверенном списке SMS.")
+            return CommandResult.Text(strings.secPhoneExists(phone))
         }
         botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = currentList + phone) }
-        return CommandResult.Text("✅ Номер <code>$phone</code> добавлен в доверенный список SMS-управления (без PIN).")
+        return CommandResult.Text(strings.secPhoneNoPinAdded(phone))
     }
 
     private suspend fun handleDelPhone(command: IncomingCommand): CommandResult {
         val phone =
             command.args.firstOrNull()?.trim()
-                ?: return CommandResult.Error("Укажите номер телефона: <code>/del_phone +79991234567</code>")
+                ?: return CommandResult.Error(strings.secDelPhonePhoneHint())
         val currentList = botConfigRepository.config.value.allowedPhoneNumbers
         val matched = currentList.firstOrNull { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }
         if (matched == null) {
-            return CommandResult.Error("Номер <code>$phone</code> не найден в доверенном списке SMS.")
+            return CommandResult.Error(strings.secPhoneNotFoundTg(phone))
         }
         botConfigRepository.updateConfig { it.copy(allowedPhoneNumbers = currentList - matched) }
-        return CommandResult.Text("🗑 Номер <code>$phone</code> удален из доверенного списка SMS.")
+        return CommandResult.Text(strings.secPhoneDeleted(phone))
     }
 
     private suspend fun handleSmsForward(
@@ -242,36 +228,13 @@ class SecurityManagementCommandsHandler(
         if (args.isEmpty() || args[0].equals("list", ignoreCase = true)) {
             val listStr =
                 if (currentTargets.isEmpty()) {
-                    "<i>Список номеров назначения пуст (пересылка отключена)</i>"
+                    strings.secFwdListEmpty()
                 } else {
                     currentTargets.mapIndexed { idx, p -> "${idx + 1}. <code>$p</code>" }.joinToString("\n")
                 }
             val cfg = botConfigRepository.config.value
             return CommandResult.Text(
-                """
-                📤 <b>Номера пересылки SMS и Уведомлений:</b>
-                
-                $listStr
-                
-                • Пересылка SMS: ${if (cfg.smsForwardSmsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Пересылка пропущенных звонков: ${if (cfg.smsForwardMissedCallsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Пересылка Push: ${if (cfg.smsForwardNotificationsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Статус зарядки/питания: ${if (cfg.smsForwardBatteryChargingEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Низкий заряд (≤20% каждые 3%): ${if (cfg.smsForwardBatteryLowEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Транслитерация: ${if (cfg.smsTransliterationEnabled) "Вкл ✅" else "Выкл ❌"}
-                
-                <i>Управление:</i>
-                <code>/add_forward [номер]</code> — добавить номер назначения
-                <code>/del_forward &lt;номер&gt;</code> — удалить номер назначения
-                <code>/sms_forward on|off</code> — вкл/выкл пересылку SMS
-                <code>/sms_forward missed on|off</code> — вкл/выкл пересылку звонков
-                <code>/sms_forward push on|off</code> — вкл/выкл пересылку Push
-                <code>/sms_forward battery_charge on|off</code> — вкл/выкл статус зарядки
-                <code>/sms_forward battery_low on|off</code> — вкл/выкл низкий заряд (≤20% каждые 3%)
-                <code>/sms_forward battery on|off</code> — вкл/выкл все оповещения батареи
-                <code>/sms_forward translit on|off</code> — вкл/выкл транслитерацию
-                <code>/sms_forward clear</code> — очистить все номера
-                """.trimIndent(),
+                strings.secFwdListBody(listStr, strings.secOnOff(cfg.smsForwardSmsEnabled), strings.secOnOff(cfg.smsForwardMissedCallsEnabled), strings.secOnOff(cfg.smsForwardNotificationsEnabled), strings.secOnOff(cfg.smsForwardBatteryChargingEnabled), strings.secOnOff(cfg.smsForwardBatteryLowEnabled), strings.secOnOff(cfg.smsTransliterationEnabled)),
             )
         }
 
@@ -279,36 +242,36 @@ class SecurityManagementCommandsHandler(
         return when (sub) {
             "on", "enable" -> {
                 botConfigRepository.updateConfig { it.copy(smsForwardSmsEnabled = true) }
-                CommandResult.Text("✅ Пересылка входящих SMS по сотовой связи включена.")
+                CommandResult.Text(strings.secSmsFwdOn())
             }
             "off", "disable" -> {
                 botConfigRepository.updateConfig { it.copy(smsForwardSmsEnabled = false) }
-                CommandResult.Text("⏹ Пересылка входящих SMS отключена.")
+                CommandResult.Text(strings.secSmsFwdOff())
             }
             "missed" -> {
                 val state = args.getOrNull(1)?.lowercase()
                 val enable = state == "on" || state == "1" || state == "true"
                 botConfigRepository.updateConfig { it.copy(smsForwardMissedCallsEnabled = enable) }
-                CommandResult.Text("Пересылка пропущенных вызовов по SMS: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.secMissedFwd(enable))
             }
             "push", "notifications" -> {
                 val state = args.getOrNull(1)?.lowercase()
                 val enable = state == "on" || state == "1" || state == "true"
                 botConfigRepository.updateConfig { it.copy(smsForwardNotificationsEnabled = enable) }
-                CommandResult.Text("Пересылка Push-уведомлений по SMS: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.secPushFwd(enable))
             }
             "battery_charge", "charge", "charging" -> {
                 val state = args.getOrNull(1)?.lowercase()
                 val enable = state == "on" || state == "1" || state == "true"
                 botConfigRepository.updateConfig { it.copy(smsForwardBatteryChargingEnabled = enable) }
-                CommandResult.Text("Пересылка статуса зарядки по SMS: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.secChargeFwd(enable))
             }
             "battery_low", "low_battery", "low" -> {
                 val state = args.getOrNull(1)?.lowercase()
                 val enable = state == "on" || state == "1" || state == "true"
                 botConfigRepository.updateConfig { it.copy(smsForwardBatteryLowEnabled = enable) }
                 CommandResult.Text(
-                    "Пересылка низкого заряда батареи (≤20% каждые 3%) по SMS: ${if (enable) "Включена ✅" else "Отключена ⏹"}",
+                    strings.secLowBattFwd(enable),
                 )
             }
             "battery" -> {
@@ -320,21 +283,21 @@ class SecurityManagementCommandsHandler(
                         smsForwardBatteryLowEnabled = enable,
                     )
                 }
-                CommandResult.Text("Все оповещения о батарее по SMS: ${if (enable) "Включены ✅" else "Отключены ⏹"}")
+                CommandResult.Text(strings.secAllBattFwd(enable))
             }
             "translit" -> {
                 val state = args.getOrNull(1)?.lowercase()
                 val enable = state == "on" || state == "1" || state == "true"
                 botConfigRepository.updateConfig { it.copy(smsTransliterationEnabled = enable) }
-                CommandResult.Text("Транслитерация SMS (Латиница GOST): ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.secTranslitFwd(enable))
             }
             "add" -> {
                 val phone: String =
                     args.getOrNull(1)?.trim()
                         ?: (if (command.source == CommandSource.SMS && command.senderId.isNotBlank()) command.senderId.trim() else null)
-                        ?: return CommandResult.Error("Укажите номер: <code>/add_forward +79991234567</code>")
+                        ?: return CommandResult.Error(strings.secAddFwdHint())
                 if (currentTargets.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-                    return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в списке пересылки SMS.")
+                    return CommandResult.Text(strings.secFwdExists(phone))
                 }
                 botConfigRepository.updateConfig {
                     it.copy(
@@ -342,32 +305,32 @@ class SecurityManagementCommandsHandler(
                         smsForwardSmsEnabled = true,
                     )
                 }
-                CommandResult.Text("✅ Номер <code>$phone</code> добавлен в список пересылки SMS. Пересылка активирована!")
+                CommandResult.Text(strings.secFwdAdded(phone))
             }
             "del", "remove" -> {
                 val phone =
                     args.getOrNull(1)?.trim()
-                        ?: return CommandResult.Error("Укажите номер: <code>/del_forward +79991234567</code>")
+                        ?: return CommandResult.Error(strings.secDelFwdHint())
                 val matched = currentTargets.firstOrNull { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }
                 if (matched == null) {
-                    return CommandResult.Error("Номер <code>$phone</code> не найден в списке пересылки.")
+                    return CommandResult.Error(strings.secFwdNotFound(phone))
                 }
                 val updated = currentTargets - matched
                 botConfigRepository.updateConfig {
                     it.copy(smsForwardTargetNumbers = updated)
                 }
-                CommandResult.Text("🗑 Номер <code>$phone</code> удален из списка пересылки.")
+                CommandResult.Text(strings.secFwdDeleted(phone))
             }
             "clear" -> {
                 botConfigRepository.updateConfig {
                     it.copy(smsForwardTargetNumbers = emptySet())
                 }
-                CommandResult.Text("⚠️ Список номеров пересылки SMS очищен.")
+                CommandResult.Text(strings.secFwdCleared())
             }
             else -> {
                 val phone = args[0].trim()
                 if (currentTargets.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-                    return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в списке пересылки SMS.")
+                    return CommandResult.Text(strings.secFwdExists(phone))
                 }
                 botConfigRepository.updateConfig {
                     it.copy(
@@ -375,7 +338,7 @@ class SecurityManagementCommandsHandler(
                         smsForwardSmsEnabled = true,
                     )
                 }
-                CommandResult.Text("✅ Номер <code>$phone</code> добавлен для пересылки SMS!")
+                CommandResult.Text(strings.secFwdAddedShort(phone))
             }
         }
     }
@@ -384,10 +347,10 @@ class SecurityManagementCommandsHandler(
         val phone: String =
             command.args.firstOrNull()?.trim()
                 ?: (if (command.source == CommandSource.SMS && command.senderId.isNotBlank()) command.senderId.trim() else null)
-                ?: return CommandResult.Error("Укажите номер телефона: <code>/add_forward +79991234567</code>")
+                ?: return CommandResult.Error(strings.secAddFwdPhoneHint())
         val currentTargets = botConfigRepository.config.value.smsForwardTargetNumbers
         if (currentTargets.any { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }) {
-            return CommandResult.Text("ℹ️ Номер <code>$phone</code> уже есть в списке пересылки SMS.")
+            return CommandResult.Text(strings.secFwdExists(phone))
         }
         botConfigRepository.updateConfig {
             it.copy(
@@ -395,22 +358,22 @@ class SecurityManagementCommandsHandler(
                 smsForwardSmsEnabled = true,
             )
         }
-        return CommandResult.Text("✅ Номер <code>$phone</code> добавлен в список пересылки SMS/звонков. Пересылка активирована!")
+        return CommandResult.Text(strings.secFwdAddedCalls(phone))
     }
 
     private suspend fun handleDelForward(command: IncomingCommand): CommandResult {
         val phone =
             command.args.firstOrNull()?.trim()
-                ?: return CommandResult.Error("Укажите номер телефона: <code>/del_forward +79991234567</code>")
+                ?: return CommandResult.Error(strings.secDelFwdPhoneHint())
         val currentTargets = botConfigRepository.config.value.smsForwardTargetNumbers
         val matched = currentTargets.firstOrNull { it.filter { c -> c.isDigit() } == phone.filter { c -> c.isDigit() } }
         if (matched == null) {
-            return CommandResult.Error("Номер <code>$phone</code> не найден в списке пересылки.")
+            return CommandResult.Error(strings.secFwdNotFound(phone))
         }
         botConfigRepository.updateConfig {
             it.copy(smsForwardTargetNumbers = currentTargets - matched)
         }
-        return CommandResult.Text("🗑 Номер <code>$phone</code> удален из списка пересылки.")
+        return CommandResult.Text(strings.secFwdDeleted(phone))
     }
 
     private suspend fun handleEventsCommand(
@@ -422,7 +385,7 @@ class SecurityManagementCommandsHandler(
 
         if (args.isEmpty()) {
             val sub = config.userSubscriptions[callerId] ?: UserSubscription(userId = callerId)
-            val (text, markup) = EventsMenuBuilder.build(callerId, sub, callerId)
+            val (text, markup) = EventsMenuBuilder.build(callerId, sub, callerId, strings)
             return CommandResult.Text(text, keyboard = markup)
         }
 
@@ -433,24 +396,24 @@ class SecurityManagementCommandsHandler(
             val users = config.allowedUserIds
             if (users.isEmpty()) {
                 val sub = config.userSubscriptions[callerId] ?: UserSubscription(userId = callerId)
-                val (text, markup) = EventsMenuBuilder.build(callerId, sub, callerId)
-                return CommandResult.Text("ℹ️ Белый список пользователей пуст. Меню ваших подписок:\n\n$text", keyboard = markup)
+                val (text, markup) = EventsMenuBuilder.build(callerId, sub, callerId, strings)
+                return CommandResult.Text(strings.secEventsEmpty(text), keyboard = markup)
             }
-            val sb = StringBuilder("📋 <b>Статус рассылки событий по пользователям:</b>\n\n")
+            val sb = StringBuilder(strings.secSubsHead())
             users.forEachIndexed { idx, uId ->
                 val sub = config.userSubscriptions[uId] ?: UserSubscription(userId = uId)
                 val isSelf = uId == callerId
-                val selfTag = if (isSelf) " (Вы)" else ""
+                val selfTag = if (isSelf) strings.secSelfTag() else ""
                 val notif = if (sub.receiveNotifications) "🟢" else "🔴"
                 val sms = if (sub.receiveSms) "🟢" else "🔴"
                 val calls = if (sub.receiveCalls) "🟢" else "🔴"
                 val sys = if (sub.receiveSystem) "🟢" else "🔴"
                 val isCommandsOnly = !sub.receiveNotifications && !sub.receiveSms && !sub.receiveCalls && !sub.receiveSystem
-                val role = if (isCommandsOnly) "🕹 <i>Только команды</i>" else "📬 <i>Получатель</i>"
+                val role = if (isCommandsOnly) strings.secRoleCmds() else strings.secRoleRecv()
                 sb.appendLine("${idx + 1}. <code>$uId</code>$selfTag — $role")
                 sb.appendLine("   • Notif: $notif | SMS: $sms | Calls: $calls | Sys: $sys")
             }
-            sb.append("\n<i>Управление: <code>/events [id]</code> или <code>/events &lt;on|off&gt;</code></i>")
+            sb.append(strings.secEventsHint())
             return CommandResult.Text(sb.toString())
         }
 
@@ -466,8 +429,7 @@ class SecurityManagementCommandsHandler(
                 )
             botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (callerId to updated)) }
             return CommandResult.Text(
-                "🔕 Рассылка всех событий для вашего аккаунта (<code>$callerId</code>) <b>выключена</b>.\n" +
-                    "Вы переведены в роль <b>Только управление</b> (все команды доступны, фоновый спам отключен).",
+                strings.secEventsOffSelf(callerId.toString()),
             )
         }
 
@@ -482,7 +444,7 @@ class SecurityManagementCommandsHandler(
                 )
             botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (callerId to updated)) }
             return CommandResult.Text(
-                "🔔 Рассылка основных событий для вашего аккаунта (<code>$callerId</code>) <b>включена</b> (push-уведомления, SMS, звонки).",
+                strings.secEventsOnSelf(callerId.toString()),
             )
         }
 
@@ -491,7 +453,7 @@ class SecurityManagementCommandsHandler(
         if (targetId != null) {
             val targetSub = config.userSubscriptions[targetId] ?: UserSubscription(userId = targetId)
             if (args.size == 1) {
-                val (text, markup) = EventsMenuBuilder.build(targetId, targetSub, callerId)
+                val (text, markup) = EventsMenuBuilder.build(targetId, targetSub, callerId, strings)
                 return CommandResult.Text(text, keyboard = markup)
             }
             val subAction = args[1].lowercase()
@@ -505,7 +467,7 @@ class SecurityManagementCommandsHandler(
                             receiveSystem = false,
                         )
                     botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (targetId to updated)) }
-                    CommandResult.Text("🔕 Рассылка событий для пользователя <code>$targetId</code> выключена (режим «Только команды»).")
+                    CommandResult.Text(strings.secEventsOffUser(targetId.toString()))
                 }
                 "on" -> {
                     val updated =
@@ -516,7 +478,7 @@ class SecurityManagementCommandsHandler(
                             receiveSystem = false,
                         )
                     botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (targetId to updated)) }
-                    CommandResult.Text("🔔 Рассылка событий для пользователя <code>$targetId</code> включена.")
+                    CommandResult.Text(strings.secEventsOnUser(targetId.toString()))
                 }
                 else -> {
                     val category = subAction
@@ -528,11 +490,11 @@ class SecurityManagementCommandsHandler(
                             "sms" -> targetSub.copy(receiveSms = turnOn)
                             "calls" -> targetSub.copy(receiveCalls = turnOn)
                             "system", "sys" -> targetSub.copy(receiveSystem = turnOn)
-                            else -> return CommandResult.Error("Неизвестная категория: $category. Доступно: notif, sms, calls, system, on, off")
+                            else -> return CommandResult.Error(strings.secUnknownCategory(category))
                         }
                     botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (targetId to updated)) }
-                    val stateLabel = if (turnOn) "включена 🟢" else "выключена 🔴"
-                    CommandResult.Text("✅ Категория <b>$category</b> для <code>$targetId</code> $stateLabel.")
+                    val stateLabel = strings.secStateLabel(turnOn)
+                    CommandResult.Text(strings.secCategoryForUser(category, targetId.toString(), stateLabel))
                 }
             }
         }
@@ -550,16 +512,11 @@ class SecurityManagementCommandsHandler(
                 "system", "sys" -> current.copy(receiveSystem = turnOn)
                 else ->
                     return CommandResult.Error(
-                        "Формат команды:\n" +
-                            "• <code>/events</code> — открыть интерактивное меню\n" +
-                            "• <code>/events list</code> — список подписок пользователей\n" +
-                            "• <code>/events &lt;on|off&gt;</code> — включить/выключить всё\n" +
-                            "• <code>/events &lt;notif|sms|calls|system&gt; &lt;on|off&gt;</code> — переключить категорию\n" +
-                            "• <code>/events &lt;user_id&gt; [on|off]</code> — настройка конкретного пользователя",
+                        strings.secEventsUsage(),
                     )
             }
         botConfigRepository.updateConfig { it.copy(userSubscriptions = it.userSubscriptions + (callerId to updated)) }
-        val stateLabel = if (turnOn) "включена 🟢" else "выключена 🔴"
-        return CommandResult.Text("✅ Категория <b>$category</b> для вашего аккаунта $stateLabel.")
+        val stateLabel = strings.secStateLabel(turnOn)
+        return CommandResult.Text(strings.secCategorySelf(category, stateLabel))
     }
 }

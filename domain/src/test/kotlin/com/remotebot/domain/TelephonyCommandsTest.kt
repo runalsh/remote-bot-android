@@ -80,8 +80,8 @@ class TelephonyCommandsTest {
 
     @Test
     fun testNotificationActionButtonModel() {
-        val actionApprove = NotificationActionButton(0, "Подтвердить")
-        val actionReject = NotificationActionButton(1, "Отклонить")
+        val actionApprove = NotificationActionButton(0, "Approve")
+        val actionReject = NotificationActionButton(1, "Decline")
         val notif2Fa =
             CapturedNotification(
                 id = "7272",
@@ -89,14 +89,14 @@ class TelephonyCommandsTest {
                 packageName = "ru.multifactor.app",
                 appName = "Multifactor",
                 title = "Multifactor",
-                text = "Подключение к VPN?",
+                text = "Connect to VPN?",
                 actions = listOf(actionApprove, actionReject),
             )
         assertEquals(2, notif2Fa.actions.size)
         assertEquals(0, notif2Fa.actions[0].index)
-        assertEquals("Подтвердить", notif2Fa.actions[0].title)
+        assertEquals("Approve", notif2Fa.actions[0].title)
         assertEquals(1, notif2Fa.actions[1].index)
-        assertEquals("Отклонить", notif2Fa.actions[1].title)
+        assertEquals("Decline", notif2Fa.actions[1].title)
     }
 
     @Test
@@ -126,9 +126,9 @@ class TelephonyCommandsTest {
 
     @Test
     fun testUssdResponseFormatting() {
-        val rawResponse = "  Баланс: 450.25 руб. Подключен тариф 'Smart'. \n\n "
+        val rawResponse = "  Balance: 450.25 RUB. Plan 'Smart' is active. \n\n "
         val cleaned = rawResponse.trim()
-        assertEquals("Баланс: 450.25 руб. Подключен тариф 'Smart'.", cleaned)
+        assertEquals("Balance: 450.25 RUB. Plan 'Smart' is active.", cleaned)
         assertTrue(cleaned.contains("450.25"))
     }
 
@@ -162,20 +162,20 @@ class TelephonyCommandsTest {
             NotificationRule(
                 id = "spam1",
                 packageName = null,
-                bodyPattern = "(?i)распродажа|скидка|кредит",
+                bodyPattern = "(?i)sale|discount|credit",
                 isRegex = true,
                 isExclude = true,
             )
 
-        assertTrue(matchesRule(ruleSpam, "com.bank.app", "Уведомление", "Вам одобрен кредит на 100 000 руб"))
-        assertFalse(matchesRule(ruleSpam, "com.bank.app", "Код", "Код для входа: 1234"))
+        assertTrue(matchesRule(ruleSpam, "com.bank.app", "Notification", "You are approved for a 100 000 RUB credit"))
+        assertFalse(matchesRule(ruleSpam, "com.bank.app", "Code", "Login code: 1234"))
     }
 
     @Test
     fun testCallDurationFormatting() {
         val durationSec = 145L // 2 min 25 sec
-        val formatted = "${durationSec / 60}м ${durationSec % 60}с"
-        assertEquals("2м 25с", formatted)
+        val formatted = "${durationSec / 60}m ${durationSec % 60}s"
+        assertEquals("2m 25s", formatted)
     }
 
     @Test

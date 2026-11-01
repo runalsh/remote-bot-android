@@ -71,8 +71,8 @@ fun ActiveTasksTab(
                     if (activeOps.isNotEmpty()) {
                         Button(
                             onClick = {
-                                logger.i("ActiveTasks", "Остановка всех активных фоновых операций (${activeOps.size} шт)")
-                                logger.t("ActiveTasks", "Список отменяемых операций: ${activeOps.map { it.id to it.name }}")
+                                logger.i("ActiveTasks", "Stopping all active background operations (${activeOps.size})")
+                                logger.t("ActiveTasks", "Cancellable operations list: ${activeOps.map { it.id to it.name }}")
                                 operationsTracker.cancelAll()
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),

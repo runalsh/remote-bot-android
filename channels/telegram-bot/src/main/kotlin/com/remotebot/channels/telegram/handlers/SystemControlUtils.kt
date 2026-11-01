@@ -6,6 +6,9 @@ import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
 import com.topjohnwu.superuser.Shell
+import com.remotebot.channels.telegram.strings.BotStrings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.domain.model.BotLanguage
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
@@ -23,20 +26,22 @@ internal object SystemControlUtils {
         isCurrentlyOn: Boolean,
         requiresRoot: Boolean = false,
         hasRoot: Boolean = false,
+        strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO),
     ): InlineKeyboardMarkup {
-        val isEn = !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
         val toggleBtnText =
             when {
-                requiresRoot && !hasRoot -> if (isCurrentlyOn) (if (isEn) "🔒 Disable (Root)" else "🔒 Выключить (Root)") else (if (isEn) "🔒 Enable (Root)" else "🔒 Включить (Root)")
-                requiresRoot && hasRoot -> if (isCurrentlyOn) (if (isEn) "🔴 Disable ⚡" else "🔴 Выключить ⚡") else (if (isEn) "🟢 Enable ⚡" else "🟢 Включить ⚡")
-                else -> if (isCurrentlyOn) (if (isEn) "🔴 Disable" else "🔴 Выключить") else (if (isEn) "🟢 Enable" else "🟢 Включить")
+                requiresRoot && !hasRoot ->
+                    if (isCurrentlyOn) strings.scuBtnDisableRoot() else strings.scuBtnEnableRoot()
+                requiresRoot && hasRoot ->
+                    if (isCurrentlyOn) strings.scuBtnDisableBolt() else strings.scuBtnEnableBolt()
+                else -> if (isCurrentlyOn) strings.scuBtnDisable() else strings.scuBtnEnable()
             }
 
         return InlineKeyboardMarkup(
             listOf(
                 listOf(
                     InlineKeyboardButton(toggleBtnText, "$cmd toggle"),
-                    InlineKeyboardButton(if (isEn) "🎛 All Toggles" else "🎛 Все тумблеры", "/toggles"),
+                    InlineKeyboardButton(strings.scuBtnAllToggles(), "/toggles"),
                 ),
             ),
         )

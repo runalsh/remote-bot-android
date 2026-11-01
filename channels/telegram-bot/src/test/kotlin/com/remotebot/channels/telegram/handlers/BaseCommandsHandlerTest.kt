@@ -21,10 +21,34 @@ class BaseCommandsHandlerTest {
         override fun setSimulateRootAbsent(simulatedAbsent: Boolean) {}
     }
 
+    private class FakeBotConfigRepository(
+        language: com.remotebot.domain.model.BotLanguage = com.remotebot.domain.model.BotLanguage.RU,
+    ) : com.remotebot.domain.repository.BotConfigRepository {
+        private val state =
+            MutableStateFlow(com.remotebot.domain.model.BotConfig(botLanguage = language))
+        override val config: StateFlow<com.remotebot.domain.model.BotConfig> = state
+
+        override suspend fun updateConfig(
+            update: (com.remotebot.domain.model.BotConfig) -> com.remotebot.domain.model.BotConfig,
+        ) {
+            state.value = update(state.value)
+        }
+
+        override fun isUserAllowed(userId: Long): Boolean = true
+
+        override fun isPhoneAllowed(phone: String): Boolean = true
+
+        override fun isUserSubscribedTo(
+            userId: Long,
+            eventType: com.remotebot.domain.model.SubscriptionEventType,
+        ): Boolean = true
+    }
+
     private fun createHandler(isRoot: Boolean = true): BaseCommandsHandler {
         return BaseCommandsHandler(
             rootStatusProvider = FakeRootStatusProvider(isRoot),
             appVersion = "2.1.0",
+            botConfigRepository = FakeBotConfigRepository(),
         )
     }
 
@@ -217,13 +241,14 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_all"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            assertTrue(textResult.message.contains("Базовые команды:"), "Must contain base header")
-            assertTrue(textResult.message.contains("Медиа, Звук и Камера:"), "Must contain media header")
-            assertTrue(textResult.message.contains("Связь, SMS & Уведомления:"), "Must contain comm header")
-            assertTrue(textResult.message.contains("Геолокация и Охрана:"), "Must contain geo header")
-            assertTrue(textResult.message.contains("Файлы и Приложения:"), "Must contain files header")
-            assertTrue(textResult.message.contains("Автоматизация, Tasker и Скрипты:"), "Must contain auto header")
-            assertTrue(textResult.message.contains("Системный контроль и Root:"), "Must contain system header")
+            val ru = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(com.remotebot.domain.model.BotLanguage.RU)
+            assertTrue(textResult.message.contains(ru.categoryBase()), "Must contain base header")
+            assertTrue(textResult.message.contains(ru.categoryMedia()), "Must contain media header")
+            assertTrue(textResult.message.contains(ru.categoryComm()), "Must contain comm header")
+            assertTrue(textResult.message.contains(ru.categoryGeoSec()), "Must contain geo header")
+            assertTrue(textResult.message.contains(ru.categoryFiles()), "Must contain files header")
+            assertTrue(textResult.message.contains(ru.categorySystem()), "Must contain system header")
+            assertTrue(textResult.message.contains(ru.categoryAuto()), "Must contain auto header")
 
             val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")

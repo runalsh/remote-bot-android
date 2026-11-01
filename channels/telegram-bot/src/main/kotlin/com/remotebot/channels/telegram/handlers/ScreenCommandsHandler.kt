@@ -1,6 +1,9 @@
 package com.remotebot.channels.telegram.handlers
 
 import com.remotebot.core.common.logger.AppLogger
+import com.remotebot.domain.repository.BotConfigRepository
+import com.remotebot.domain.model.BotLanguage
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
@@ -13,7 +16,11 @@ class ScreenCommandsHandler(
     private val screenRepository: ScreenRepository,
     private val logger: AppLogger,
     private val operationsTracker: com.remotebot.core.common.tracker.ActiveOperationsTracker? = null,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "screenshot",
@@ -27,11 +34,11 @@ class ScreenCommandsHandler(
     override suspend fun execute(command: IncomingCommand): CommandResult =
         withContext(Dispatchers.IO) {
             val norm = command.name.lowercase().removePrefix("/")
-            logger.i("ScreenHandler", "Команда захвата экрана: /$norm")
+            logger.i("ScreenHandler", "Screen capture command: /$norm")
             when (norm) {
                 "screenshot", "screenshot_send" -> handleScreenshot()
                 "screen_rec", "screen_rec_send" -> handleScreenRec(command.args)
-                else -> CommandResult.Error("Неизвестная команда экрана: /$norm")
+                else -> CommandResult.Error(strings.srUnknownCmd(norm))
             }
         }
 
@@ -41,12 +48,12 @@ class ScreenCommandsHandler(
             onSuccess = { shot ->
                 CommandResult.Photo(
                     filePath = shot.file.absolutePath,
-                    caption = "🖥 <b>Снимок экрана</b>\nМетод: ${shot.method}",
+                    caption = strings.srScreenshotCaption(shot.method),
                     autoDelete = true,
                 )
             },
             onFailure = { e ->
-                CommandResult.Error(e.localizedMessage ?: e.message ?: "Сбой захвата экрана")
+                CommandResult.Error(strings.srScreenshotError(e.localizedMessage ?: e.message ?: ""))
             },
         )
     }
@@ -56,8 +63,8 @@ class ScreenCommandsHandler(
         val opId = "screen_rec_${System.currentTimeMillis()}"
         operationsTracker?.register(
             id = opId,
-            name = "📹 Запись экрана ($duration сек)",
-            description = "Фоновая запись экрана в MP4",
+            name = strings.srRecOpName(duration),
+            description = strings.srRecOpDesc(),
         )
         try {
             val res = screenRepository.recordScreen(ScreenRecordParams(durationSeconds = duration))
@@ -65,13 +72,13 @@ class ScreenCommandsHandler(
                 onSuccess = { file ->
                     CommandResult.Video(
                         filePath = file.absolutePath,
-                        caption = "📹 <b>Видеозапись экрана</b> ($duration сек)",
+                        caption = strings.srRecCaption(duration),
                         durationSeconds = duration,
                         autoDelete = true,
                     )
                 },
                 onFailure = { e ->
-                    CommandResult.Error(e.localizedMessage ?: e.message ?: "Сбой записи экрана")
+                    CommandResult.Error(strings.srRecError(e.localizedMessage ?: e.message ?: ""))
                 },
             )
         } finally {

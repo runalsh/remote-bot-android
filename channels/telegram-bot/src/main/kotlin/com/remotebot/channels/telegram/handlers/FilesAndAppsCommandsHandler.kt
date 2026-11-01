@@ -1,5 +1,8 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.domain.repository.BotConfigRepository
+import com.remotebot.domain.model.BotLanguage
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
@@ -10,7 +13,11 @@ import java.io.File
 class FilesAndAppsCommandsHandler(
     private val fileManagerRepository: FileManagerRepository,
     private val appManagerRepository: AppManagerRepository,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "get_file",
@@ -43,14 +50,14 @@ class FilesAndAppsCommandsHandler(
             "taskmanager" -> handleTaskManager()
             "kill" -> handleKillProcess(command.args)
             "unsent_files" -> handleUnsentFiles()
-            else -> CommandResult.Error("Неизвестная команда управления файлами/приложениями: $cmd")
+            else -> CommandResult.Error(strings.faUnknownCmd(cmd))
         }
     }
 
     private suspend fun handleGetFile(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/get_file &lt;путь_к_файлу_или_папке&gt; [zip]</code>\nПример: <code>/get_file /sdcard/DCIM/Camera/photo.jpg</code>\nПример для папки: <code>/get_file /sdcard/Documents zip</code>",
+                strings.faGetFileUsage(),
             )
         }
 
@@ -65,12 +72,12 @@ class FilesAndAppsCommandsHandler(
                 onSuccess = { zipFile ->
                     CommandResult.File(
                         filePath = zipFile.absolutePath,
-                        caption = "📦 Архив: <code>${File(path).name}</code> (${formatFileSize(zipFile.length())})",
+                        caption = strings.faArchiveCaption(File(path).name, formatFileSize(zipFile.length())),
                         autoDelete = true,
                     )
                 },
                 onFailure = {
-                    CommandResult.Error("❌ Ошибка создания zip-архива: ${it.localizedMessage ?: it.message}")
+                    CommandResult.Error(strings.faZipError(it.localizedMessage ?: it.message ?: ""))
                 },
             )
         } else {
@@ -78,11 +85,11 @@ class FilesAndAppsCommandsHandler(
                 onSuccess = { file ->
                     CommandResult.File(
                         filePath = file.absolutePath,
-                        caption = "📄 Файл: <code>${file.name}</code> (${formatFileSize(file.length())})",
+                        caption = strings.faFileCaption(file.name, formatFileSize(file.length())),
                     )
                 },
                 onFailure = {
-                    CommandResult.Error("❌ Ошибка получения файла: ${it.localizedMessage ?: it.message}")
+                    CommandResult.Error(strings.faGetFileError(it.localizedMessage ?: it.message ?: ""))
                 },
             )
         }
@@ -91,7 +98,7 @@ class FilesAndAppsCommandsHandler(
     private suspend fun handleDownload(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/download &lt;URL&gt; [путь_назначения]</code>\nПример: <code>/download https://example.com/file.apk</code>",
+                strings.faDownloadUsage(),
             )
         }
 
@@ -101,13 +108,11 @@ class FilesAndAppsCommandsHandler(
         return fileManagerRepository.downloadFileFromUrl(url, targetPath).fold(
             onSuccess = { downloadedFile ->
                 CommandResult.Text(
-                    "✅ <b>Файл успешно скачан:</b>\n<code>${downloadedFile.absolutePath}</code> (${formatFileSize(
-                        downloadedFile.length(),
-                    )})",
+                    strings.faDownloaded(downloadedFile.absolutePath, formatFileSize(downloadedFile.length())),
                 )
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка скачивания файла: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faDownloadError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -119,22 +124,22 @@ class FilesAndAppsCommandsHandler(
         return fileManagerRepository.listFiles(path).fold(
             onSuccess = { items ->
                 if (items.isEmpty()) {
-                    CommandResult.Text("📁 Каталог пуст: <code>$path</code>")
+                    CommandResult.Text(strings.faDirEmpty(path))
                 } else {
-                    val sb = StringBuilder("📁 <b>Содержимое каталога:</b> <code>$path</code>\n\n")
+                    val sb = StringBuilder(strings.faDirContentHeader(path))
                     items.take(40).forEach { item ->
                         val icon = if (item.isDirectory) "📁" else "📄"
                         val sizeStr = if (item.isDirectory) "" else " (${formatFileSize(item.sizeBytes)})"
                         sb.append("$icon <code>${item.name}</code>$sizeStr\n")
                     }
                     if (items.size > 40) {
-                        sb.append("\n<i>... и еще ${items.size - 40} объектов</i>")
+                        sb.append(strings.faMoreItems(items.size - 40))
                     }
                     CommandResult.Text(sb.toString().trimEnd())
                 }
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка чтения директории: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faDirReadError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -155,18 +160,18 @@ class FilesAndAppsCommandsHandler(
                     val parentToken = NavigationCache.register(parentPath)
                     navRow.add(
                         com.remotebot.domain.model
-                            .InlineKeyboardButton("⬆️ Вверх", callbackData = "/lsi $parentToken"),
+                            .InlineKeyboardButton(strings.faBtnUp(), callbackData = "/lsi $parentToken"),
                     )
                 }
                 val currentToken = NavigationCache.register(path)
                 navRow.add(
                     com.remotebot.domain.model
-                        .InlineKeyboardButton("🔄 Обновить", callbackData = "/lsi $currentToken"),
+                        .InlineKeyboardButton(strings.faBtnRefresh(), callbackData = "/lsi $currentToken"),
                 )
                 if (path != "~" && path != "/storage/emulated/0" && path != "/sdcard") {
                     navRow.add(
                         com.remotebot.domain.model
-                            .InlineKeyboardButton("📦 Скачать ZIP", callbackData = "/gf $currentToken zip"),
+                            .InlineKeyboardButton(strings.faBtnZip(), callbackData = "/gf $currentToken zip"),
                     )
                 }
                 rows.add(navRow)
@@ -208,12 +213,7 @@ class FilesAndAppsCommandsHandler(
                 val dirsCount = items.count { it.isDirectory }
                 val filesCount = items.count { !it.isDirectory }
                 val text =
-                    """
-                    📂 <b>Проводник:</b> <code>$path</code>
-                    <i>Папок: $dirsCount, Файлов: $filesCount (Всего: $totalCount)</i>
-                    
-                    👉 <i>Клик по папке — переход внутрь. Клик по файлу — отправка в чат.</i>
-                    """.trimIndent()
+                    strings.faExplorerHeader(path, dirsCount, filesCount, totalCount)
 
                 CommandResult.Text(
                     message = text,
@@ -223,7 +223,7 @@ class FilesAndAppsCommandsHandler(
                 )
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка чтения директории: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faDirReadError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -234,36 +234,36 @@ class FilesAndAppsCommandsHandler(
 
         val apps = appManagerRepository.getInstalledApps(includeSystem, filter)
         if (apps.isEmpty()) {
-            return CommandResult.Text("📱 Приложений не найдено.")
+            return CommandResult.Text(strings.faNoApps())
         }
 
-        val sb = StringBuilder("📱 <b>Установленные приложения (${apps.size}):</b>\n\n")
+        val sb = StringBuilder(strings.faAppsHeader(apps.size))
         apps.take(30).forEach { app ->
             val sysIcon = if (app.isSystemApp) "⚙️" else "📦"
             val ver = if (app.versionName != null) " (v${app.versionName})" else ""
             sb.append("$sysIcon <b>${app.appName}</b>$ver\n   <code>${app.packageName}</code>\n\n")
         }
         if (apps.size > 30) {
-            sb.append("<i>... и еще ${apps.size - 30} приложений. Используйте фильтр: /apps &lt;поиск&gt;</i>\n")
+            sb.append(strings.faMoreApps(apps.size - 30))
         }
-        sb.append("\n<i>Запуск: /app_launch &lt;package&gt;</i>")
+        sb.append(strings.faLaunchHint())
         return CommandResult.Text(sb.toString().trimEnd())
     }
 
     private suspend fun handleLaunchApp(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/app_launch &lt;package_name&gt;</code>\nПример: <code>/app_launch com.android.settings</code>",
+                strings.faLaunchUsage(),
             )
         }
 
         val pkg = args[0]
         return appManagerRepository.launchApp(pkg).fold(
             onSuccess = {
-                CommandResult.Text("🚀 <b>Приложение запущено:</b> <code>$pkg</code>")
+                CommandResult.Text(strings.faAppLaunched(pkg))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка запуска: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faLaunchError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -271,25 +271,17 @@ class FilesAndAppsCommandsHandler(
     private suspend fun handleInstallApk(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Text(
-                """
-                📦 <b>Установка APK-пакетов</b>
-
-                Доступно два способа:
-                1. <b>Отправить файл в чат</b>: просто прикрепите и отправьте <code>.apk</code> файл боту (можно с подписью <code>/install</code>). Бот скачает его и установит автоматически.
-                2. <b>Указать локальный путь</b>: 
-                <code>/install &lt;путь_к_apk&gt;</code>
-                <i>Пример:</i> <code>/install /sdcard/Download/app.apk</code>
-                """.trimIndent(),
+                strings.faInstallHelp(),
             )
         }
 
         val apkPath = args[0]
         return appManagerRepository.installApk(apkPath).fold(
             onSuccess = {
-                CommandResult.Text("✅ <b>APK пакет успешно установлен:</b>\n<code>$apkPath</code>")
+                CommandResult.Text(strings.faApkInstalled(apkPath))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка установки APK: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faInstallError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -298,9 +290,9 @@ class FilesAndAppsCommandsHandler(
         appManagerRepository.getRunningProcesses().fold(
             onSuccess = { processes ->
                 if (processes.isEmpty()) {
-                    CommandResult.Text("⚙️ Нет активных процессов.")
+                    CommandResult.Text(strings.faNoProcesses())
                 } else {
-                    val sb = StringBuilder("⚙️ <b>Диспетчер процессов (TaskManager):</b>\n\n")
+                    val sb = StringBuilder(strings.faTaskManagerHeader())
                     processes.take(25).forEach { proc ->
                         val cpuStr = if (proc.cpuUsagePercent > 0) "CPU: ${"%.1f".format(proc.cpuUsagePercent)}%" else ""
                         val memStr = if (proc.memoryUsageMb > 0) "MEM: ${"%.1f".format(proc.memoryUsageMb)}%" else ""
@@ -309,19 +301,19 @@ class FilesAndAppsCommandsHandler(
 
                         sb.append("🔹 <b>PID: ${proc.pid}</b> | <code>${proc.processName}</code>$statsFormatted\n")
                     }
-                    sb.append("\n<i>Завершить: /kill &lt;PID&gt; или /kill &lt;package&gt;</i>")
+                    sb.append(strings.faKillHint())
                     CommandResult.Text(sb.toString().trimEnd())
                 }
             },
             onFailure = {
-                CommandResult.Error("❌ Не удалось получить список процессов: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faProcessListError(it.localizedMessage ?: it.message ?: ""))
             },
         )
 
     private suspend fun handleKillProcess(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/kill &lt;PID&gt;</code> или <code>/kill &lt;package_name&gt;</code>\nПример: <code>/kill 1234</code> или <code>/kill com.example.app</code>",
+                strings.faKillUsage(),
             )
         }
 
@@ -331,10 +323,10 @@ class FilesAndAppsCommandsHandler(
 
         return appManagerRepository.killProcess(pid, pkg).fold(
             onSuccess = {
-                CommandResult.Text("🛑 Процесс / приложение <code>$target</code> принудительно остановлено.")
+                CommandResult.Text(strings.faProcessKilled(target))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка завершения: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.faKillError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -342,12 +334,12 @@ class FilesAndAppsCommandsHandler(
     private fun handleUnsentFiles(): CommandResult {
         val files = fileManagerRepository.unsentFiles.value
         if (files.isEmpty()) {
-            return CommandResult.Text("📤 Очередь неотправленных файлов пуста.")
+            return CommandResult.Text(strings.faUnsentEmpty())
         }
 
-        val sb = StringBuilder("📤 <b>Очередь неотправленных файлов (${files.size}):</b>\n\n")
+        val sb = StringBuilder(strings.faUnsentHeader(files.size))
         files.forEach { file ->
-            sb.append("• <code>${file.filePath}</code> (Тип: ${file.fileType}, Попыток: ${file.attempts})\n")
+            sb.append(strings.faUnsentLine(file.filePath, file.fileType, file.attempts) + "\n")
         }
         return CommandResult.Text(sb.toString().trimEnd())
     }

@@ -34,10 +34,10 @@ class ActiveOperationsTracker(
     ) {
         val info = OperationInfo(id = id, name = name, description = description)
         activeJobs[id] = TrackedJob(info, job, onCancel)
-        logger?.i("OperationsTracker", "Зарегистрирована операция [$id]: $name ${if (description.isNotBlank()) "($description)" else ""}")
+        logger?.i("OperationsTracker", "Operation registered [$id]: $name ${if (description.isNotBlank()) "($description)" else ""}")
         job?.invokeOnCompletion {
             activeJobs.remove(id)
-            logger?.d("OperationsTracker", "Завершена операция [$id]: $name")
+            logger?.d("OperationsTracker", "Operation completed [$id]: $name")
             updateState()
         }
         updateState()
@@ -46,7 +46,7 @@ class ActiveOperationsTracker(
     fun unregister(id: String) {
         val removed = activeJobs.remove(id)
         if (removed != null) {
-            logger?.d("OperationsTracker", "Снята с учета операция [$id]: ${removed.info.name}")
+            logger?.d("OperationsTracker", "Operation unregistered [$id]: ${removed.info.name}")
         }
         updateState()
     }
@@ -55,7 +55,7 @@ class ActiveOperationsTracker(
 
     fun cancel(id: String): Boolean {
         val tracked = activeJobs.remove(id) ?: return false
-        logger?.w("OperationsTracker", "Отмена операции [$id]: ${tracked.info.name}")
+        logger?.w("OperationsTracker", "Cancelling operation [$id]: ${tracked.info.name}")
         try {
             tracked.job?.cancel()
         } catch (_: Exception) {
@@ -70,7 +70,7 @@ class ActiveOperationsTracker(
 
     fun cancelAll(): Int {
         val count = activeJobs.size
-        logger?.w("OperationsTracker", "Отмена ВСЕХ операций (всего $count)")
+        logger?.w("OperationsTracker", "Cancelling ALL operations (total $count)")
         for ((_, tracked) in activeJobs) {
             try {
                 tracked.job?.cancel()

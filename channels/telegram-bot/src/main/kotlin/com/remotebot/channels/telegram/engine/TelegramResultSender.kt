@@ -9,7 +9,13 @@ import java.io.File
 class TelegramResultSender(
     private val apiClient: TelegramApiClient,
     private val logger: AppLogger? = null,
+    private val configRepository: com.remotebot.domain.repository.BotConfigRepository? = null,
 ) {
+    private val strings
+        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+            configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+        )
+
     fun ensureFileReadable(file: File) {
         if (!file.canRead()) {
             file.setReadable(true, false)
@@ -42,7 +48,7 @@ class TelegramResultSender(
                             file.delete()
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Файл не найден: ${result.filePath}")
+                        apiClient.sendMessage(chatId, strings.rsFileNotFound(result.filePath))
                     }
                 }
                 is CommandResult.Photo -> {
@@ -54,7 +60,7 @@ class TelegramResultSender(
                             file.delete()
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Фото не найдено: ${result.filePath}")
+                        apiClient.sendMessage(chatId, strings.rsPhotoNotFound(result.filePath))
                     }
                 }
                 is CommandResult.Video -> {
@@ -66,7 +72,7 @@ class TelegramResultSender(
                             file.delete()
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Видео не найдено: ${result.filePath}")
+                        apiClient.sendMessage(chatId, strings.rsVideoNotFound(result.filePath))
                     }
                 }
                 is CommandResult.Voice -> {
@@ -78,7 +84,7 @@ class TelegramResultSender(
                             file.delete()
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Голосовое сообщение не найдено: ${result.filePath}")
+                        apiClient.sendMessage(chatId, strings.rsVoiceNotFound(result.filePath))
                     }
                 }
                 is CommandResult.Audio -> {
@@ -90,7 +96,7 @@ class TelegramResultSender(
                             file.delete()
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Аудиофайл не найден: ${result.filePath}")
+                        apiClient.sendMessage(chatId, strings.rsAudioNotFound(result.filePath))
                     }
                 }
                 is CommandResult.MediaGroup -> {
@@ -102,7 +108,7 @@ class TelegramResultSender(
                             files.forEach { it.delete() }
                         }
                     } else {
-                        apiClient.sendMessage(chatId, "⚠️ Файлы медиагруппы не найдены")
+                        apiClient.sendMessage(chatId, strings.rsMediaGroupNotFound())
                     }
                 }
                 is CommandResult.Error -> {
@@ -113,9 +119,9 @@ class TelegramResultSender(
                 }
             }
         } catch (e: Exception) {
-            logger?.e("TelegramEngine", "Ошибка отправки результата в чат $chatId: ${e.message}", e)
+            logger?.e("TelegramEngine", "Failed to send the result to chat $chatId: ${e.message}", e)
             try {
-                apiClient.sendMessage(chatId, "⚠️ Ошибка отправки файла в чат: ${e.localizedMessage ?: e.message}")
+                apiClient.sendMessage(chatId, strings.rsSendError(e.localizedMessage ?: e.message ?: ""))
             } catch (_: Exception) {
             }
         }

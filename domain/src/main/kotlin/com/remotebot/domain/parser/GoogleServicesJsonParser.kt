@@ -17,22 +17,22 @@ object GoogleServicesJsonParser {
             val root = json.parseToJsonElement(jsonString).jsonObject
             val projectInfo =
                 root["project_info"]?.jsonObject
-                    ?: throw IllegalArgumentException("В конфигурации отсутствует секция 'project_info'")
+                    ?: throw IllegalArgumentException("Missing 'project_info' section in the configuration")
 
             val projectId =
                 projectInfo["project_id"]?.jsonPrimitive?.content
-                    ?: throw IllegalArgumentException("В 'project_info' отсутствует поле 'project_id'")
+                    ?: throw IllegalArgumentException("Missing 'project_id' field in 'project_info'")
 
             val projectNumber =
                 projectInfo["project_number"]?.jsonPrimitive?.content
-                    ?: throw IllegalArgumentException("В 'project_info' отсутствует поле 'project_number'")
+                    ?: throw IllegalArgumentException("Missing 'project_number' field in 'project_info'")
 
             val clients =
                 root["client"]?.jsonArray
-                    ?: throw IllegalArgumentException("В конфигурации отсутствует массив 'client'")
+                    ?: throw IllegalArgumentException("Missing 'client' array in the configuration")
 
             if (clients.isEmpty()) {
-                throw IllegalArgumentException("Массив 'client' пуст")
+                throw IllegalArgumentException("The 'client' array is empty")
             }
 
             var selectedClient = clients[0].jsonObject
@@ -56,23 +56,23 @@ object GoogleServicesJsonParser {
 
             val clientInfo =
                 selectedClient["client_info"]?.jsonObject
-                    ?: throw IllegalArgumentException("Отсутствует секция 'client_info'")
+                    ?: throw IllegalArgumentException("Missing 'client_info' section")
 
             val appId =
                 clientInfo["mobilesdk_app_id"]?.jsonPrimitive?.content
-                    ?: throw IllegalArgumentException("Отсутствует поле 'mobilesdk_app_id'")
+                    ?: throw IllegalArgumentException("Missing 'mobilesdk_app_id' field")
 
             val apiKeys =
                 selectedClient["api_key"]?.jsonArray
-                    ?: throw IllegalArgumentException("Отсутствует массив 'api_key'")
+                    ?: throw IllegalArgumentException("Missing 'api_key' array")
 
             if (apiKeys.isEmpty()) {
-                throw IllegalArgumentException("Массив 'api_key' пуст")
+                throw IllegalArgumentException("The 'api_key' array is empty")
             }
 
             val apiKey =
                 apiKeys[0].jsonObject["current_key"]?.jsonPrimitive?.content
-                    ?: throw IllegalArgumentException("Отсутствует поле 'current_key' в 'api_key'")
+                    ?: throw IllegalArgumentException("Missing 'current_key' field in 'api_key'")
 
             ParsedFirebaseConfig(
                 appId = appId,

@@ -139,7 +139,7 @@ fun TelegramSettingsTab(
                         .resolvePathFromTreeUri(context, uri) ?: uri.path ?: uri.toString()
                 storageDirInput = resolvedPath
                 android.widget.Toast
-                    .makeText(context, "Выбрана папка: $resolvedPath", android.widget.Toast.LENGTH_SHORT)
+                    .makeText(context, context.getString(R.string.tg_folder_selected_toast, resolvedPath), android.widget.Toast.LENGTH_SHORT)
                     .show()
             }
         }
@@ -254,7 +254,7 @@ fun TelegramSettingsTab(
                     )
                 } else {
                     Text(
-                        text = "Команды выполняются ТОЛЬКО для указанных ID (чужие получают отказ):",
+                        text = stringResource(R.string.tg_whitelist_only_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -269,7 +269,7 @@ fun TelegramSettingsTab(
                                 list[index] = digitsOnly
                                 allowedIdsList = list
                             },
-                            placeholder = "User ID #${index + 1} (например 1067753626)",
+                            placeholder = stringResource(R.string.tg_user_id_placeholder, index + 1),
                             onRemove = {
                                 val list = allowedIdsList.toMutableList()
                                 list.removeAt(index)
@@ -299,33 +299,33 @@ fun TelegramSettingsTab(
                                         userSubs =
                                             userSubs + (parsedId to currentSub.copy(receiveNotifications = !currentSub.receiveNotifications))
                                     },
-                                    label = { Text("🔔 Push", fontSize = 11.sp) },
+                                    label = { Text(stringResource(R.string.tg_sub_push), fontSize = 11.sp) },
                                 )
                                 FilterChip(
                                     selected = currentSub.receiveSms,
                                     onClick = {
                                         userSubs = userSubs + (parsedId to currentSub.copy(receiveSms = !currentSub.receiveSms))
                                     },
-                                    label = { Text("💬 SMS", fontSize = 11.sp) },
+                                    label = { Text(stringResource(R.string.tg_sub_sms), fontSize = 11.sp) },
                                 )
                                 FilterChip(
                                     selected = currentSub.receiveCalls,
                                     onClick = {
                                         userSubs = userSubs + (parsedId to currentSub.copy(receiveCalls = !currentSub.receiveCalls))
                                     },
-                                    label = { Text("📞 Звонки", fontSize = 11.sp) },
+                                    label = { Text(stringResource(R.string.tg_sub_calls), fontSize = 11.sp) },
                                 )
                                 FilterChip(
                                     selected = currentSub.receiveSystem,
                                     onClick = {
                                         userSubs = userSubs + (parsedId to currentSub.copy(receiveSystem = !currentSub.receiveSystem))
                                     },
-                                    label = { Text("⚙️ Сист", fontSize = 11.sp) },
+                                    label = { Text(stringResource(R.string.tg_sub_system), fontSize = 11.sp) },
                                 )
                             }
                             if (isCommandsOnly) {
                                 Text(
-                                    text = "🕹 Режим: только управление (события не пересылаются)",
+                                    text = stringResource(R.string.tg_sub_control_only),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.tertiary,
                                     fontSize = 11.sp,
@@ -341,7 +341,7 @@ fun TelegramSettingsTab(
         // Connection mode
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "3. Режим приема команд", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.tg_mode_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 SegmentedSlider(
@@ -362,19 +362,31 @@ fun TelegramSettingsTab(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Параметры Push Wakeup:", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                            Text("• Шлюз (Gateway): ${config.pushGatewayUrl ?: "не настроен"}", style = MaterialTheme.typography.bodySmall)
+                            Text(stringResource(R.string.tg_push_params_title), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                             Text(
-                                "• Секретный ключ: ${if (config.pushSecretKey.isNullOrBlank()) "не задан" else "••••••••"}",
+                                stringResource(
+                                    R.string.tg_set_gateway,
+                                    config.pushGatewayUrl ?: stringResource(R.string.tg_set_not_configured),
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Text(
-                                "• Firebase Project: ${config.fcmProjectId ?: "не инициализирован"}",
+                                stringResource(
+                                    R.string.tg_set_secret_key,
+                                    if (config.pushSecretKey.isNullOrBlank()) stringResource(R.string.tg_set_not_set) else "••••••••",
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                            )
+                            Text(
+                                stringResource(
+                                    R.string.tg_set_firebase_project,
+                                    config.fcmProjectId ?: stringResource(R.string.tg_set_not_initialized),
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "💡 Управление google-services.json и параметрами шлюза выполняется в разделе 🔥 FCM",
+                                stringResource(R.string.tg_push_hint),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.primary,
                             )
@@ -389,11 +401,11 @@ fun TelegramSettingsTab(
                     OutlinedTextField(
                         value = customApiRoot,
                         onValueChange = { customApiRoot = it },
-                        label = { Text("Основной API Root / Зеркало (по умолч. пусто)") },
-                        placeholder = { Text("https://my-worker.dev или пусто для официального") },
+                        label = { Text(stringResource(R.string.tg_api_root_label)) },
+                        placeholder = { Text(stringResource(R.string.tg_api_root_placeholder)) },
                         supportingText = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Статус: ", fontSize = 11.sp)
+                                Text(stringResource(R.string.tg_status_label), fontSize = 11.sp)
                                 Box(
                                     modifier =
                                         Modifier
@@ -404,16 +416,16 @@ fun TelegramSettingsTab(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     when (mainStatus) {
-                                        true -> "онлайн"
-                                        false -> "недоступен"
-                                        null -> "проверка..."
+                                        true -> stringResource(R.string.tg_status_online)
+                                        false -> stringResource(R.string.tg_status_offline)
+                                        null -> stringResource(R.string.tg_status_checking)
                                     },
                                     fontSize = 11.sp,
                                     color = mainDotColor,
                                     fontWeight = FontWeight.Medium,
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("(пусто = api.telegram.org)", fontSize = 11.sp)
+                                Text(stringResource(R.string.tg_status_default_hint), fontSize = 11.sp)
                             }
                         },
                         leadingIcon = {
@@ -436,12 +448,12 @@ fun TelegramSettingsTab(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Резервные API эндпоинты (Failover)",
+                            text = stringResource(R.string.tg_failover_title),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                         )
                         IconButton(onClick = { apiEndpointsList = apiEndpointsList + "" }) {
-                            Icon(Icons.Default.Add, contentDescription = "Добавить эндпоинт", tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.tg_failover_add), tint = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -453,21 +465,21 @@ fun TelegramSettingsTab(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF4CAF50)))
-                            Text("Онлайн", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tg_legend_online), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFFFC107)))
-                            Text("Проверка", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tg_legend_checking), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFF44336)))
-                            Text("Недоступен", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(stringResource(R.string.tg_legend_offline), fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
 
                     if (apiEndpointsList.isEmpty()) {
                         Text(
-                            text = "ℹ️ Нет резервных адресов. При сбое основного узла будет использоваться api.telegram.org. Нажмите «+», чтобы добавить зеркала.",
+                            text = stringResource(R.string.tg_failover_empty),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -484,7 +496,7 @@ fun TelegramSettingsTab(
                                     list[index] = newVal
                                     apiEndpointsList = list
                                 },
-                                placeholder = "https://mirror${index + 1}.domain.com",
+                                placeholder = stringResource(R.string.tg_mirror_placeholder, index + 1),
                                 onRemove = {
                                     val list = apiEndpointsList.toMutableList()
                                     list.removeAt(index)
@@ -497,7 +509,7 @@ fun TelegramSettingsTab(
 
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Стратегия выбора эндпоинта:",
+                            text = stringResource(R.string.tg_strategy_title),
 
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
@@ -515,9 +527,9 @@ fun TelegramSettingsTab(
                                     label = {
                                         Text(
                                             when (st) {
-                                                EndpointSelectionStrategy.FAILOVER -> "Failover (По порядку)"
-                                                EndpointSelectionStrategy.ROUND_ROBIN -> "Round-Robin"
-                                                EndpointSelectionStrategy.LOWEST_LATENCY -> "Мин. пинг"
+                                                EndpointSelectionStrategy.FAILOVER -> stringResource(R.string.tg_strategy_failover)
+                                                EndpointSelectionStrategy.ROUND_ROBIN -> stringResource(R.string.tg_strategy_round_robin)
+                                                EndpointSelectionStrategy.LOWEST_LATENCY -> stringResource(R.string.tg_strategy_latency)
                                             },
                                             fontSize = 11.sp,
                                         )
@@ -533,7 +545,7 @@ fun TelegramSettingsTab(
         // 3.5 Bot Language
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
-                Text(text = "3.5 Язык бота", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(text = stringResource(R.string.tg_lang_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 var expanded by remember { mutableStateOf(false) }
@@ -544,9 +556,9 @@ fun TelegramSettingsTab(
                     ) {
                         Text(
                             when (botLanguage) {
-                                BotLanguage.AUTO -> "🌐 Auto (система)"
-                                BotLanguage.EN -> "🇬🇧 English"
-                                BotLanguage.RU -> "🇷🇺 Русский"
+                                BotLanguage.AUTO -> stringResource(R.string.tg_set_lang_auto)
+                                BotLanguage.EN -> stringResource(R.string.tg_set_lang_en)
+                                BotLanguage.RU -> stringResource(R.string.tg_set_lang_ru)
                             }
                         )
                     }
@@ -556,21 +568,21 @@ fun TelegramSettingsTab(
                         modifier = Modifier.fillMaxWidth(0.9f),
                     ) {
                         DropdownMenuItem(
-                            text = { Text("🌐 Auto (система)") },
+                            text = { Text(stringResource(R.string.tg_set_lang_auto)) },
                             onClick = {
                                 botLanguage = BotLanguage.AUTO
                                 expanded = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("🇬🇧 English") },
+                            text = { Text(stringResource(R.string.tg_set_lang_en)) },
                             onClick = {
                                 botLanguage = BotLanguage.EN
                                 expanded = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("🇷🇺 Русский") },
+                            text = { Text(stringResource(R.string.tg_set_lang_ru)) },
                             onClick = {
                                 botLanguage = BotLanguage.RU
                                 expanded = false
@@ -580,7 +592,7 @@ fun TelegramSettingsTab(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    "Язык ответов Telegram бота",
+                    stringResource(R.string.tg_lang_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -591,13 +603,13 @@ fun TelegramSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "4. Папка сохранения медиа и файлов",
+                    text = stringResource(R.string.tg_storage_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Папка на устройстве, куда сохраняются записи экрана, фото с камеры, аудиозаписи и файлы:\nПо умолчанию: /sdcard/Download/RemoteBot",
+                    text = stringResource(R.string.tg_storage_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -610,13 +622,13 @@ fun TelegramSettingsTab(
                         onClick = { folderPickerLauncher.launch(null) },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("📁 Выбрать папку...")
+                        Text(stringResource(R.string.tg_btn_choose_folder))
                     }
                     if (storageDirInput.isNotBlank()) {
                         OutlinedButton(
                             onClick = { storageDirInput = "" },
                         ) {
-                            Text("Сброс")
+                            Text(stringResource(R.string.tg_btn_reset))
                         }
                     }
                 }
@@ -624,7 +636,7 @@ fun TelegramSettingsTab(
                 OutlinedTextField(
                     value = storageDirInput,
                     onValueChange = { storageDirInput = it },
-                    label = { Text("Путь к папке (выбранный или вручную)") },
+                    label = { Text(stringResource(R.string.tg_folder_path_label)) },
                     placeholder = { Text("/storage/emulated/0/Download/RemoteBot") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -643,7 +655,7 @@ fun TelegramSettingsTab(
                         rawToken
                     }
                 if (cleanToken.isBlank()) {
-                    Toast.makeText(context, "Введите токен бота", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(R.string.tg_err_no_token), Toast.LENGTH_SHORT).show()
                     return@Button
                 }
                 tokenInput = cleanToken
@@ -664,16 +676,16 @@ fun TelegramSettingsTab(
                 val parsedAllowedIds = allowedIdsList.mapNotNull { it.trim().toLongOrNull() }.toSet()
                 val cleanStorageDir = storageDirInput.trim().ifBlank { null }
 
-                logger.d("BotConfig", "Начата проверка и сохранение настроек бота (режим=$connectionMode)")
+                logger.d("BotConfig", "Started validating and saving the bot settings (mode=$connectionMode)")
                 logger.t(
                     "BotConfig",
-                    "Токен: ${cleanToken.take(
+                    "Token: ${cleanToken.take(
                         8,
-                    )}... (длина ${cleanToken.length}), API Root: ${cleanApiRoot ?: "api.telegram.org"}, Whitelist: $parsedAllowedIds, Папка: $cleanStorageDir",
+                    )}... (length ${cleanToken.length}), API Root: ${cleanApiRoot ?: "api.telegram.org"}, Whitelist: $parsedAllowedIds, Folder: $cleanStorageDir",
                 )
 
                 isChecking = true
-                statusMessage = "Проверка связи с серверами Telegram..."
+                statusMessage = context.getString(R.string.tg_checking_connection)
                 isSuccess = false
 
                 scope.launch {
@@ -693,11 +705,11 @@ fun TelegramSettingsTab(
                     }
 
                     try {
-                        logger.d("BotConfig", "Запрос getMe() к Telegram API...")
+                        logger.d("BotConfig", "Requesting getMe() from the Telegram API...")
                         val botUser = withContext(Dispatchers.IO) { apiClient.getMe() }
                         logger.t(
                             "BotConfig",
-                            "getMe() успешно ответил: id=${botUser.id}, username=@${botUser.username}, is_bot=${botUser.isBot}",
+                            "getMe() responded successfully: id=${botUser.id}, username=@${botUser.username}, is_bot=${botUser.isBot}",
                         )
 
                         if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
@@ -705,7 +717,7 @@ fun TelegramSettingsTab(
                             val secret = config.pushSecretKey?.trim() ?: ""
                             if (gateway.isBlank()) {
                                 isChecking = false
-                                statusMessage = "⚠️ Push Gateway URL не задан. Укажите адрес воркера во вкладке 🔥 Push."
+                                statusMessage = context.getString(R.string.tg_gateway_url_missing)
                                 isSuccess = false
                                 return@launch
                             }
@@ -720,9 +732,9 @@ fun TelegramSettingsTab(
                                     providerRoute = "hms"
                                     val hmsAppId = config.hmsAppId?.trim() ?: ""
                                     if (hmsAppId.isBlank()) {
-                                        tokenError = "Huawei App ID не настроен в конфигурации"
+                                        tokenError = "Huawei App ID is not configured"
                                     } else {
-                                        logger.d("BotConfig", "Запрос HMS токена (App ID: $hmsAppId)...")
+                                        logger.d("BotConfig", "Requesting an HMS token (App ID: $hmsAppId)...")
                                         val tokenRes =
                                             com.remotebot.core.push.DynamicHmsManager
                                                 .getHmsToken(context, hmsAppId)
@@ -733,7 +745,7 @@ fun TelegramSettingsTab(
                                 }
                                 com.remotebot.domain.model.PushProvider.FCM -> {
                                     providerRoute = "fcm"
-                                    logger.d("BotConfig", "Запрос FCM токена через DynamicFirebaseManager...")
+                                    logger.d("BotConfig", "Requesting an FCM token via DynamicFirebaseManager...")
                                     val tokenRes =
                                         com.remotebot.core.push.DynamicFirebaseManager
                                             .getFcmToken()
@@ -742,7 +754,7 @@ fun TelegramSettingsTab(
                                         .onFailure { tokenError = it.localizedMessage ?: it.javaClass.simpleName }
                                 }
                                 com.remotebot.domain.model.PushProvider.HYBRID -> {
-                                    logger.d("BotConfig", "Запрос токена для гибридного режима...")
+                                    logger.d("BotConfig", "Requesting a token for hybrid mode...")
                                     val fcmRes =
                                         com.remotebot.core.push.DynamicFirebaseManager
                                             .getFcmToken()
@@ -763,7 +775,7 @@ fun TelegramSettingsTab(
                                                     tokenError = "FCM: ${fcmRes.exceptionOrNull()?.message}, HMS: ${it.message}"
                                                 }
                                         } else {
-                                            tokenError = fcmRes.exceptionOrNull()?.message ?: "FCM недоступен, а Huawei App ID не задан"
+                                            tokenError = fcmRes.exceptionOrNull()?.message ?: "FCM is unavailable and Huawei App ID is not set"
                                         }
                                     }
                                 }
@@ -772,42 +784,54 @@ fun TelegramSettingsTab(
                             if (!targetToken.isNullOrBlank()) {
                                 logger.t(
                                     "BotConfig",
-                                    "Получен Push Token ($providerRoute): ${targetToken!!.take(16)}...${targetToken!!.takeLast(8)}",
+                                    "Push Token received ($providerRoute): ${targetToken!!.take(16)}...${targetToken!!.takeLast(8)}",
                                 )
                                 val webhookUrl = "$gateway/tg/$providerRoute/$targetToken/$secret"
-                                logger.d("BotConfig", "Регистрация Webhook в Telegram на шлюз $webhookUrl...")
+                                logger.d("BotConfig", "Registering the Telegram webhook on gateway $webhookUrl...")
                                 withContext(Dispatchers.IO) {
                                     apiClient.setWebhook(webhookUrl)
                                 }
-                                logger.t("BotConfig", "Telegram API setWebhook() выполнен успешно")
+                                logger.t("BotConfig", "Telegram API setWebhook() completed successfully")
                                 statusMessage =
-                                    "✅ Режим Push Wakeup активен!\nБот: @${botUser.username ?: "bot"}\nПровайдер: ${provider.name} ($providerRoute)\nToken: ${targetToken!!.take(
-                                        12,
-                                    )}...\nWebhook Telegram зарегистрирован."
+                                    context.getString(
+                                        R.string.tg_push_active_status,
+                                        botUser.username ?: "bot",
+                                        provider.name,
+                                        providerRoute,
+                                        targetToken!!.take(12),
+                                    )
                                 logger.i("BotConfig", statusMessage!!.replace("\n", " | "))
                             } else {
                                 statusMessage =
-                                    "⚠️ Связь с ботом @${botUser.username} есть, но не получен Push Token (${tokenError ?: "Сервисы push не ответили"}).\nПроверьте настройки во вкладке 🔥 Push."
+                                    context.getString(
+                                        R.string.tg_push_no_token_warning,
+                                        botUser.username ?: "bot",
+                                        tokenError ?: "No push token",
+                                    )
                                 logger.w("BotConfig", statusMessage!!.replace("\n", " | "))
                             }
                         } else {
-                            logger.d("BotConfig", "Сброс Webhook для режима Long Polling (deleteWebhook)...")
+                            logger.d("BotConfig", "Resetting the webhook for Long Polling (deleteWebhook)...")
                             withContext(Dispatchers.IO) {
                                 apiClient.deleteWebhook()
                             }
-                            logger.t("BotConfig", "Telegram API deleteWebhook() выполнен успешно")
+                            logger.t("BotConfig", "Telegram API deleteWebhook() completed successfully")
                             statusMessage =
-                                "✅ Подключение успешно (Long Polling)!\nБот: @${botUser.username ?: "bot"} (${botUser.firstName})"
+                                context.getString(
+                                    R.string.tg_long_polling_active_status,
+                                    botUser.username ?: "bot",
+                                    botUser.firstName,
+                                )
                             logger.i("BotConfig", statusMessage!!.replace("\n", " | "))
                         }
 
                         isSuccess = true
-                        Toast.makeText(context, "Настройки сохранены!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.tg_saved_toast), Toast.LENGTH_SHORT).show()
                     } catch (e: Exception) {
-                        statusMessage = "❌ Ошибка: ${e.localizedMessage ?: "Сбой соединения"}"
+                        statusMessage = context.getString(R.string.tg_connection_error_status, e.localizedMessage ?: "Connection error")
                         isSuccess = false
-                        logger.e("BotConfig", "Сбой сохранения настроек: ${e.localizedMessage}", e)
-                        logger.t("BotConfig", "Полный стек-трейс ошибки:\n${e.stackTraceToString()}")
+                        logger.e("BotConfig", "Settings save failure: ${e.localizedMessage}", e)
+                        logger.t("BotConfig", "Full error stack trace:\n${e.stackTraceToString()}")
                     } finally {
                         isChecking = false
                     }
@@ -819,9 +843,9 @@ fun TelegramSettingsTab(
             if (isChecking) {
                 CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Проверка связи...")
+                Text(stringResource(R.string.tg_btn_checking))
             } else {
-                Text("Сохранить настройки бота")
+                Text(stringResource(R.string.tg_btn_save_bot))
             }
         }
 

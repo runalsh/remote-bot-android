@@ -61,7 +61,7 @@ data class ServerConnectionStats(
  */
 data class WindowMetricsSummary(
     val windowName: String,
-    val durationMs: Long?, // null для "с момента запуска"
+    val durationMs: Long?, // null means "since service start"
     val wakeupsTotal: Int = 0,
     val wakeupsBySource: Map<WakeupSource, Int> = emptyMap(),
     val serverStats: List<ServerConnectionStats> = emptyList(),

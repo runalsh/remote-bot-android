@@ -87,12 +87,12 @@ object DynamicFirebaseManager {
             val pm = context.packageManager
             val info = pm.getPackageInfo("com.google.android.gms", 0)
             if (info.applicationInfo?.enabled == true) {
-                "Google Play Services установлены (v${info.versionName})"
+                "Google Play Services installed (v${info.versionName})"
             } else {
-                "Google Play Services отключены в системе"
+                "Google Play Services are disabled in the system"
             }
         } catch (_: Exception) {
-            "Пакет Google Play Services (com.google.android.gms) не найден на устройстве"
+            "Google Play Services package (com.google.android.gms) not found on the device"
         }
 
     /**
@@ -104,7 +104,7 @@ object DynamicFirebaseManager {
     ): Result<String> =
         runCatching {
             if (!isInitialized()) {
-                throw IllegalStateException("Firebase не инициализирован. Задайте google-services.json.")
+                throw IllegalStateException("Firebase is not initialized. Provide google-services.json.")
             }
             if (context != null && !isGooglePlayServicesAvailable(context)) {
                 val status = getGooglePlayServicesStatus(context)

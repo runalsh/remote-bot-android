@@ -40,12 +40,17 @@ class TelegramBotEngine(
     private val audioRepository: com.remotebot.domain.repository.AudioRepository? = null,
     private val logger: AppLogger? = null,
 ) : PushWakeupHandler {
+    private val strings
+        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+            configRepository.config.value.botLanguage,
+        )
+
     private var pollingJob: Job? = null
     private var eventObserversJob: Job? = null
     private val isRunning = AtomicBoolean(false)
     private var lastUpdateId = 0L
     private val activeChatIds = ConcurrentHashMap.newKeySet<Long>()
-    private val resultSender = TelegramResultSender(apiClient, logger)
+    private val resultSender = TelegramResultSender(apiClient, logger, configRepository)
 
     private val replyHandler =
         TelegramInteractiveReplyHandler(
@@ -79,7 +84,7 @@ class TelegramBotEngine(
 
     fun start() {
         if (isRunning.getAndSet(true)) return
-        logger?.i("TelegramEngine", "Запуск движка опроса Telegram (Long Polling)")
+        logger?.i("TelegramEngine", "Starting the Telegram polling engine (Long Polling)")
 
         eventObserversJob = eventForwarder.startObservers(scope)
 
@@ -103,16 +108,16 @@ class TelegramBotEngine(
 
                     try {
                         val updates = apiClient.getUpdates(offset = lastUpdateId + 1, timeoutSeconds = 30)
-                        errorBackoffMs = 1000L // Сброс backoff после успешного запроса
+                        errorBackoffMs = 1000L // Reset backoff after a successful request
 
                         for (update in updates) {
                             lastUpdateId = maxOf(lastUpdateId, update.updateId)
                             processUpdate(update)
                         }
                     } catch (e: Exception) {
-                        logger?.e("TelegramEngine", "Сбой опроса: ${e.message}", e)
+                        logger?.e("TelegramEngine", "Polling failure: ${e.message}", e)
                         delay(errorBackoffMs)
-                        errorBackoffMs = minOf(errorBackoffMs * 2, 30000L) // Максимум 30 сек задержки
+                        errorBackoffMs = minOf(errorBackoffMs * 2, 30000L) // Max 30 s delay
                     }
                 }
             }
@@ -130,7 +135,7 @@ class TelegramBotEngine(
      * Direct processing of update from FCM Data Push
      */
     override suspend fun processPushUpdate(update: TgUpdate) {
-        logger?.i("TelegramEngine", "⚡ Обработка Push Update id=${update.updateId}")
+        logger?.i("TelegramEngine", "⚡ Processing Push Update id=${update.updateId}")
         processUpdate(update)
     }
 
@@ -138,7 +143,7 @@ class TelegramBotEngine(
      * Handle wakeup triggered by FCM Data Push signal (wake up)
      */
     override suspend fun handlePushWakeup(targetUpdateId: Long) {
-        logger?.i("TelegramEngine", "Пробуждение по FCM Push update_id=$targetUpdateId")
+        logger?.i("TelegramEngine", "FCM Push wakeup update_id=$targetUpdateId")
     }
 
     private suspend fun processUpdate(update: TgUpdate) {
@@ -197,9 +202,9 @@ class TelegramBotEngine(
             val result = dispatcher.dispatch(incoming)
             resultSender.sendResultToChat(chatId, result)
         } catch (e: Exception) {
-            logger?.e("TelegramEngine", "Ошибка обработки команды $commandName: ${e.message}", e)
+            logger?.e("TelegramEngine", "Command processing error $commandName: ${e.message}", e)
             try {
-                apiClient.sendMessage(chatId, "⚠️ Ошибка обработки команды: ${e.localizedMessage ?: e.message}")
+                apiClient.sendMessage(chatId, strings.engCmdError(e.localizedMessage ?: e.message ?: ""))
             } catch (_: Exception) {
             }
         }
@@ -272,9 +277,9 @@ class TelegramBotEngine(
                 else -> resultSender.sendResultToChat(chatId, result)
             }
         } catch (e: Exception) {
-            logger?.e("TelegramEngine", "Ошибка обработки callback [$data]: ${e.message}", e)
+            logger?.e("TelegramEngine", "Callback processing error [$data]: ${e.message}", e)
             try {
-                apiClient.sendMessage(chatId, "⚠️ <b>Ошибка обработки:</b> ${e.localizedMessage ?: e.message}")
+                apiClient.sendMessage(chatId, strings.engCbError(e.localizedMessage ?: e.message ?: ""))
             } catch (_: Exception) {
             }
         }
@@ -296,7 +301,7 @@ class TelegramBotEngine(
 
         if (isApkFile) {
             val apkName = if (fileName.isNotBlank()) fileName else "app_${System.currentTimeMillis()}.apk"
-            logger?.i("TelegramEngine", "📦 Получен APK файл: $apkName (${doc.fileSize} bytes)")
+            logger?.i("TelegramEngine", "📦 APK file received: $apkName (${doc.fileSize} bytes)")
 
             val isCloudApi =
                 configRepository.config.value.customApiRoot
@@ -306,24 +311,12 @@ class TelegramBotEngine(
                 val sizeMb = fileSize / (1024 * 1024)
                 apiClient.sendMessage(
                     chatId,
-                    """
-                    ⚠️ <b>Файл превышает лимит Telegram Cloud API ($sizeMb МБ > 20 МБ)</b>
-
-                    Облачный Telegram Bot API запрещает ботам скачивать файлы размером более 20 МБ через команду getFile.
-
-                    💡 <b>Как установить этот APK:</b>
-                    1. Загрузите файл на телефон вручную или через ADB:
-                       <code>adb push "$apkName" /sdcard/Download/</code>
-                    2. Отправьте боту команду установки:
-                       <code>/install /sdcard/Download/$apkName</code>
-
-                    <i>Либо подключите локальный Telegram Bot API Server (поддержка файлов до 2000 МБ).</i>
-                    """.trimIndent(),
+                    strings.engApkTooBigCloud(sizeMb, apkName),
                 )
                 return true
             }
 
-            apiClient.sendMessage(chatId, "⏳ Скачивание APK пакета <code>$apkName</code>...")
+            apiClient.sendMessage(chatId, strings.engApkDownloading(apkName))
             try {
                 val tgFile = apiClient.getFile(doc.fileId)
                 val filePath = tgFile.filePath
@@ -336,7 +329,7 @@ class TelegramBotEngine(
                     localApk.writeBytes(bytes)
                     resultSender.ensureFileReadable(localApk)
 
-                    logger?.i("TelegramEngine", "APK сохранен в: ${localApk.absolutePath}. Запуск установки...")
+                    logger?.i("TelegramEngine", "APK saved to: ${localApk.absolutePath}. Starting installation...")
                     val incoming =
                         IncomingCommand(
                             id = update.updateId.toString(),
@@ -352,15 +345,15 @@ class TelegramBotEngine(
                     return true
                 }
             } catch (e: Exception) {
-                logger?.e("TelegramEngine", "Ошибка скачивания/установки APK: ${e.message}", e)
+                logger?.e("TelegramEngine", "APK download/install error: ${e.message}", e)
                 val isSizeError = e.message?.contains("file is too big", ignoreCase = true) == true
                 if (isSizeError) {
                     apiClient.sendMessage(
                         chatId,
-                        "❌ <b>Файл превышает лимит Telegram Cloud API (20 МБ).</b>\nЗагрузите APK локально и выполните: <code>/install /sdcard/Download/$apkName</code>",
+                        strings.engApkTooBigSimple(apkName),
                     )
                 } else {
-                    apiClient.sendMessage(chatId, "❌ Ошибка скачивания или установки APK: ${e.localizedMessage ?: e.message}")
+                    apiClient.sendMessage(chatId, strings.engApkError(e.localizedMessage ?: e.message ?: ""))
                 }
                 return true
             }
@@ -375,7 +368,7 @@ class TelegramBotEngine(
                 )
 
         if (isBackupFile) {
-            logger?.i("TelegramEngine", "📥 Получен документ бэкапа: ${doc.fileName} (${doc.fileSize} bytes)")
+            logger?.i("TelegramEngine", "📥 Backup document received: ${doc.fileName} (${doc.fileSize} bytes)")
             try {
                 val tgFile = apiClient.getFile(doc.fileId)
                 val filePath = tgFile.filePath
@@ -397,8 +390,8 @@ class TelegramBotEngine(
                     return true
                 }
             } catch (e: Exception) {
-                logger?.e("TelegramEngine", "Ошибка загрузки документа бэкапа: ${e.message}", e)
-                apiClient.sendMessage(chatId, "❌ Ошибка загрузки файла бэкапа: ${e.localizedMessage ?: e.message}")
+                logger?.e("TelegramEngine", "Backup document upload error: ${e.message}", e)
+                apiClient.sendMessage(chatId, strings.engBackupError(e.localizedMessage ?: e.message ?: ""))
                 return true
             }
         }
@@ -407,7 +400,7 @@ class TelegramBotEngine(
     }
 
     fun stop() {
-        logger?.i("TelegramEngine", "Остановка движка опроса Telegram")
+        logger?.i("TelegramEngine", "Stopping the Telegram polling engine")
         isRunning.set(false)
         pollingJob?.cancel()
         eventObserversJob?.cancel()

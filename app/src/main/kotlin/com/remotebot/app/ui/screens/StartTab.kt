@@ -120,7 +120,7 @@ fun StartTab(
             ) {
                 Button(
                     onClick = {
-                        logger.i("Service", "Ручной запуск фоновой службы")
+                        logger.i("Service", "Manual start of the background service")
                         onStartService()
                     },
                     modifier = Modifier.weight(1f),
@@ -130,7 +130,7 @@ fun StartTab(
                 }
                 Button(
                     onClick = {
-                        logger.i("Service", "Ручная остановка фоновой службы")
+                        logger.i("Service", "Manual stop of the background service")
                         onStopService()
                     },
                     modifier = Modifier.weight(1f),
@@ -236,12 +236,6 @@ fun StartTab(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
-                    Text(
-                        text = stringResource(R.string.start_permissions_status, grantedCount, totalCount),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
                 }
 
                 Text(
@@ -286,7 +280,7 @@ fun StartTab(
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = {
-                        logger.i("Start", "Запрос отключения оптимизации батареи Doze Mode")
+                        logger.i("Start", "Requesting Doze Mode battery optimization exclusion")
                         try {
                             val intent =
                                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -323,16 +317,16 @@ fun StartTab(
             Button(
                 onClick = {
                     isCheckingRoot = true
-                    logger.d("Root", "Запуск проверки Root через RootStatusProvider...")
+                    logger.d("Root", "Starting Root check via RootStatusProvider...")
                     scope.launch {
                         val granted = rootProvider.checkRoot(forceRefresh = true)
                         isCheckingRoot = false
                         if (granted) {
-                            logger.i("Root", "Права Superuser (Root) успешно подтверждены")
-                            Toast.makeText(context, "Root-доступ предоставлен!", Toast.LENGTH_SHORT).show()
+                            logger.i("Root", "Superuser (Root) granted successfully")
+                            Toast.makeText(context, "Root access granted!", Toast.LENGTH_SHORT).show()
                         } else {
-                            logger.w("Root", "Root права не предоставлены")
-                            Toast.makeText(context, "Root не предоставлен.", Toast.LENGTH_SHORT).show()
+                            logger.w("Root", "Root not granted")
+                            Toast.makeText(context, "Root was not granted.", Toast.LENGTH_SHORT).show()
                         }
                         refreshTrigger++
                     }

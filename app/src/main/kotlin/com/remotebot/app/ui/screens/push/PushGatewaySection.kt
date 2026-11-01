@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.ConnectionMode
 import com.remotebot.domain.repository.BotConfigRepository
@@ -34,13 +36,13 @@ fun PushGatewaySection(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                text = "⚙️ Настройки Push Gateway (Шлюз)",
+                text = stringResource(R.string.push_gateway_settings_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
 
             Text(
-                text = "Промежуточный шлюз (Cloudflare Worker, Go или Python), который принимает вебхуки от Telegram и отправляет пробуждающий Push (FCM / HMS) на это устройство:",
+                text = stringResource(R.string.push_gateway_settings_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -57,7 +59,7 @@ fun PushGatewaySection(
             OutlinedTextField(
                 value = pushSecretKey,
                 onValueChange = onPushSecretKeyChange,
-                placeholder = { Text("Push Secret Key (секретный ключ)", fontSize = 13.sp) },
+                placeholder = { Text(stringResource(R.string.push_secret_placeholder), fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
                 textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
@@ -75,7 +77,7 @@ fun PushGatewaySection(
             }
 
             Text(
-                text = "🔁 Политика повторных попыток (Retry Policy):",
+                text = stringResource(R.string.push_gateway_retry_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
             )
@@ -93,7 +95,7 @@ fun PushGatewaySection(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                 ) {
-                    Text("Агрессивный\n(3 × 1с)", fontSize = 11.sp, lineHeight = 13.sp)
+                    Text(stringResource(R.string.push_retry_aggressive), fontSize = 11.sp, lineHeight = 13.sp)
                 }
                 OutlinedButton(
                     onClick = {
@@ -103,7 +105,7 @@ fun PushGatewaySection(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                 ) {
-                    Text("Умеренный\n(5 × 5с)", fontSize = 11.sp, lineHeight = 13.sp)
+                    Text(stringResource(R.string.push_retry_moderate), fontSize = 11.sp, lineHeight = 13.sp)
                 }
                 OutlinedButton(
                     onClick = {
@@ -113,7 +115,7 @@ fun PushGatewaySection(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp),
                 ) {
-                    Text("Экономный\n(10 × 30с)", fontSize = 11.sp, lineHeight = 13.sp)
+                    Text(stringResource(R.string.push_retry_economical), fontSize = 11.sp, lineHeight = 13.sp)
                 }
             }
 
@@ -123,7 +125,7 @@ fun PushGatewaySection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Максимум попыток:", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.push_max_attempts), style = MaterialTheme.typography.bodySmall)
                     Text("${maxAttempts.toInt()}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                 }
                 Slider(
@@ -140,8 +142,8 @@ fun PushGatewaySection(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("Задержка между попытками:", style = MaterialTheme.typography.bodySmall)
-                    Text("${delaySeconds.toInt()} сек", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.push_retry_delay), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.push_delay_seconds, delaySeconds.toInt()), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
                 }
                 Slider(
                     value = delaySeconds,
@@ -164,14 +166,14 @@ fun PushGatewaySection(
                         }
                         logger.i(
                             "Push",
-                            "Сохранены параметры Push Gateway: url=$pushGatewayUrl, retry=${maxAttempts.toInt()}x${delaySeconds.toInt()}s",
+                            "Push Gateway parameters saved: url=$pushGatewayUrl, retry=${maxAttempts.toInt()}x${delaySeconds.toInt()}s",
                         )
-                        Toast.makeText(context, "Параметры сохранены", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.push_params_saved), Toast.LENGTH_SHORT).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Сохранить параметры Push Gateway")
+                Text(stringResource(R.string.push_btn_save_gateway))
             }
         }
     }

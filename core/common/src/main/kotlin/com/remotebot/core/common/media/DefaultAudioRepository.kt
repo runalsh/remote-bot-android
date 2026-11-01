@@ -74,7 +74,7 @@ class DefaultAudioRepository(
                     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
                     val outFile = File(audioDir, "rec_$timeStamp.m4a")
 
-                    logger?.d("AudioRepository", "Подготовка MediaRecorder: AAC/44100Hz, target=${outFile.name}")
+                    logger?.d("AudioRepository", "Preparing MediaRecorder: AAC/44100Hz, target=${outFile.name}")
 
                     val recorder =
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -100,7 +100,7 @@ class DefaultAudioRepository(
                     isRecordingRequested = true
 
                     val duration = params.durationSeconds.coerceIn(1, 3600)
-                    logger?.i("AudioRepository", "Старт аудиозаписи на $duration сек")
+                    logger?.i("AudioRepository", "Starting audio recording for $duration s")
                     val startTime = System.currentTimeMillis()
                     val targetDurationMs = duration * 1000L
 
@@ -111,14 +111,14 @@ class DefaultAudioRepository(
                     stopAudioRecordingInternal()
 
                     if (outFile.exists() && outFile.length() > 0) {
-                        logger?.i("AudioRepository", "Аудиозапись успешно завершена: ${outFile.length()} байт")
+                        logger?.i("AudioRepository", "Audio recording completed successfully: ${outFile.length()} bytes")
                         Result.success(outFile)
                     } else {
-                        logger?.w("AudioRepository", "Файл аудиозаписи пуст или не был создан")
-                        Result.failure(RuntimeException("Файл аудиозаписи пуст или не был создан"))
+                        logger?.w("AudioRepository", "Audio recording file is empty or was not created")
+                        Result.failure(RuntimeException("Audio recording file is empty or was not created"))
                     }
                 } catch (e: Exception) {
-                    logger?.e("AudioRepository", "Ошибка при аудиозаписи: ${e.message}", e)
+                    logger?.e("AudioRepository", "Audio recording error: ${e.message}", e)
                     stopAudioRecordingInternal()
                     Result.failure(e)
                 }
@@ -160,7 +160,7 @@ class DefaultAudioRepository(
         withContext(Dispatchers.Main) {
             try {
                 ensureTtsInitialized()
-                val tts = ttsEngine ?: return@withContext Result.failure(RuntimeException("TTS движок недоступен"))
+                val tts = ttsEngine ?: return@withContext Result.failure(RuntimeException("TTS engine is unavailable"))
 
                 if (!lang.isNullOrBlank()) {
                     val locale = Locale.forLanguageTag(lang)
@@ -184,7 +184,7 @@ class DefaultAudioRepository(
                             @Deprecated("Deprecated in Java")
                             override fun onError(id: String?) {
                                 if (id == utteranceId && continuation.isActive) {
-                                    continuation.resume(Result.failure(RuntimeException("Ошибка синтеза речи TTS")))
+                                    continuation.resume(Result.failure(RuntimeException("TTS speech synthesis error")))
                                 }
                             }
                         },
@@ -192,16 +192,16 @@ class DefaultAudioRepository(
 
                     val result = tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
                     if (result == TextToSpeech.ERROR) {
-                        logger?.w("AudioRepository", "Ошибка запуска синтеза речи TTS")
+                        logger?.w("AudioRepository", "TTS speech synthesis start error")
                         if (continuation.isActive) {
-                            continuation.resume(Result.failure(RuntimeException("Не удалось воспроизвести текст через TTS")))
+                            continuation.resume(Result.failure(RuntimeException("Failed to speak the text via TTS")))
                         }
                     } else {
-                        logger?.i("AudioRepository", "Запущен синтез речи (${lang ?: "system"}): \"${text.take(30)}\"")
+                        logger?.i("AudioRepository", "Speech synthesis started (${lang ?: "system"}): \"${text.take(30)}\"")
                     }
                 }
             } catch (e: Exception) {
-                logger?.e("AudioRepository", "Ошибка TTS: ${e.message}")
+                logger?.e("AudioRepository", "TTS error: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -215,9 +215,9 @@ class DefaultAudioRepository(
                     TextToSpeech(context) { status ->
                         if (status == TextToSpeech.SUCCESS) {
                             isTtsInitialized = true
-                            logger?.d("AudioRepository", "TTS Engine успешно инициализирован")
+                            logger?.d("AudioRepository", "TTS engine initialized successfully")
                         } else {
-                            logger?.w("AudioRepository", "Сбой инициализации TTS: status=$status")
+                            logger?.w("AudioRepository", "TTS initialization failure: status=$status")
                         }
                         if (cont.isActive) {
                             cont.resume(Unit)
@@ -230,7 +230,7 @@ class DefaultAudioRepository(
     override suspend fun playAudio(file: File): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
-                logger?.d("AudioRepository", "Воспроизведение аудио: ${file.name}")
+                logger?.d("AudioRepository", "Audio playback: ${file.name}")
                 currentPlayer?.release()
                 val player = MediaPlayer()
                 player.setAudioAttributes(
@@ -245,13 +245,13 @@ class DefaultAudioRepository(
 
                 suspendCancellableCoroutine { cont ->
                     player.setOnCompletionListener {
-                        logger?.d("AudioRepository", "Воспроизведение завершено: ${file.name}")
+                        logger?.d("AudioRepository", "Playback finished: ${file.name}")
                         player.release()
                         currentPlayer = null
                         if (cont.isActive) cont.resume(Result.success(Unit))
                     }
                     player.setOnErrorListener { _, what, extra ->
-                        logger?.w("AudioRepository", "MediaPlayer ошибка: what=$what, extra=$extra")
+                        logger?.w("AudioRepository", "MediaPlayer error: what=$what, extra=$extra")
                         player.release()
                         currentPlayer = null
                         if (cont.isActive) cont.resume(Result.failure(RuntimeException("MediaPlayer error: what=$what, extra=$extra")))
@@ -261,7 +261,7 @@ class DefaultAudioRepository(
                     currentPlayer = player
                 }
             } catch (e: Exception) {
-                logger?.e("AudioRepository", "Ошибка воспроизведения: ${e.message}")
+                logger?.e("AudioRepository", "Playback error: ${e.message}")
                 Result.failure(e)
             }
         }
@@ -378,12 +378,12 @@ class DefaultAudioRepository(
         soundDetectorJob = null
 
         if (!enabled) {
-            AppLogger.d("DefaultAudioRepository", "Детектор звука отключен")
+            AppLogger.d("DefaultAudioRepository", "Sound detector disabled")
             return
         }
 
         val thresholdDb = 90 - (lvl * 5)
-        AppLogger.i("DefaultAudioRepository", "Запуск детектора звука: уровень $lvl/10 (порог: $thresholdDb dB)")
+        AppLogger.i("DefaultAudioRepository", "Starting sound detector: level $lvl/10 (threshold: $thresholdDb dB)")
 
         soundDetectorJob =
             detectorScope.launch {
@@ -405,7 +405,7 @@ class DefaultAudioRepository(
                         )
 
                     if (audioRecord.state != AudioRecord.STATE_INITIALIZED) {
-                        AppLogger.w("DefaultAudioRepository", "Не удалось инициализировать AudioRecord для детектора звука")
+                        AppLogger.w("DefaultAudioRepository", "Failed to initialize AudioRecord for sound detector")
                         return@launch
                     }
 
@@ -431,9 +431,9 @@ class DefaultAudioRepository(
 
                             if (db >= thresholdDb) {
                                 val now = System.currentTimeMillis()
-                                if (now - lastSoundEventTimestamp >= 10000L) { // 10 сек кулдаун
+                                if (now - lastSoundEventTimestamp >= 10000L) { // 10 s cooldown
                                     lastSoundEventTimestamp = now
-                                    AppLogger.i("DefaultAudioRepository", "🔊 Зафиксирован шум: $db dB (порог: $thresholdDb dB)")
+                                    AppLogger.i("DefaultAudioRepository", "🔊 Noise captured: $db dB (threshold: $thresholdDb dB)")
                                     _soundEvents.emit(SoundDetectedEvent(decibels = db, timestampMs = now))
                                 }
                             }
@@ -441,7 +441,7 @@ class DefaultAudioRepository(
                         delay(120)
                     }
                 } catch (e: Exception) {
-                    AppLogger.e("DefaultAudioRepository", "Ошибка детектора звука: ${e.message}", e)
+                    AppLogger.e("DefaultAudioRepository", "Sound detector error: ${e.message}", e)
                 } finally {
                     try {
                         audioRecord?.stop()

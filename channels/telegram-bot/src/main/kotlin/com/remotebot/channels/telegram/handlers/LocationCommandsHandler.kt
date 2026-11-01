@@ -1,6 +1,10 @@
 package com.remotebot.channels.telegram.handlers
 
 import com.remotebot.channels.telegram.api.TelegramApiClient
+import com.remotebot.channels.telegram.strings.BotStrings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.domain.model.BotLanguage
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.CommandSource
@@ -17,7 +21,12 @@ class LocationCommandsHandler(
     private val locationRepository: LocationRepository,
     private val apiClient: TelegramApiClient? = null,
     private val operationsTracker: com.remotebot.core.common.tracker.ActiveOperationsTracker? = null,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "location",
@@ -36,7 +45,7 @@ class LocationCommandsHandler(
             "track" -> handleTrack(command)
             "gps" -> handleGps(command.args)
             "shake_detector" -> handleShakeDetector(command.args)
-            else -> CommandResult.Error("Неизвестная команда геолокации: $cmd")
+            else -> CommandResult.Error(strings.locUnknownCmd(cmd))
         }
     }
 
@@ -57,7 +66,7 @@ class LocationCommandsHandler(
             try {
                 apiClient?.sendMessage(
                     targetChatId,
-                    "🛰️ Определение местоположения... Это может занять до $timeout секунд.",
+                    strings.locAcquiring(timeout.toString()),
                 )
             } catch (_: Exception) {
             }
@@ -66,8 +75,8 @@ class LocationCommandsHandler(
         val opId = "location_fetch_${System.currentTimeMillis()}"
         operationsTracker?.register(
             id = opId,
-            name = "🛰️ Поиск геолокации (${timeout}с)",
-            description = "Определение GPS/LBS координат (таймаут ${timeout}с)",
+            name = strings.locOpName(timeout.toString()),
+            description = strings.locOpDesc(timeout.toString()),
         )
 
         return try {
@@ -79,11 +88,11 @@ class LocationCommandsHandler(
                         } catch (_: Exception) {
                         }
                     }
-                    val text = formatLocationReport(loc, isLive = false)
-                    CommandResult.Text(text, keyboard = buildSingleLocationKeyboard())
+                    val text = formatLocationReport(loc, isLive = false, strings = strings)
+                    CommandResult.Text(text, keyboard = buildSingleLocationKeyboard(strings))
                 },
                 onFailure = {
-                    CommandResult.Error("❌ Ошибка определения координат: ${it.localizedMessage ?: it.message}")
+                    CommandResult.Error(strings.locAcquireError(it.localizedMessage ?: it.message ?: ""))
                 },
             )
         } finally {
@@ -104,8 +113,8 @@ class LocationCommandsHandler(
             val status = locationRepository.liveTrackingStatus.value
             if (!status.isActive) {
                 return CommandResult.Text(
-                    "ℹ️ Периодический трекинг в данный момент не активен.",
-                    keyboard = buildTrackingKeyboard(false),
+                    strings.locTrackInactive(),
+                    keyboard = buildTrackingKeyboard(false, strings),
                 )
             }
             locationRepository.stopLiveTracking()
@@ -114,13 +123,8 @@ class LocationCommandsHandler(
             val durMinutes = durationMs / 60000L
             val durSeconds = (durationMs % 60000L) / 1000L
             return CommandResult.Text(
-                """
-                ⏹ <b>Периодический трекинг остановлен.</b>
-                
-                • Отправлено точек: <b>${status.pointsSent}</b>
-                • Время работы трекера: <b>${durMinutes}м ${durSeconds}с</b>
-                """.trimIndent(),
-                keyboard = buildTrackingKeyboard(false),
+                strings.locTrackStopped(status.pointsSent.toString(), durMinutes.toString(), durSeconds.toString()),
+                keyboard = buildTrackingKeyboard(false, strings),
             )
         }
 
@@ -128,26 +132,19 @@ class LocationCommandsHandler(
         if (first in listOf("status", "info")) {
             val status = locationRepository.liveTrackingStatus.value
             val isAct = status.isActive
-            val stateText = if (isAct) "🟢 <b>АКТИВЕН</b>" else "⏹ <b>ОСТАНОВЛЕН</b>"
+            val stateText = strings.locTrackPanelState(isAct)
             val intervalText = formatIntervalReadable(status.intervalSeconds)
             val durText =
                 if (isAct && status.startedAtMs > 0) {
                     val durationMs = System.currentTimeMillis() - status.startedAtMs
-                    "${durationMs / 60000L}м ${(durationMs % 60000L) / 1000L}с"
+                    strings.locDurMinSec(durationMs / 60000L, (durationMs % 60000L) / 1000L)
                 } else {
                     "—"
                 }
 
             return CommandResult.Text(
-                """
-                📊 <b>Статус периодического трекинга (/track):</b>
-                
-                • Состояние: $stateText
-                • Интервал отправки: <b>$intervalText</b>
-                • Отправлено точек: <b>${status.pointsSent}</b>
-                • Время работы: <b>$durText</b>
-                """.trimIndent(),
-                keyboard = buildTrackingKeyboard(isAct),
+                strings.locTrackStatus(stateText, intervalText, status.pointsSent.toString(), durText),
+                keyboard = buildTrackingKeyboard(isAct, strings),
             )
         }
 
@@ -159,21 +156,14 @@ class LocationCommandsHandler(
             val readable = formatIntervalReadable(clampedInterval)
             operationsTracker?.register(
                 id = "location_live",
-                name = "🛰️ Периодический GPS-трекинг ($readable)",
-                description = "Интервал $readable",
+                name = strings.locTrackOpName(readable),
+                description = strings.locTrackOpDesc(readable),
                 onCancel = { locationRepository.stopLiveTracking() },
             )
 
             return CommandResult.Text(
-                """
-                🛰️ <b>Периодический трекинг запущен!</b>
-                
-                ⏱ Интервал отправки: <b>каждые $readable</b>
-                📍 Координаты будут периодически отправляться в этот чат до остановки.
-                
-                <i>Для остановки нажмите кнопку ниже или отправьте команду <code>/track stop</code>.</i>
-                """.trimIndent(),
-                keyboard = buildTrackingKeyboard(true),
+                strings.locTrackStarted(readable),
+                keyboard = buildTrackingKeyboard(true, strings),
             )
         }
 
@@ -185,37 +175,25 @@ class LocationCommandsHandler(
             val readable = formatIntervalReadable(clampedInterval)
             operationsTracker?.register(
                 id = "location_live",
-                name = "🛰️ Периодический GPS-трекинг ($readable)",
-                description = "Интервал $readable",
+                name = strings.locTrackOpName(readable),
+                description = strings.locTrackOpDesc(readable),
                 onCancel = { locationRepository.stopLiveTracking() },
             )
 
             return CommandResult.Text(
-                """
-                🛰️ <b>Периодический трекинг запущен!</b>
-                
-                ⏱ Интервал отправки: <b>каждые $readable</b>
-                📍 Координаты будут периодически отправляться в этот чат до остановки.
-                
-                <i>Для остановки нажмите кнопку ниже или отправьте команду <code>/track stop</code>.</i>
-                """.trimIndent(),
-                keyboard = buildTrackingKeyboard(true),
+                strings.locTrackStarted(readable),
+                keyboard = buildTrackingKeyboard(true, strings),
             )
         }
 
         // No arguments or /track panel — tracking control panel
         val isAct = locationRepository.isLiveTrackingActive()
         val curStatus = locationRepository.liveTrackingStatus.value
-        val stateText = if (isAct) "🟢 <b>АКТИВЕН</b> (${formatIntervalReadable(curStatus.intervalSeconds)})" else "⏹ <b>ОСТАНОВЛЕН</b>"
+        val stateText = strings.locTrackPanelStateInt(isAct, formatIntervalReadable(curStatus.intervalSeconds))
 
         return CommandResult.Text(
-            """
-            🛰️ <b>Управление периодическим трекингом (/track):</b>
-            
-            • Текущий статус: $stateText
-            • Выберите интервал отправки геопозиции с помощью кнопок:
-            """.trimIndent(),
-            keyboard = buildTrackingKeyboard(isAct),
+            strings.locTrackPanel(stateText),
+            keyboard = buildTrackingKeyboard(isAct, strings),
         )
     }
 
@@ -236,28 +214,29 @@ class LocationCommandsHandler(
 
     private fun formatIntervalReadable(seconds: Long): String =
         when {
-            seconds < 60L -> "$seconds сек"
-            seconds % 3600L == 0L -> "${seconds / 3600L} ч"
-            seconds % 60L == 0L -> "${seconds / 60L} мин"
-            else -> "${seconds / 60L} мин ${seconds % 60L} сек"
+            seconds < 60L -> strings.locDurSec(seconds)
+            seconds % 3600L == 0L -> strings.locDurHour(seconds / 3600L)
+            seconds % 60L == 0L -> strings.locDurMin(seconds / 60L)
+            else -> strings.locDurMinSec(seconds / 60L, seconds % 60L)
         }
 
     companion object {
         fun formatLocationReport(
             loc: LocationData,
             isLive: Boolean = false,
+            strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO),
         ): String {
             val gmapsUrl = "https://maps.google.com/?q=${loc.latitude},${loc.longitude}"
             val osmUrl = "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}#map=17/${loc.latitude}/${loc.longitude}"
             val timeStr = SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()).format(Date(loc.timestampMs))
-            val addressText = if (!loc.address.isNullOrBlank()) "\n🏠 <b>Адрес:</b> ${loc.address}" else ""
+            val addressText = if (!loc.address.isNullOrBlank()) strings.locAddrBlock(loc.address ?: "") else ""
 
             val modeHeader =
                 if (isLive) {
-                    val seqStr = if (loc.trackingSequenceNumber != null) " [Точка #${loc.trackingSequenceNumber}]" else ""
-                    "🛰️ <b>Периодический трекинг геопозиции$seqStr:</b>"
+                    val seqStr = if (loc.trackingSequenceNumber != null) strings.locSeqStr(loc.trackingSequenceNumber.toString()) else ""
+                    strings.locTitleTracked(seqStr)
                 } else {
-                    "📍 <b>Геолокация устройства:</b>"
+                    strings.locTitleDevice()
                 }
 
             // Detection method
@@ -265,17 +244,17 @@ class LocationCommandsHandler(
                 if (loc.determinationMethod.isNotBlank()) {
                     loc.determinationMethod
                 } else if (loc.isDirectGps) {
-                    "🛰️ Спутниковый GPS/ГЛОНАСС"
+                    strings.locStateGps()
                 } else {
-                    "📡 Косвенные признаки (Вышки сотовой связи / Wi-Fi)"
+                    strings.locStateLbs()
                 }
 
             // GPS signal
             val signalText =
                 buildString {
                     if (loc.isDirectGps) {
-                        val lvl = loc.signalStrengthLevel ?: "Уверенный приём"
-                        append("📶 <b>Сигнал GPS:</b> $lvl")
+                        val lvl = loc.signalStrengthLevel ?: strings.locSignalDefault()
+                        append(strings.locSignalGps(lvl))
                         val cn0 = loc.cn0DbHz
                         if (cn0 != null && cn0 > 0f) {
                             append(" (${"%.1f".format(cn0)} dB-Hz)")
@@ -283,84 +262,72 @@ class LocationCommandsHandler(
                         if (loc.satellitesUsed != null || loc.satellitesVisible != null) {
                             val used = loc.satellitesUsed ?: 0
                             val total = loc.satellitesVisible ?: used
-                            append(" | 🛰️ Спутники: $used в решении / $total видимых")
+                            append(strings.locSatsFragment(used.toString(), total.toString()))
                         }
                     } else {
-                        append("📶 <b>Сигнал GPS:</b> ")
-                        append(loc.signalStrengthLevel ?: "❌ Спутниковый сигнал отсутствует (поиск по LBS/Wi-Fi)")
+                        append(strings.locSignalGpsLabel())
+                        append(loc.signalStrengthLevel ?: strings.locSignalNoGps())
                     }
                 }
 
             val altSpeedText =
                 if (loc.altitudeMeters != 0.0 || loc.speedMps > 0f) {
-                    "\n⛰️ <b>Высота:</b> ${"%.1f".format(
-                        loc.altitudeMeters,
-                    )} м | 🏃 <b>Скорость:</b> ${"%.1f".format(loc.speedMps * 3.6f)} км/ч"
+            strings.locAltitudeSpeed("%.1f".format(loc.altitudeMeters), "%.1f".format(loc.speedMps * 3.6f))
                 } else {
                     ""
                 }
 
-            return """
-                $modeHeader
-                
-                🌐 <b>Координаты:</b> <code>${loc.latitude}, ${loc.longitude}</code>
-                🎯 <b>Точность:</b> ±${"%.1f".format(loc.accuracyMeters)} м
-                📡 <b>Способ определения:</b> $methodText
-                $signalText$altSpeedText
-                🕒 <b>Время фиксации:</b> $timeStr$addressText
-                
-                🗺️ <a href="$gmapsUrl">Google Карты</a> | <a href="$osmUrl">OpenStreetMap</a>
-                """.trimIndent()
+            return strings.locResultBody("${loc.latitude}, ${loc.longitude}", "%.1f".format(loc.accuracyMeters), methodText, timeStr, addressText, gmapsUrl, osmUrl)
         }
 
-        fun buildSingleLocationKeyboard(): InlineKeyboardMarkup {
+        fun buildSingleLocationKeyboard(strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup {
             val row1 =
                 listOf(
-                    InlineKeyboardButton("🔄 Запросить снова", callbackData = "/location"),
-                    InlineKeyboardButton("⚡ Мгновенно (кэш)", callbackData = "/location last"),
+                    InlineKeyboardButton(strings.locBtnAgain(), callbackData = "/location"),
+                    InlineKeyboardButton(strings.locBtnInstant(), callbackData = "/location last"),
                 )
             val row2 =
                 listOf(
-                    InlineKeyboardButton("🛰️ Запустить трекинг (/track)", callbackData = "/track"),
+                    InlineKeyboardButton(strings.locBtnStartTrack(), callbackData = "/track"),
                 )
             return InlineKeyboardMarkup(listOf(row1, row2))
         }
 
-        fun buildTrackingKeyboard(isTrackingActive: Boolean): InlineKeyboardMarkup {
+        fun buildTrackingKeyboard(isTrackingActive: Boolean, strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup {
             val row1 =
                 listOf(
-                    InlineKeyboardButton("⏱ 30 сек", callbackData = "/track 30s"),
-                    InlineKeyboardButton("⏱ 1 мин", callbackData = "/track 1m"),
-                    InlineKeyboardButton("⏱ 5 мин", callbackData = "/track 5m"),
+                    InlineKeyboardButton(strings.locBtn30s(), callbackData = "/track 30s"),
+                    InlineKeyboardButton(strings.locBtn1m(), callbackData = "/track 1m"),
+                    InlineKeyboardButton(strings.locBtn5m(), callbackData = "/track 5m"),
                 )
             val row2 =
                 listOf(
-                    InlineKeyboardButton("⏱ 15 мин", callbackData = "/track 15m"),
-                    InlineKeyboardButton("⏱ 30 мин", callbackData = "/track 30m"),
-                    InlineKeyboardButton("⏱ 60 мин", callbackData = "/track 60m"),
+                    InlineKeyboardButton(strings.locBtn15m(), callbackData = "/track 15m"),
+                    InlineKeyboardButton(strings.locBtn30m(), callbackData = "/track 30m"),
+                    InlineKeyboardButton(strings.locBtn60m(), callbackData = "/track 60m"),
                 )
             val row3 =
                 if (isTrackingActive) {
                     listOf(
-                        InlineKeyboardButton("⏹ Остановить трекинг", callbackData = "/track stop"),
-                        InlineKeyboardButton("📊 Статус", callbackData = "/track status"),
+                        InlineKeyboardButton(strings.locBtnStopTrack(), callbackData = "/track stop"),
+                        InlineKeyboardButton(strings.locBtnStatus(), callbackData = "/track status"),
                     )
                 } else {
                     listOf(
-                        InlineKeyboardButton("📍 Разовый запрос (/location)", callbackData = "/location"),
+                        InlineKeyboardButton(strings.locBtnSingle(), callbackData = "/location"),
                     )
                 }
             return InlineKeyboardMarkup(listOf(row1, row2, row3))
         }
 
-        fun buildLocationKeyboard(isTrackingActive: Boolean): InlineKeyboardMarkup = buildTrackingKeyboard(isTrackingActive)
+        fun buildLocationKeyboard(isTrackingActive: Boolean, strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup = buildTrackingKeyboard(isTrackingActive, strings)
     }
 
     private suspend fun handleGps(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             val isEnabled = locationRepository.isGpsEnabled()
-            val status = if (isEnabled) "✅ <b>ВКЛЮЧЕН</b>" else "❌ <b>ВЫКЛЮЧЕН</b>"
-            return CommandResult.Text("🛰️ <b>GPS модуль:</b> $status\nПереключение: <code>/gps on</code> | <code>/gps off</code>")
+            val status = if (isEnabled) strings.locGpsOn() else strings.locGpsOff()
+            return CommandResult.Text(strings.locGpsStatus(status))
         }
 
         val target =
@@ -368,16 +335,16 @@ class LocationCommandsHandler(
                 "on", "1", "true", "enable" -> true
                 "off", "0", "false", "disable" -> false
                 "toggle" -> !locationRepository.isGpsEnabled()
-                else -> return CommandResult.Error("Формат: <code>/gps on</code> или <code>/gps off</code>")
+                else -> return CommandResult.Error(strings.locGpsUsage())
             }
 
         return locationRepository.setGpsEnabled(target).fold(
             onSuccess = {
-                val stateText = if (target) "включен ✅" else "выключен ❌"
-                CommandResult.Text("🛰️ GPS модуль успешно $stateText")
+                val stateText = strings.locGpsOnOff(target)
+                CommandResult.Text(strings.locGpsToggled(stateText))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка переключения GPS: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.locGpsToggleError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -455,8 +422,8 @@ class LocationCommandsHandler(
         locationRepository.setShakeDetectorEnabled(true, threshold, cd)
         operationsTracker?.register(
             id = "shake_detector",
-            name = "📳 Датчик тряски ($lvl/10, ${cd}с)",
-            description = "Порог ${"%.1f".format(threshold)} m/s², интервал ${cd}с",
+            name = strings.locShakeOpName(lvl.toString(), cd.toString()),
+            description = strings.locShakeOpDesc("%.1f".format(threshold), cd.toString()),
             onCancel = { locationRepository.setShakeDetectorEnabled(false) },
         )
     }
@@ -510,43 +477,32 @@ class LocationCommandsHandler(
         val cooldownIntervals = listOf(1, 2, 5, 10, 15, 30, 60)
         val rowCooldown =
             cooldownIntervals.map { sec ->
-                val label = if (activeCooldown == sec) "${sec}с ✅" else "${sec}с"
+                val label = strings.locShakeCdLabel(sec.toString(), activeCooldown == sec)
                 InlineKeyboardButton(label, callbackData = "/shake_detector cd $sec")
             }
 
         val rowActions = mutableListOf<InlineKeyboardButton>()
         if (cfg.isEnabled) {
-            rowActions.add(InlineKeyboardButton("⏹ Выключить", callbackData = "/shake_detector off"))
+            rowActions.add(InlineKeyboardButton(strings.locShakeBtnOff(), callbackData = "/shake_detector off"))
         } else {
             rowActions.add(
                 InlineKeyboardButton(
-                    "▶️ Включить ($activeLevel/10, ${activeCooldown}с)",
+                    strings.locShakeBtnOn(activeLevel.toString(), activeCooldown.toString()),
                     callbackData = "/shake_detector on $activeLevel $activeCooldown",
                 ),
             )
         }
-        rowActions.add(InlineKeyboardButton("🔄 Обновить", callbackData = "/shake_detector panel $activeLevel $activeCooldown"))
+        rowActions.add(InlineKeyboardButton(strings.locShakeBtnRefresh(), callbackData = "/shake_detector panel $activeLevel $activeCooldown"))
 
         val statusText =
             if (cfg.isEnabled) {
-                "✅ <b>АКТИВЕН</b> (Порог: ${"%.1f".format(cfg.sensitivity)} m/s², Интервал: ${activeCooldown}с)"
+                strings.locShakeActive("%.1f".format(cfg.sensitivity), activeCooldown.toString())
             } else {
-                "❌ <b>ОТКЛЮЧЕН</b>"
+                strings.locShakeOff()
             }
 
         val text =
-            """
-            📳 <b>Охранный датчик тряски (Акселерометр)</b>
-            
-            • Статус: $statusText
-            • Текущий уровень: <b>$activeLevel / 10</b> (Порог: ${"%.1f".format(currentThreshold)} m/s²)
-            • Интервал отправки тревоги: <b>$activeCooldown сек</b> (защита от спама)
-            
-            <i>Работает непрерывно до явной остановки. При фиксации тряски отправляет тревогу не чаще выбранного интервала.</i>
-            <i>Шкала: 1 = грубый (30 m/s², сильные удары/падения), 10 = ультрачувствительный (1 m/s², малейшее движение).</i>
-            
-            👇 <b>Чувствительность (1..10):</b>
-            """.trimIndent()
+            strings.locShakePanel(statusText, activeLevel.toString(), "%.1f".format(currentThreshold), activeCooldown.toString())
 
         return CommandResult.Text(
             message = text,

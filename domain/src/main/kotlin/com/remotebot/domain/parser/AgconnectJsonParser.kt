@@ -13,7 +13,7 @@ object AgconnectJsonParser {
             val root = json.parseToJsonElement(jsonString).jsonObject
             val client =
                 root["client"]?.jsonObject
-                    ?: throw IllegalArgumentException("В конфигурации отсутствует секция 'client'")
+                    ?: throw IllegalArgumentException("Missing 'client' section in the configuration")
 
             val appId =
                 client["app_id"]?.jsonPrimitive?.content
@@ -22,7 +22,7 @@ object AgconnectJsonParser {
                         ?.get("app_id")
                         ?.jsonPrimitive
                         ?.content
-                    ?: throw IllegalArgumentException("Отсутствует поле 'app_id' в секции 'client'")
+                    ?: throw IllegalArgumentException("Missing 'app_id' field in the 'client' section")
 
             val clientId =
                 client["client_id"]?.jsonPrimitive?.content

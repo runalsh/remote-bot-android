@@ -53,11 +53,11 @@ class DefaultNotificationRepository(
         // Skip ongoing system notifications and group summaries
         val notifObj = sbn.notification
         if ((notifObj.flags and Notification.FLAG_GROUP_SUMMARY) != 0) {
-            AppLogger.d("DefaultNotificationRepository", "🚫 Пропущено: GROUP_SUMMARY уведомление от $packageName")
+            AppLogger.d("DefaultNotificationRepository", "🚫 Skipped: GROUP_SUMMARY notification from $packageName")
             return
         }
         if ((notifObj.flags and Notification.FLAG_ONGOING_EVENT) != 0) {
-            AppLogger.d("DefaultNotificationRepository", "🚫 Пропущено: ONGOING_EVENT (постоянное) уведомление от $packageName")
+            AppLogger.d("DefaultNotificationRepository", "🚫 Skipped: ONGOING_EVENT (persistent) notification from $packageName")
             return
         }
 
@@ -85,10 +85,10 @@ class DefaultNotificationRepository(
         if (title.isNullOrBlank() && text.isNullOrBlank()) {
             if (rawActions.isNotEmpty() || hasCustomViews) {
                 title = appName
-                text = "Запрос подтверждения авторизации / действия"
-                AppLogger.d("DefaultNotificationRepository", "Кастомный view пуша от $packageName: применен fallback заголовок")
+                text = "Authorization / action confirmation request"
+                AppLogger.d("DefaultNotificationRepository", "Custom push view from $packageName: fallback title applied")
             } else {
-                AppLogger.d("DefaultNotificationRepository", "🚫 Пропущено: пустое уведомление (без заголовка и текста) от $packageName")
+                AppLogger.d("DefaultNotificationRepository", "🚫 Skipped: empty notification (no title or text) from $packageName")
                 return
             }
         }
@@ -97,7 +97,7 @@ class DefaultNotificationRepository(
         if (shouldFilterOut(packageName, title, text)) {
             AppLogger.i(
                 "DefaultNotificationRepository",
-                "🚫 Отфильтровано пользовательским правилом: $appName ($packageName), заголовок: $title",
+                "🚫 Filtered out by a user rule: $appName ($packageName), title: $title",
             )
             return
         }
@@ -124,7 +124,7 @@ class DefaultNotificationRepository(
             }
             AppLogger.i(
                 "DefaultNotificationRepository",
-                "🛡️ Сохранено интерактивное 2FA действие для [$shortId] ($packageName): кнопок=${extractedActions.size}",
+                "🛡️ Interactive 2FA action stored for [$shortId] ($packageName): buttons=${extractedActions.size}",
             )
         }
 
@@ -198,7 +198,7 @@ class DefaultNotificationRepository(
             // 5.1 Exact match by key
             val byKey = activeSbns.find { it.key == notificationId || (fullKey != null && it.key == fullKey) }
             if (byKey != null) {
-                AppLogger.i("DefaultNotificationRepository", "Найдено активное уведомление в шторке по ключу: ${byKey.key}")
+                AppLogger.i("DefaultNotificationRepository", "Active notification found in shade by key: ${byKey.key}")
                 recentSbnById[notificationId] = byKey
                 active2FaSbnById[notificationId] = byKey
                 return byKey
@@ -210,7 +210,7 @@ class DefaultNotificationRepository(
             if (!targetPkg.isNullOrBlank()) {
                 val byPkg = activeSbns.find { it.packageName == targetPkg }
                 if (byPkg != null) {
-                    AppLogger.i("DefaultNotificationRepository", "Найдено активное уведомление в шторке по пакету $targetPkg: ${byPkg.key}")
+                    AppLogger.i("DefaultNotificationRepository", "Active notification found in shade by package $targetPkg: ${byPkg.key}")
                     recentSbnById[notificationId] = byPkg
                     active2FaSbnById[notificationId] = byPkg
                     return byPkg
@@ -223,7 +223,7 @@ class DefaultNotificationRepository(
                     sbn.notification.actions?.isNotEmpty() == true
             }
             if (multifactorSbn != null) {
-                AppLogger.i("DefaultNotificationRepository", "Найдено 2FA уведомление в шторке (${multifactorSbn.packageName}): ${multifactorSbn.key}")
+                AppLogger.i("DefaultNotificationRepository", "2FA notification found in shade (${multifactorSbn.packageName}): ${multifactorSbn.key}")
                 recentSbnById[notificationId] = multifactorSbn
                 active2FaSbnById[notificationId] = multifactorSbn
                 return multifactorSbn
@@ -285,7 +285,7 @@ class DefaultNotificationRepository(
 
             AppLogger.i(
                 "DefaultNotificationRepository",
-                "⚡ Исполнение действия [$title] (индекс $actionIndex) для уведомления $notificationId [${sbn.packageName}]...",
+                "⚡ Executing action [$title] (index $actionIndex) for notification $notificationId [${sbn.packageName}]...",
             )
 
             // Safe PendingIntent launch (with Android 14+ background activity start support)
@@ -315,7 +315,7 @@ class DefaultNotificationRepository(
 
             AppLogger.i(
                 "DefaultNotificationRepository",
-                "✅ Действие [$title] успешно отправлено целевому приложению ${sbn.packageName}",
+                "✅ Action [$title] sent successfully to the target app ${sbn.packageName}",
             )
         }
 
@@ -340,7 +340,7 @@ class DefaultNotificationRepository(
                 val channel =
                     android.app.NotificationChannel(
                         channelId,
-                        "Кастомные уведомления Remote Bot",
+                        "Remote Bot custom notifications",
                         android.app.NotificationManager.IMPORTANCE_DEFAULT,
                     )
                 notificationManager.createNotificationChannel(channel)
@@ -436,7 +436,7 @@ class DefaultNotificationRepository(
             "ru.multifactor.app", // Multifactor
             "com.lastpass.authenticator", // LastPass Authenticator
             "com.duosecurity.duomobile", // Duo Mobile
-            "ru.yandex.key", // Яндекс Ключ
+            "ru.yandex.key", // Yandex Key
             "com.azure.authenticator", // Microsoft Authenticator
             "com.google.android.apps.authenticator2", // Google Authenticator
         )
@@ -505,7 +505,7 @@ class DefaultNotificationRepository(
         active2FaSbnById.clear()
         active2FaIdsQueue.clear()
         idMapping.clear()
-        AppLogger.i("DefaultNotificationRepository", "Очищен кэш последних уведомлений")
+        AppLogger.i("DefaultNotificationRepository", "Recent notifications cache cleared")
     }
 
     private fun shouldFilterOut(

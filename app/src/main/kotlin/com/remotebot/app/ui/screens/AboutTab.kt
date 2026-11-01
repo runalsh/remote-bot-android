@@ -51,7 +51,7 @@ fun AboutTab(
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, "$label скопировано в буфер обмена", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "$label copied to clipboard", Toast.LENGTH_SHORT).show()
     }
 
     fun openUrl(url: String) {
@@ -62,7 +62,7 @@ fun AboutTab(
                 }
             context.startActivity(intent)
         } catch (e: Exception) {
-            Toast.makeText(context, "Не удалось открыть ссылку: ${e.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Failed to open link: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -52,17 +52,17 @@ class LocationFilesAndAutomationTest {
                 provider = "gps",
                 timestampMs = 1700000000000L,
                 isDirectGps = true,
-                determinationMethod = "🛰️ Спутниковая навигация (GPS/ГЛОНАСС)",
+                determinationMethod = "🛰️ Satellite navigation (GPS/GLONASS)",
                 satellitesUsed = 8,
                 satellitesVisible = 14,
-                signalStrengthLevel = "Отличный (уверенный прием)",
+                signalStrengthLevel = "Excellent (solid reception)",
                 cn0DbHz = 38.5f,
                 trackingSequenceNumber = 5L,
             )
         assertTrue(loc.isDirectGps)
         assertEquals(8, loc.satellitesUsed)
         assertEquals(14, loc.satellitesVisible)
-        assertEquals("Отличный (уверенный прием)", loc.signalStrengthLevel)
+        assertEquals("Excellent (solid reception)", loc.signalStrengthLevel)
         assertEquals(38.5f, loc.cn0DbHz)
         assertEquals(5L, loc.trackingSequenceNumber)
     }

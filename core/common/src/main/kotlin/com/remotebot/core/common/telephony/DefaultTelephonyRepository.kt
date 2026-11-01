@@ -35,19 +35,19 @@ class DefaultTelephonyRepository(
             runCatching {
                 AppLogger.i(
                     "DefaultTelephonyRepository",
-                    "📤 Отправка SMS на $address (SIM: ${simSlot ?: "default"}, символов: ${message.length})...",
+                    "📤 Sending SMS to $address (SIM: ${simSlot ?: "default"}, chars: ${message.length})...",
                 )
                 val smsManager = getSmsManagerForSlot(simSlot)
                 val parts = smsManager.divideMessage(message)
                 if (parts.size > 1) {
-                    AppLogger.d("DefaultTelephonyRepository", "SMS разбито на ${parts.size} частей (multipart)")
+                    AppLogger.d("DefaultTelephonyRepository", "SMS split into ${parts.size} parts (multipart)")
                     smsManager.sendMultipartTextMessage(address, null, parts, null, null)
                 } else {
                     smsManager.sendTextMessage(address, null, message, null, null)
                 }
-                AppLogger.i("DefaultTelephonyRepository", "✅ SMS успешно передано в очередь отправки: $address")
+                AppLogger.i("DefaultTelephonyRepository", "✅ SMS queued for sending: $address")
             }.onFailure {
-                AppLogger.e("DefaultTelephonyRepository", "❌ Ошибка при отправке SMS на $address: ${it.message}")
+                AppLogger.e("DefaultTelephonyRepository", "❌ SMS send error to $address: ${it.message}")
             }
         }
 
@@ -69,7 +69,7 @@ class DefaultTelephonyRepository(
                     )
                 val sortOrder = "${Telephony.Sms.DATE} DESC"
 
-                AppLogger.d("DefaultTelephonyRepository", "Чтение SMS сообщений (лимит: $limit)...")
+                AppLogger.d("DefaultTelephonyRepository", "Reading SMS messages (limit: $limit)...")
                 context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
                     while (cursor.moveToNext() && list.size < limit) {
                         val address = cursor.getString(cursor.getColumnIndex(Telephony.Sms.ADDRESS)) ?: "Unknown"
@@ -89,7 +89,7 @@ class DefaultTelephonyRepository(
                         )
                     }
                 }
-                AppLogger.i("DefaultTelephonyRepository", "Прочитано SMS сообщений: ${list.size}")
+                AppLogger.i("DefaultTelephonyRepository", "SMS messages read: ${list.size}")
                 list
             }
         }
@@ -110,7 +110,7 @@ class DefaultTelephonyRepository(
                     )
                 val sortOrder = "${CallLog.Calls.DATE} DESC"
 
-                AppLogger.d("DefaultTelephonyRepository", "Запрос журнала звонков (лимит: $limit)...")
+                AppLogger.d("DefaultTelephonyRepository", "Requesting call log (limit: $limit)...")
                 context.contentResolver.query(uri, projection, null, null, sortOrder)?.use { cursor ->
                     while (cursor.moveToNext() && list.size < limit) {
                         val number = cursor.getString(cursor.getColumnIndex(CallLog.Calls.NUMBER)) ?: "Unknown"
@@ -143,7 +143,7 @@ class DefaultTelephonyRepository(
                         )
                     }
                 }
-                AppLogger.i("DefaultTelephonyRepository", "Журнал звонков успешно прочитан: ${list.size} записей")
+                AppLogger.i("DefaultTelephonyRepository", "Call log read successfully: ${list.size} entries")
                 list
             }
         }
@@ -157,7 +157,7 @@ class DefaultTelephonyRepository(
             runCatching {
                 AppLogger.i(
                     "DefaultTelephonyRepository",
-                    "📞 Инициация телефонного звонка на номер $number (SIM: ${simSlot ?: "default"})...",
+                    "📞 Initiating a phone call to $number (SIM: ${simSlot ?: "default"})...",
                 )
                 val encodedNumber = Uri.encode(number)
                 val intent =
@@ -166,7 +166,7 @@ class DefaultTelephonyRepository(
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                 context.startActivity(intent)
-                AppLogger.d("DefaultTelephonyRepository", "Звонок на $number успешно передан в стек телефонии Android")
+                AppLogger.d("DefaultTelephonyRepository", "Call to $number handed to Android telephony stack successfully")
             }
         }
 
@@ -177,7 +177,7 @@ class DefaultTelephonyRepository(
     ): Result<String> =
         withContext(Dispatchers.IO) {
             runCatching {
-                AppLogger.i("DefaultTelephonyRepository", "📟 Отправка USSD запроса: $code (SIM: ${simSlot ?: "default"})...")
+                AppLogger.i("DefaultTelephonyRepository", "📟 Sending USSD request: $code (SIM: ${simSlot ?: "default"})...")
                 val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
                 suspendCancellableCoroutine { continuation ->
@@ -188,8 +188,8 @@ class DefaultTelephonyRepository(
                                 request: String?,
                                 response: CharSequence?,
                             ) {
-                                val cleaned = response?.toString()?.trim() ?: "Пустой USSD ответ"
-                                AppLogger.i("DefaultTelephonyRepository", "✅ Получен USSD ответ для $code: $cleaned")
+                                val cleaned = response?.toString()?.trim() ?: "Empty USSD response"
+                                AppLogger.i("DefaultTelephonyRepository", "✅ USSD response received for $code: $cleaned")
                                 if (continuation.isActive) {
                                     continuation.resume(cleaned)
                                 }
@@ -202,10 +202,10 @@ class DefaultTelephonyRepository(
                             ) {
                                 val reason =
                                     when (failureCode) {
-                                        TelephonyManager.USSD_RETURN_FAILURE -> "Сбой выполнения USSD-запроса сетью"
-                                        else -> "Код ошибки USSD: $failureCode"
+                                        TelephonyManager.USSD_RETURN_FAILURE -> "USSD request failed in the network"
+                                        else -> "USSD error code: $failureCode"
                                     }
-                                AppLogger.w("DefaultTelephonyRepository", "❌ Ошибка USSD для $code: $reason")
+                                AppLogger.w("DefaultTelephonyRepository", "❌ USSD error for $code: $reason")
                                 if (continuation.isActive) {
                                     continuation.resume("USSD failed: $reason")
                                 }
@@ -272,7 +272,7 @@ class DefaultTelephonyRepository(
                 }
                 null
             } catch (e: Exception) {
-                AppLogger.d("DefaultTelephonyRepository", "Не удалось сопоставить контакт для $cleanPhone: ${e.message}")
+                AppLogger.d("DefaultTelephonyRepository", "Failed to resolve contact for $cleanPhone: ${e.message}")
                 null
             }
         }

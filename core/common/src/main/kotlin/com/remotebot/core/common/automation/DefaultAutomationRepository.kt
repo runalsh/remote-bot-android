@@ -54,9 +54,9 @@ class DefaultAutomationRepository(
         _timers.value = _timers.value + timer
         AppLogger.i(
             "DefaultAutomationRepository",
-            "⏰ Добавлен таймер [${timer.id}]: '$commandText', задержка: ${delayMs / 1000}с, интервал: ${intervalMs?.let {
-                "${it / 1000}с"
-            } ?: "однократно"}",
+            "⏰ Timer added [${timer.id}]: '$commandText', delay: ${delayMs / 1000}s, interval: ${intervalMs?.let {
+                "${it / 1000}s"
+            } ?: "once"}",
         )
         scheduleTimerJob(timer, delayMs)
         return timer
@@ -65,7 +65,7 @@ class DefaultAutomationRepository(
     override suspend fun removeTimer(timerId: String) {
         activeTimerJobs.remove(timerId)?.cancel()
         _timers.value = _timers.value.filterNot { it.id == timerId }
-        AppLogger.i("DefaultAutomationRepository", "🗑️ Таймер [$timerId] удален")
+        AppLogger.i("DefaultAutomationRepository", "🗑️ Timer [$timerId] removed")
     }
 
     override suspend fun setTimerEnabled(
@@ -130,14 +130,14 @@ class DefaultAutomationRepository(
                 if (shellResult.isSuccess) {
                     ScriptExecutionResult(
                         isSuccess = true,
-                        output = shellResult.out.joinToString("\n").ifBlank { "OK (код 0)" },
+                        output = shellResult.out.joinToString("\n").ifBlank { "OK (code 0)" },
                         executionTimeMs = elapsed,
                     )
                 } else {
                     ScriptExecutionResult(
                         isSuccess = false,
                         output = shellResult.out.joinToString("\n"),
-                        error = shellResult.err.joinToString("\n").ifBlank { "Ошибка выполнения (код ${shellResult.code})" },
+                        error = shellResult.err.joinToString("\n").ifBlank { "Execution error (code ${shellResult.code})" },
                         executionTimeMs = elapsed,
                     )
                 }

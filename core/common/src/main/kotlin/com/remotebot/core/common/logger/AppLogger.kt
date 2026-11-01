@@ -63,7 +63,7 @@ class AppLogger(
                 _logsFlow.value = ArrayList(entries)
             }
         } catch (e: Exception) {
-            Log.e("AppLogger", "Сбой чтения логов с диска", e)
+            Log.e("AppLogger", "Failed to read logs from disk", e)
         }
     }
 

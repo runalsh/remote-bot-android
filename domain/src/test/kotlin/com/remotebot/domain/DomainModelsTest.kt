@@ -171,11 +171,11 @@ class DomainModelsTest {
             InlineKeyboardMarkup(
                 listOf(
                     listOf(
-                        InlineKeyboardButton(text = "📶 Wi-Fi [ВКЛ]", callbackData = "/wifi toggle"),
-                        InlineKeyboardButton(text = "🦷 BT [ВКЛ]", callbackData = "/bluetooth toggle"),
+                        InlineKeyboardButton(text = "📶 Wi-Fi [ON]", callbackData = "/wifi toggle"),
+                        InlineKeyboardButton(text = "🦷 BT [ON]", callbackData = "/bluetooth toggle"),
                     ),
                     listOf(
-                        InlineKeyboardButton(text = "🔄 Обновить", callbackData = "/toggles"),
+                        InlineKeyboardButton(text = "🔄 Refresh", callbackData = "/toggles"),
                     ),
                 ),
             )
@@ -183,7 +183,7 @@ class DomainModelsTest {
         val encoded = json.encodeToString(keyboard)
         assertTrue(encoded.contains("\"inline_keyboard\""))
         assertTrue(encoded.contains("\"callback_data\":\"/wifi toggle\""))
-        assertTrue(encoded.contains("\"text\":\"📶 Wi-Fi [ВКЛ]\""))
+        assertTrue(encoded.contains("\"text\":\"📶 Wi-Fi [ON]\""))
 
         val decoded = json.decodeFromString<InlineKeyboardMarkup>(encoded)
         assertEquals(2, decoded.inlineKeyboard.size)
@@ -371,8 +371,8 @@ class DomainModelsTest {
         assertNull(parseSmsCommand("+79009990000", "rb 9999 /wifi on"))
 
         // Case 7: Regular SMS messages -> REJECTED (null, forwarded to TG)
-        assertNull(parseSmsCommand("+79009990000", "Привет, как дела?"))
-        assertNull(parseSmsCommand("+79991112233", "Код подтверждения: 58291"))
+        assertNull(parseSmsCommand("+79009990000", "Hi, how are you?"))
+        assertNull(parseSmsCommand("+79991112233", "Verification code: 58291"))
     }
 
     @Test
@@ -381,7 +381,7 @@ class DomainModelsTest {
             BotConfig(
                 botToken = "token123",
                 notificationForwardingApps = setOf("org.telegram.messenger", "com.whatsapp", "com.bank.app"),
-                notificationStopWords = listOf("спам", "код подтверждения", "OTP"),
+                notificationStopWords = listOf("spam", "verification code", "OTP"),
                 notificationDedupTimeoutSeconds = 15,
             )
 
@@ -411,13 +411,13 @@ class DomainModelsTest {
             }
         }
         // Matched stop words
-        assertTrue(containsStopWord("Банк", "Ваш код подтверждения: 12345"))
-        assertTrue(containsStopWord("Акция", "Это не спам, скидка 50%!"))
+        assertTrue(containsStopWord("Bank", "Your verification code: 12345"))
+        assertTrue(containsStopWord("Promo", "This is not spam, 50% discount!"))
         assertTrue(containsStopWord("Security", "Your otp is 9988"))
         // Clean notifications (not matching stop words)
-        assertFalse(containsStopWord("Мама", "Привет, перезвони мне"))
-        assertFalse(containsStopWord("Telegram", "Новое сообщение от Ивана"))
-        assertFalse(containsStopWord("Служба доставки", "Курьер прибыл"))
+        assertFalse(containsStopWord("Mom", "Hi, call me back"))
+        assertFalse(containsStopWord("Telegram", "New message from Ivan"))
+        assertFalse(containsStopWord("Delivery service", "The courier has arrived"))
 
         // 4. Deduplication timeout logic
         val recentMap = mutableMapOf<String, Long>()
@@ -444,23 +444,23 @@ class DomainModelsTest {
         val baseTime = 1000000L
 
         // First notification arrives -> allowed
-        assertTrue(shouldForward("com.whatsapp", "Иван", "Привет", baseTime))
+        assertTrue(shouldForward("com.whatsapp", "Ivan", "Hi", baseTime))
 
         // Duplicate arrives 5 seconds later (within 15s window) -> suppressed
-        assertFalse(shouldForward("com.whatsapp", "Иван", "Привет", baseTime + 5000L))
+        assertFalse(shouldForward("com.whatsapp", "Ivan", "Hi", baseTime + 5000L))
 
         // Different notification arrives 8 seconds later -> allowed
-        assertTrue(shouldForward("com.whatsapp", "Иван", "Как дела?", baseTime + 8000L))
+        assertTrue(shouldForward("com.whatsapp", "Ivan", "How are you?", baseTime + 8000L))
 
         // First duplicate arrives 16 seconds later (exceeded 15s timeout) -> allowed
-        assertTrue(shouldForward("com.whatsapp", "Иван", "Привет", baseTime + 16000L))
+        assertTrue(shouldForward("com.whatsapp", "Ivan", "Hi", baseTime + 16000L))
 
         // Unselected app -> rejected immediately
         assertFalse(shouldForward("com.google.android.youtube", "Video", "New upload", baseTime + 20000L))
 
         // Selected app with stop word -> rejected
-        assertTrue(containsStopWord("Банк", "Ваш OTP: 5544"))
-        assertFalse(shouldForward("com.bank.app", "Банк", "Ваш OTP: 5544", baseTime + 20000L))
+        assertTrue(containsStopWord("Bank", "Your OTP: 5544"))
+        assertFalse(shouldForward("com.bank.app", "Bank", "Your OTP: 5544", baseTime + 20000L))
 
         // 5. Rate Limiting sliding window logic (max N events per minute)
         assertEquals(30, config.forwardRateLimitPerMinute)
@@ -481,7 +481,7 @@ class DomainModelsTest {
             return true
         }
 
-        val testLimit = 3 // 3 в минуту для теста
+        val testLimit = 3 // 3 per minute for the test
         val testSender = "+79991112233"
         val startWindow = 2000000L
 
@@ -688,7 +688,7 @@ class DomainModelsTest {
         // 1. Disabled by default -> no buttons
         val defaultCfg = BotConfig()
         val buttonsDefault = buildKeyboard(defaultCfg)
-        assertTrue(buttonsDefault.isEmpty(), "Кнопки 2FA не должны создаваться при выключенном флаге")
+        assertTrue(buttonsDefault.isEmpty(), "2FA buttons must not be created while the flag is disabled")
 
         // 2. Enabled in settings -> buttons created with emoji
         val enabledCfg = defaultCfg.copy(enable2FaInterception = true)
@@ -727,14 +727,14 @@ class DomainModelsTest {
 
         // Verify:
         // 1. Most recent notification "1500" is present (no instant eviction bug)
-        assertTrue(recentMap.containsKey("1500"), "Свежее уведомление не должно вытесняться")
+        assertTrue(recentMap.containsKey("1500"), "A fresh notification must not be evicted")
 
         // 2. Old regular notification "50" evicted via FIFO
-        assertFalse(recentMap.containsKey("50"), "Старое обычное уведомление должно вытесниться")
+        assertFalse(recentMap.containsKey("50"), "An old regular notification must be evicted")
 
         // 3. 2FA notification "100" protected and preserved in 2FA cache
-        assertTrue(active2FaMap.containsKey("100"), "2FA уведомление защищено в выделенном кэше")
-        assertTrue(recentMap.containsKey("100"), "2FA уведомление не удалено из recentMap")
+        assertTrue(active2FaMap.containsKey("100"), "A 2FA notification is protected in the dedicated cache")
+        assertTrue(recentMap.containsKey("100"), "A 2FA notification is not removed from recentMap")
     }
 
     @Test
@@ -808,7 +808,7 @@ class DomainModelsTest {
 
         val config =
             BotConfig(
-                allowedUserIds = emptySet(), // Открытый режим (белый список пуст)
+                allowedUserIds = emptySet(), // Open mode (whitelist is empty)
                 userSubscriptions =
                     mapOf(
                         customUserId to
@@ -817,7 +817,7 @@ class DomainModelsTest {
                                 receiveNotifications = false,
                                 receiveSms = false,
                                 receiveCalls = false,
-                                receiveSystem = true, // Только системные события
+                                receiveSystem = true, // System events only
                             ),
                     ),
             )

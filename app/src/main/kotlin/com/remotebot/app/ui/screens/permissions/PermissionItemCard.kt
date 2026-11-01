@@ -17,6 +17,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.AppCard
 import com.remotebot.app.ui.components.AppStatusBadge
 import com.remotebot.app.ui.components.BadgeStatus
@@ -54,14 +56,14 @@ fun PermissionItemCard(
                 }
             }
             AppStatusBadge(
-                text = if (isGranted) "✅ ВЫДАНО" else "❌ НЕТ",
+                text = if (isGranted) stringResource(R.string.perms_status_granted) else stringResource(R.string.perms_status_missing),
                 status = if (isGranted) BadgeStatus.SUCCESS else BadgeStatus.ERROR,
             )
         }
 
         Spacer(modifier = Modifier.height(6.dp))
         Text(
-            text = "Команды: $commandsHint",
+            text = stringResource(R.string.perms_commands_hint, commandsHint),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.primary,
             fontFamily = FontFamily.Monospace,

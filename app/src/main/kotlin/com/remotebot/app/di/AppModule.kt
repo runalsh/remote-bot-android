@@ -143,10 +143,12 @@ val appModule =
                     ShellAndPowerCommandsHandler(
                         logger = get(),
                         rootStatusProvider = get(),
+                        botConfigRepository = get(),
                     ),
                 )
                 registerHandler(
                     MediaCommandsHandler(
+                        botConfigRepository = get(),
                         cameraRepository = get(),
                         audioRepository = get(),
                         screenRepository = get(),
@@ -156,12 +158,14 @@ val appModule =
                 )
                 registerHandler(
                     TelephonyAndNotificationCommandsHandler(
+                        botConfigRepository = get(),
                         telephonyRepository = get(),
                         notificationRepository = get(),
                     ),
                 )
                 registerHandler(
                     LocationCommandsHandler(
+                        botConfigRepository = get(),
                         locationRepository = get(),
                         apiClient = get(),
                         operationsTracker = get(),
@@ -169,12 +173,14 @@ val appModule =
                 )
                 registerHandler(
                     FilesAndAppsCommandsHandler(
+                        botConfigRepository = get(),
                         fileManagerRepository = get(),
                         appManagerRepository = get(),
                     ),
                 )
                 registerHandler(
                     AutomationCommandsHandler(
+                        botConfigRepository = get(),
                         taskerRepository = get(),
                         automationRepository = get(),
                     ),

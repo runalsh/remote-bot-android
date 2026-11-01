@@ -8,6 +8,9 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import com.remotebot.app.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -50,6 +53,7 @@ fun PushGatewayDashboardCard(
     logger: AppLogger,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val stats by PushStatsTracker.stats.collectAsState()
 
     var isCheckingAll by remember { mutableStateOf(false) }
@@ -143,7 +147,7 @@ fun PushGatewayDashboardCard(
                     async {
                         pingUrl(
                             key = "push_${server.id}",
-                            name = server.name.ifBlank { "Шлюз ${server.provider.name}" },
+                            name = server.name.ifBlank { context.getString(R.string.dbg_gw_name, server.provider.name) },
                             targetUrl = server.gatewayUrl,
                             isTelegramApi = false,
                         )
@@ -156,7 +160,7 @@ fun PushGatewayDashboardCard(
                     async {
                         pingUrl(
                             key = "api_$root",
-                            name = if (root.contains("api.telegram.org")) "Официальный Telegram API" else "Telegram Зеркало #${idx + 1}",
+                            name = if (root.contains("api.telegram.org")) context.getString(R.string.dbg_official_api) else context.getString(R.string.dbg_mirror_name, idx + 1),
                             targetUrl = root,
                             isTelegramApi = true,
                         )
@@ -198,7 +202,7 @@ fun PushGatewayDashboardCard(
                 ) {
                     Text("📡", fontSize = 20.sp)
                     Text(
-                        text = "Диагностический дашборд серверов",
+                        text = stringResource(R.string.dbg_dash_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
@@ -213,7 +217,7 @@ fun PushGatewayDashboardCard(
                     if (isCheckingAll) {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Icon(Icons.Default.Refresh, contentDescription = "Проверить все серверы")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.dbg_check_all))
                     }
                 }
             }
@@ -251,12 +255,12 @@ fun PushGatewayDashboardCard(
 
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            "Активный: ${config.pushProvider.name}",
+                            stringResource(R.string.dbg_active_fmt, config.pushProvider.name),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            "Стратегия: ${config.pushServerSelectionStrategy.name}",
+                            stringResource(R.string.dbg_strategy_fmt, config.pushServerSelectionStrategy.name),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -266,7 +270,7 @@ fun PushGatewayDashboardCard(
 
             // SECTION 1: FCM Push Servers
             Text(
-                text = "🔥 Серверы FCM Push (${fcmServers.size}):",
+                text = stringResource(R.string.dbg_fcm_section, fcmServers.size),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -274,7 +278,7 @@ fun PushGatewayDashboardCard(
 
             if (fcmServers.isEmpty()) {
                 Text(
-                    text = "Нет добавленных FCM серверов",
+                    text = stringResource(R.string.dbg_no_fcm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -299,7 +303,7 @@ fun PushGatewayDashboardCard(
 
             // SECTION 2: HMS Push Servers
             Text(
-                text = "🛡️ Серверы Huawei HMS Push (${hmsServers.size}):",
+                text = stringResource(R.string.dbg_hms_section, hmsServers.size),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -307,7 +311,7 @@ fun PushGatewayDashboardCard(
 
             if (hmsServers.isEmpty()) {
                 Text(
-                    text = "Нет добавленных HMS серверов",
+                    text = stringResource(R.string.dbg_no_hms),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -332,7 +336,7 @@ fun PushGatewayDashboardCard(
 
             // SECTION 3: Telegram API Servers (Mirrors)
             Text(
-                text = "✈️ Telegram Bot API Серверы (${apiRoots.size}):",
+                text = stringResource(R.string.dbg_api_section, apiRoots.size),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
@@ -340,7 +344,7 @@ fun PushGatewayDashboardCard(
 
             apiRoots.forEachIndexed { idx, root ->
                 val health = serverHealthMap["api_$root"]
-                val name = if (root.contains("api.telegram.org")) "Официальный Telegram API" else "Telegram Mirror #${idx + 1}"
+                val name = if (root.contains("api.telegram.org")) stringResource(R.string.dbg_official_api) else "Telegram Mirror #${idx + 1}"
                 ServerItemRow(
                     name = name,
                     url = root,
@@ -370,9 +374,9 @@ fun PushGatewayDashboardCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("📬 Доставлено сегодня:", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.dbg_delivered_today), style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text = "${stats.deliveredToday} (Всего: ${stats.totalDelivered})",
+                            text = stringResource(R.string.dbg_delivered_fmt, stats.deliveredToday, stats.totalDelivered),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = AppColors.success,
@@ -383,9 +387,9 @@ fun PushGatewayDashboardCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("❌ Ошибок доставки:", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.dbg_delivery_errors), style = MaterialTheme.typography.bodyMedium)
                         Text(
-                            text = "${stats.failedToday} (Всего: ${stats.totalFailed})",
+                            text = stringResource(R.string.dbg_delivered_fmt, stats.failedToday, stats.totalFailed),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (stats.failedToday > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
@@ -396,7 +400,7 @@ fun PushGatewayDashboardCard(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("⏱️ Средняя задержка доставки:", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.dbg_avg_latency), style = MaterialTheme.typography.bodyMedium)
                         Text(
                             text = if (stats.avgDeliveryLatencyMs > 0) "${stats.avgDeliveryLatencyMs} ms" else "—",
                             style = MaterialTheme.typography.bodyMedium,
@@ -413,7 +417,7 @@ fun PushGatewayDashboardCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.outlinedButtonColors(),
             ) {
-                Text("Сбросить суточную статистику пушей")
+                Text(stringResource(R.string.dbg_reset_push_stats))
             }
         }
     }
@@ -486,7 +490,7 @@ private fun ServerItemRow(
                 ) {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Пинг сервера",
+                        contentDescription = stringResource(R.string.dbg_ping_server),
                         modifier = Modifier.size(16.dp),
                     )
                 }

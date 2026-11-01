@@ -29,7 +29,7 @@ class DefaultScreenRepository(
             val outFile = File(screenDir, "scr_$timeStamp.png")
 
             val hasRoot = rootStatusProvider.isRootGrantedSync()
-            logger?.d("ScreenRepository", "Захват скриншота: hasRoot=$hasRoot, outFile=${outFile.name}")
+            logger?.d("ScreenRepository", "Screenshot capture: hasRoot=$hasRoot, outFile=${outFile.name}")
 
             if (hasRoot) {
                 val res =
@@ -41,14 +41,14 @@ class DefaultScreenRepository(
                 logger?.d("ScreenRepository", "Root screencap exec: code=${res.code}, out=${res.out.joinToString()}")
                 if (outFile.exists() && outFile.length() > 0) {
                     outFile.setReadable(true, false)
-                    logger?.i("ScreenRepository", "Скриншот успешно создан через Root: ${outFile.length()} байт")
+                    logger?.i("ScreenRepository", "Screenshot created successfully via Root: ${outFile.length()} bytes")
                     return@withContext Result.success(ScreenShotResult(file = outFile, method = "Root screencap"))
                 }
             }
 
             // Try sh non-root fallback
             try {
-                logger?.d("ScreenRepository", "Попытка захвата скриншота через Shell process...")
+                logger?.d("ScreenRepository", "Attempting screenshot capture via Shell process...")
                 val process =
                     ProcessBuilder("/system/bin/screencap", "-p", outFile.absolutePath)
                         .redirectErrorStream(true)
@@ -58,17 +58,17 @@ class DefaultScreenRepository(
 
                 if (outFile.exists() && outFile.length() > 0) {
                     outFile.setReadable(true, false)
-                    logger?.i("ScreenRepository", "Скриншот успешно создан через Shell: ${outFile.length()} байт")
+                    logger?.i("ScreenRepository", "Screenshot created successfully via Shell: ${outFile.length()} bytes")
                     return@withContext Result.success(ScreenShotResult(file = outFile, method = "Shell screencap"))
                 }
             } catch (e: Exception) {
-                logger?.w("ScreenRepository", "Ошибка non-root screencap: ${e.message}")
+                logger?.w("ScreenRepository", "Non-root screencap error: ${e.message}")
             }
 
-            logger?.e("ScreenRepository", "Не удалось сделать скриншот (отсутствуют Root/права доступа к screencap)")
+            logger?.e("ScreenRepository", "Screenshot failed (no Root / no access to screencap)")
             Result.failure(
                 IllegalStateException(
-                    "Не удалось сделать скриншот: на Android 14+ автономный фоновый захват экрана требует Root-прав (/system/bin/screencap).",
+                    "Screenshot failed: on Android 14+ autonomous background screen capture requires Root (/system/bin/screencap).",
                 ),
             )
         }
@@ -81,7 +81,7 @@ class DefaultScreenRepository(
 
             val duration = params.durationSeconds.coerceIn(1, 180)
             val hasRoot = rootStatusProvider.isRootGrantedSync()
-            logger?.d("ScreenRepository", "Запись видео экрана: duration=${duration}s, hasRoot=$hasRoot, outFile=${outFile.name}")
+            logger?.d("ScreenRepository", "Screen video recording: duration=${duration}s, hasRoot=$hasRoot, outFile=${outFile.name}")
 
             if (hasRoot) {
                 val cmd = "/system/bin/screenrecord --time-limit $duration \"${outFile.absolutePath}\""
@@ -89,14 +89,14 @@ class DefaultScreenRepository(
                 logger?.d("ScreenRepository", "Root screenrecord exec: code=${res.code}")
                 if (outFile.exists() && outFile.length() > 0) {
                     outFile.setReadable(true, false)
-                    logger?.i("ScreenRepository", "Видео экрана успешно записано через Root: ${outFile.length()} байт")
+                    logger?.i("ScreenRepository", "Screen video recorded successfully via Root: ${outFile.length()} bytes")
                     return@withContext Result.success(outFile)
                 }
             }
 
             // Try standard process fallback
             try {
-                logger?.d("ScreenRepository", "Попытка записи экрана через Shell process...")
+                logger?.d("ScreenRepository", "Attempting screen recording via Shell process...")
                 val process =
                     ProcessBuilder(
                         "/system/bin/screenrecord",
@@ -109,17 +109,17 @@ class DefaultScreenRepository(
 
                 if (outFile.exists() && outFile.length() > 0) {
                     outFile.setReadable(true, false)
-                    logger?.i("ScreenRepository", "Видео экрана успешно записано через Shell: ${outFile.length()} байт")
+                    logger?.i("ScreenRepository", "Screen video recorded successfully via Shell: ${outFile.length()} bytes")
                     return@withContext Result.success(outFile)
                 }
             } catch (e: Exception) {
-                logger?.w("ScreenRepository", "Ошибка non-root screenrecord: ${e.message}")
+                logger?.w("ScreenRepository", "Non-root screenrecord error: ${e.message}")
             }
 
-            logger?.e("ScreenRepository", "Не удалось записать видео экрана")
+            logger?.e("ScreenRepository", "Screen video recording failed")
             Result.failure(
                 IllegalStateException(
-                    "Не удалось записать видео экрана: фоновая запись требует Root-прав (/system/bin/screenrecord).",
+                    "Screen video recording failed: background recording requires Root (/system/bin/screenrecord).",
                 ),
             )
         }

@@ -34,7 +34,7 @@ class AgconnectJsonParserTest {
     @Test
     fun `parse valid agconnect json extracts correct fields`() {
         val result = AgconnectJsonParser.parse(validAgconnectJson)
-        assertTrue(result.isSuccess, "Парсинг должен завершиться успешно")
+        assertTrue(result.isSuccess, "Parsing must succeed")
 
         val config = result.getOrThrow()
         assertEquals("105589999", config.appId)
@@ -47,6 +47,6 @@ class AgconnectJsonParserTest {
     @Test
     fun `parse invalid agconnect json fails gracefully`() {
         val result = AgconnectJsonParser.parse("{}")
-        assertTrue(result.isFailure, "Пустой JSON должен возвращать ошибку")
+        assertTrue(result.isFailure, "Empty JSON must return an error")
     }
 }

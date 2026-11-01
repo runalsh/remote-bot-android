@@ -91,7 +91,7 @@ class DefaultFileManagerRepository(
                     return@runCatching list.sortedWith(compareBy<FileItem> { !it.isDirectory }.thenBy { it.name.lowercase() })
                 }
 
-                throw IllegalStateException("Каталог недоступен для чтения: $targetPath")
+                throw IllegalStateException("Directory is not readable: $targetPath")
             }
         }
 
@@ -118,7 +118,7 @@ class DefaultFileManagerRepository(
                     return@runCatching tmpDest
                 }
 
-                throw IllegalStateException("Файл не существует или нет прав доступа: $targetPath")
+                throw IllegalStateException("File does not exist or access is denied: $targetPath")
             }
         }
 
@@ -128,10 +128,10 @@ class DefaultFileManagerRepository(
     ): Result<File> =
         withContext(Dispatchers.IO) {
             runCatching {
-                val maxAllowedBytes = 2L * 1024 * 1024 * 1024 // 2 ГБ (лимит для Telegram Bot API)
-                val minSafetyDiskMargin = 100L * 1024 * 1024 // 100 МБ резерв для стабильности ОС
+                val maxAllowedBytes = 2L * 1024 * 1024 * 1024 // 2 GB (Telegram Bot API limit)
+                val minSafetyDiskMargin = 100L * 1024 * 1024 // 100 MB reserve for OS stability
 
-                AppLogger.i("DefaultFileManagerRepository", "🌐 Начало загрузки файла: $url")
+                AppLogger.i("DefaultFileManagerRepository", "🌐 File download started: $url")
                 val connection = URL(url).openConnection() as HttpURLConnection
                 connection.connectTimeout = 15000
                 connection.readTimeout = 30000
@@ -139,7 +139,7 @@ class DefaultFileManagerRepository(
                 connection.connect()
 
                 if (connection.responseCode !in 200..299) {
-                    throw IllegalStateException("HTTP ошибка ${connection.responseCode}: ${connection.responseMessage}")
+                    throw IllegalStateException("HTTP error ${connection.responseCode}: ${connection.responseMessage}")
                 }
 
                 val contentLength =
@@ -151,7 +151,7 @@ class DefaultFileManagerRepository(
 
                 if (contentLength > maxAllowedBytes) {
                     val sizeMb = contentLength / (1024 * 1024)
-                    throw IllegalStateException("Размер файла ($sizeMb МБ) превышает лимит 2 ГБ")
+                    throw IllegalStateException("File size ($sizeMb MB) exceeds the 2 GB limit")
                 }
 
                 val fileName = url.substringAfterLast("/").substringBefore("?").ifBlank { "download_${System.currentTimeMillis()}" }
@@ -171,7 +171,7 @@ class DefaultFileManagerRepository(
                     val freeMb = usableSpace / (1024 * 1024)
                     val needMb = contentLength / (1024 * 1024)
                     throw IllegalStateException(
-                        "Недостаточно места на диске (свободно: $freeMb МБ, требуется: $needMb МБ + 100 МБ резерва)",
+                        "Not enough disk space (free: $freeMb MB, required: $needMb MB + 100 MB reserve)",
                     )
                 }
 
@@ -185,7 +185,7 @@ class DefaultFileManagerRepository(
                                 totalBytesRead += bytesRead
                                 if (totalBytesRead > maxAllowedBytes) {
                                     destination.delete()
-                                    throw IllegalStateException("Превышен максимальный лимит 2 ГБ в процессе загрузки")
+                                    throw IllegalStateException("Exceeded the 2 GB limit during download")
                                 }
                                 output.write(buffer, 0, bytesRead)
                             }
@@ -194,13 +194,13 @@ class DefaultFileManagerRepository(
                     }
                 } catch (e: Exception) {
                     destination.delete()
-                    AppLogger.e("DefaultFileManagerRepository", "❌ Сбой загрузки $url: ${e.message}")
+                    AppLogger.e("DefaultFileManagerRepository", "❌ Download failed for $url: ${e.message}")
                     throw e
                 }
 
                 AppLogger.i(
                     "DefaultFileManagerRepository",
-                    "✅ Файл успешно скачан (${totalBytesRead / 1024} КБ): ${destination.absolutePath}",
+                    "✅ File downloaded successfully (${totalBytesRead / 1024} KB): ${destination.absolutePath}",
                 )
                 destination
             }
@@ -211,10 +211,10 @@ class DefaultFileManagerRepository(
             runCatching {
                 val sourceFile = File(sourcePath)
                 if (!sourceFile.exists()) {
-                    throw IllegalStateException("Исходный путь не существует: $sourcePath")
+                    throw IllegalStateException("Source path does not exist: $sourcePath")
                 }
 
-                AppLogger.i("DefaultFileManagerRepository", "📦 Архивация в ZIP: ${sourceFile.absolutePath}...")
+                AppLogger.i("DefaultFileManagerRepository", "📦 Zipping: ${sourceFile.absolutePath}...")
                 val zipFile = File(context.cacheDir, "${sourceFile.nameWithoutExtension}_archive.zip")
                 if (zipFile.exists()) zipFile.delete()
 
@@ -228,7 +228,7 @@ class DefaultFileManagerRepository(
 
                 AppLogger.i(
                     "DefaultFileManagerRepository",
-                    "✅ ZIP архив успешно создан (${zipFile.length() / 1024} КБ): ${zipFile.absolutePath}",
+                    "✅ ZIP archive created successfully (${zipFile.length() / 1024} KB): ${zipFile.absolutePath}",
                 )
                 zipFile
             }
@@ -269,21 +269,21 @@ class DefaultFileManagerRepository(
     override suspend fun deleteFileOrDirectory(path: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                AppLogger.w("DefaultFileManagerRepository", "🗑️ Удаление файла/директории: $path")
+                AppLogger.w("DefaultFileManagerRepository", "🗑️ Deleting file/directory: $path")
                 val file = File(path)
                 if (file.exists() && file.deleteRecursively()) {
-                    AppLogger.i("DefaultFileManagerRepository", "✅ Успешно удалено (нативно): $path")
+                    AppLogger.i("DefaultFileManagerRepository", "✅ Deleted successfully (native): $path")
                     return@runCatching
                 }
                 if (rootStatusProvider.isRootGrantedSync()) {
                     val res = Shell.cmd("rm -rf \"$path\"").exec()
                     if (res.isSuccess) {
-                        AppLogger.i("DefaultFileManagerRepository", "✅ Успешно удалено (через Root): $path")
+                        AppLogger.i("DefaultFileManagerRepository", "✅ Deleted successfully (via Root): $path")
                         return@runCatching
                     }
                 }
-                AppLogger.e("DefaultFileManagerRepository", "❌ Не удалось удалить: $path")
-                throw IllegalStateException("Не удалось удалить: $path")
+                AppLogger.e("DefaultFileManagerRepository", "❌ Failed to delete: $path")
+                throw IllegalStateException("Failed to delete: $path")
             }
         }
 
@@ -297,6 +297,6 @@ class DefaultFileManagerRepository(
 
     override suspend fun clearUnsentFiles() {
         _unsentFiles.value = emptyList()
-        AppLogger.i("DefaultFileManagerRepository", "Очередь неотправленных файлов очищена")
+        AppLogger.i("DefaultFileManagerRepository", "Unsent files queue cleared")
     }
 }

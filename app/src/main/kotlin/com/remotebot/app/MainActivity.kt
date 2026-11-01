@@ -293,7 +293,7 @@ fun MainScreen(
                                         android.widget.Toast
                                             .makeText(
                                                 context,
-                                                "Режим отладки выключен",
+                                                context.getString(R.string.main_debug_mode_off),
                                                 android.widget.Toast.LENGTH_SHORT,
                                             ).show()
                                     }
@@ -306,7 +306,7 @@ fun MainScreen(
                                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                 shape = RoundedCornerShape(8.dp),
                             ) {
-                                Text("✕ Отключить Debug", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.main_btn_disable_debug), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

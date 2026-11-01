@@ -39,6 +39,8 @@ import com.remotebot.app.ui.components.SegmentedSlider
 import com.remotebot.app.ui.components.SliderSegmentItem
 import com.remotebot.app.ui.components.StatusMessageText
 import com.remotebot.app.ui.screens.notifications.AppPickerDialog
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.repository.AppManagerRepository
 import com.remotebot.domain.repository.BotConfigRepository
@@ -124,13 +126,13 @@ fun NotificationsSettingsTab(
         ) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "📡 Каналы пересылки уведомлений",
+                    text = stringResource(R.string.notif_channels_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Выберите, куда пересылать каждый тип событий (в Telegram и/или по сотовому SMS):",
+                    text = stringResource(R.string.notif_channels_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -139,8 +141,8 @@ fun NotificationsSettingsTab(
                 // 1. Incoming SMS
                 ForwardingTypeRow(
                     icon = "📨",
-                    title = "Входящие SMS",
-                    description = "Дублирование входящих SMS-сообщений",
+                    title = stringResource(R.string.notif_incoming_sms),
+                    description = stringResource(R.string.notif_incoming_sms_desc),
                     tgChecked = tgForwardSms,
                     onTgChange = {
                         tgForwardSms = it
@@ -158,8 +160,8 @@ fun NotificationsSettingsTab(
                 // 2. Missed calls
                 ForwardingTypeRow(
                     icon = "📞",
-                    title = "Пропущенные звонки",
-                    description = "Оповещение о пропущенных телефонных вызовах",
+                    title = stringResource(R.string.notif_missed_calls),
+                    description = stringResource(R.string.notif_missed_calls_desc),
                     tgChecked = tgForwardCalls,
                     onTgChange = {
                         tgForwardCalls = it
@@ -177,8 +179,8 @@ fun NotificationsSettingsTab(
                 // 3. App push notifications
                 ForwardingTypeRow(
                     icon = "🔔",
-                    title = "Push-уведомления приложений",
-                    description = "Пересылка уведомлений от приложений (список ниже)",
+                    title = stringResource(R.string.notif_app_push),
+                    description = stringResource(R.string.notif_forwarding_apps),
                     tgChecked = tgForwardNotifs,
                     onTgChange = {
                         tgForwardNotifs = it
@@ -196,8 +198,8 @@ fun NotificationsSettingsTab(
                 // 4. Charging and discharging status
                 ForwardingTypeRow(
                     icon = "⚡",
-                    title = "Статус зарядки и питания",
-                    description = "Оповещение при подключении к сети/USB и отключении зарядки",
+                    title = stringResource(R.string.notif_charging_status),
+                    description = stringResource(R.string.notif_charging_status_desc),
                     tgChecked = tgForwardBatteryCharging,
                     onTgChange = {
                         tgForwardBatteryCharging = it
@@ -215,8 +217,8 @@ fun NotificationsSettingsTab(
                 // 5. Low battery
                 ForwardingTypeRow(
                     icon = "🪫",
-                    title = "Низкий заряд батареи (≤ 20%)",
-                    description = "Оповещения каждые 3% при разряде аккумулятора от 20% и ниже",
+                    title = stringResource(R.string.notif_low_battery),
+                    description = stringResource(R.string.notif_low_battery_desc),
                     tgChecked = tgForwardBatteryLow,
                     onTgChange = {
                         tgForwardBatteryLow = it
@@ -235,7 +237,7 @@ fun NotificationsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "📱 Приложения для пересылки",
+                    text = stringResource(R.string.notif_apps_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -243,9 +245,9 @@ fun NotificationsSettingsTab(
                 Text(
                     text =
                         if (selectedApps.isEmpty()) {
-                            "⚠️ Ни одно приложение не выбрано. Уведомления не пересылаются.\nНажмите кнопку ниже, чтобы выбрать нужные приложения."
+                            stringResource(R.string.notif_apps_empty)
                         } else {
-                            "Выбрано приложений: ${selectedApps.size}. Уведомления пересылаются только от этих приложений."
+                            stringResource(R.string.notif_apps_selected, selectedApps.size)
                         },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -256,15 +258,15 @@ fun NotificationsSettingsTab(
                     onClick = { showAppPicker = true },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("⚙️ Выбрать приложения (${selectedApps.size})")
+                    Text(stringResource(R.string.notif_btn_select_apps, selectedApps.size))
                 }
 
                 if (selectedApps.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text =
-                            "Выбранные пакеты:\n" + selectedApps.take(5).joinToString("\n") +
-                                if (selectedApps.size > 5) "\n...и ещё ${selectedApps.size - 5}" else "",
+                            stringResource(R.string.notif_set_selected_apps, selectedApps.take(5).joinToString("\n")) +
+                                if (selectedApps.size > 5) stringResource(R.string.notif_set_more_apps, selectedApps.size - 5) else "",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontSize = 11.sp,
@@ -277,13 +279,13 @@ fun NotificationsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "🚫 Ключевые слова для исключения (стоп-слова)",
+                    text = stringResource(R.string.notif_stopwords_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Если заголовок или текст уведомления содержит любое из этих слов или фраз, оно НЕ пересылается (блокируется для Telegram и SMS).",
+                    text = stringResource(R.string.notif_stopwords_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -300,7 +302,7 @@ fun NotificationsSettingsTab(
                             newStopWordInput = it
                             statusMessage = null
                         },
-                        placeholder = { Text("Новое стоп-слово (спам, код, OTP...)", fontSize = 12.5.sp) },
+                        placeholder = { Text(stringResource(R.string.notif_stopword_placeholder), fontSize = 12.5.sp) },
                         modifier =
                             Modifier
                                 .weight(1f)
@@ -321,7 +323,7 @@ fun NotificationsSettingsTab(
                     ) {
                         Icon(
                             Icons.Default.Add,
-                            contentDescription = "Добавить",
+                            contentDescription = stringResource(R.string.notif_stopword_add),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(26.dp),
                         )
@@ -331,14 +333,14 @@ fun NotificationsSettingsTab(
                 if (stopWords.isEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Список стоп-слов пуст. Фильтрация по тексту не применяется.",
+                        text = stringResource(R.string.notif_stopwords_empty),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
                     Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = "Активные стоп-слова (${stopWords.size}):",
+                        text = stringResource(R.string.notif_stopwords_active, stopWords.size),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -400,13 +402,13 @@ fun NotificationsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "⏱ Защита от дубликатов (анти-спам)",
+                    text = stringResource(R.string.notif_set_dedup_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Таймаут (в секундах) для подавления одинаковых повторных уведомлений от одного и того же приложения (применяется для Telegram и SMS).",
+                    text = stringResource(R.string.notif_dedup_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -418,7 +420,7 @@ fun NotificationsSettingsTab(
                         dedupTimeoutInput = it.filter { char -> char.isDigit() }
                         statusMessage = null
                     },
-                    label = { Text("Таймаут дедупликации (секунд)") },
+                    label = { Text(stringResource(R.string.notif_dedup_timeout_label)) },
                     placeholder = { Text("15") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
@@ -428,7 +430,7 @@ fun NotificationsSettingsTab(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Быстрый выбор:",
+                    text = stringResource(R.string.notif_quick_select_title),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -437,12 +439,12 @@ fun NotificationsSettingsTab(
                 SegmentedSlider(
                     items =
                         listOf(
-                            SliderSegmentItem("5", "5 сек"),
-                            SliderSegmentItem("15", "15 сек"),
-                            SliderSegmentItem("30", "30 сек"),
-                            SliderSegmentItem("60", "1 мин"),
-                            SliderSegmentItem("300", "5 мин"),
-                            SliderSegmentItem("900", "15 мин"),
+                            SliderSegmentItem("5", "5s"),
+                            SliderSegmentItem("15", "15s"),
+                            SliderSegmentItem("30", "30s"),
+                            SliderSegmentItem("60", "1m"),
+                            SliderSegmentItem("300", "5m"),
+                            SliderSegmentItem("900", "15m"),
                         ),
                     selectedValue = dedupTimeoutInput,
                     onValueSelected = {
@@ -457,31 +459,32 @@ fun NotificationsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "🛡️ Ограничение частоты (Rate Limiting)",
+                    text = stringResource(R.string.notif_rate_limiting_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Принцип скользящего окна (последние 60 сек): при превышении порога пересылки SMS от одного номера лишние сообщения дропаются без очереди, защищая баланс SIM-карты. Выберите «Выкл» для отключения ограничения.",
+                    text = stringResource(R.string.notif_rate_limiting_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(modifier = Modifier.height(10.dp))
 
+                val offLabel = stringResource(R.string.notif_slider_off)
                 OutlinedTextField(
-                    value = if (rateLimitPerMinuteInput == "0") "Выкл" else rateLimitPerMinuteInput,
+                    value = if (rateLimitPerMinuteInput == "0") offLabel else rateLimitPerMinuteInput,
                     onValueChange = { input ->
                         val digits = input.filter { it.isDigit() }
                         rateLimitPerMinuteInput =
-                            if (input.contains("выкл", ignoreCase = true) || (digits.isEmpty() && input.isNotBlank())) {
+                            if (input.equals(offLabel, ignoreCase = true) || input.contains("off", ignoreCase = true) || input.contains("выкл", ignoreCase = true) || (digits.isEmpty() && input.isNotBlank())) {
                                 "0"
                             } else {
                                 digits
                             }
                         statusMessage = null
                     },
-                    label = { Text("Лимит SMS в минуту") },
+                    label = { Text(stringResource(R.string.notif_sms_limit_label)) },
                     placeholder = { Text("30") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -490,7 +493,7 @@ fun NotificationsSettingsTab(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = "Быстрый выбор:",
+                    text = stringResource(R.string.notif_quick_select_title),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -499,7 +502,7 @@ fun NotificationsSettingsTab(
                 SegmentedSlider(
                     items =
                         listOf(
-                            SliderSegmentItem("0", "Выкл"),
+                            SliderSegmentItem("0", stringResource(R.string.notif_slider_off)),
                             SliderSegmentItem("5", "5"),
                             SliderSegmentItem("10", "10"),
                             SliderSegmentItem("20", "20"),
@@ -521,7 +524,7 @@ fun NotificationsSettingsTab(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(14.dp)) {
                 Text(
-                    text = "🔒 Безопасность каналов (Telegram & SMS)",
+                    text = stringResource(R.string.notif_security_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
@@ -538,12 +541,12 @@ fun NotificationsSettingsTab(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Отвечать при отказе в доступе",
+                            text = stringResource(R.string.notif_reply_unauthorized_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = "Если включено (по умолчанию) — бот отправляет ответ об ошибке («Unauthorized User ID» в Telegram, «неверный PIN» по SMS). Если выключено — игнорирует неавторизованные запросы молча (тихий режим).",
+                            text = stringResource(R.string.notif_reply_unauthorized_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -582,17 +585,17 @@ fun NotificationsSettingsTab(
                         )
                     }
                     isSuccess = true
-                    statusMessage = "✅ Настройки пересылки сохранены!"
-                    Toast.makeText(context, "Настройки пересылки сохранены!", Toast.LENGTH_SHORT).show()
+                    statusMessage = context.getString(R.string.notif_saved_success)
+                    Toast.makeText(context, context.getString(R.string.notif_saved_toast), Toast.LENGTH_SHORT).show()
                     logger.i(
                         "NotifConfig",
-                        "Сохранено: TG=[sms:$tgForwardSms, calls:$tgForwardCalls, notif:$tgForwardNotifs, charge:$tgForwardBatteryCharging, low:$tgForwardBatteryLow], SMS=[sms:$smsForwardSms, calls:$smsForwardCalls, notif:$smsForwardNotifs, charge:$smsForwardBatteryCharging, low:$smsForwardBatteryLow], apps=${selectedApps.size}, dedup=${dedupSeconds}s, rateLimit=$rateLimit/m, replyUnauthorized=$replyUnauthorizedEnabled",
+                        "Saved: TG=[sms:$tgForwardSms, calls:$tgForwardCalls, notif:$tgForwardNotifs, charge:$tgForwardBatteryCharging, low:$tgForwardBatteryLow], SMS=[sms:$smsForwardSms, calls:$smsForwardCalls, notif:$smsForwardNotifs, charge:$smsForwardBatteryCharging, low:$smsForwardBatteryLow], apps=${selectedApps.size}, dedup=${dedupSeconds}s, rateLimit=$rateLimit/m, replyUnauthorized=$replyUnauthorizedEnabled",
                     )
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Сохранить настройки пересылки")
+            Text(stringResource(R.string.notif_save_button))
         }
 
         StatusMessageText(

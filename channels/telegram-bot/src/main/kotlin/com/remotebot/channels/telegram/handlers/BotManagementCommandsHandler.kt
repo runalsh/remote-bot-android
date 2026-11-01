@@ -3,6 +3,8 @@ package com.remotebot.channels.telegram.handlers
 import com.remotebot.core.common.backup.BackupManager
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.common.tracker.ActiveOperationsTracker
+import com.remotebot.domain.model.BotLanguage
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
@@ -20,7 +22,10 @@ class BotManagementCommandsHandler(
     private val logger: AppLogger,
     backupManager: BackupManager,
 ) : CommandHandler {
-    val proxyHandler = ProxyCommandsHandler(proxyConfigRepository, logger)
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
+    val proxyHandler = ProxyCommandsHandler(proxyConfigRepository, logger, botConfigRepository)
     val backupHandler = BackupCommandsHandler(botConfigRepository, proxyConfigRepository, backupManager, logger)
     val securityHandler = SecurityManagementCommandsHandler(botConfigRepository)
 
@@ -33,6 +38,7 @@ class BotManagementCommandsHandler(
                 "unsent_files",
                 "bot_status",
                 "bot_toggle",
+                "bot_language",
                 "tg_bot",
                 "sms_bot",
                 "tg_forward",
@@ -56,33 +62,51 @@ class BotManagementCommandsHandler(
             cmd == "sms_bot" -> handleSmsBot(command.args)
             cmd == "tg_forward" -> handleTgForward(command.args)
             cmd == "bot_toggle" -> handleBotToggle(command.args)
-            else -> CommandResult.Error("Неизвестная команда управления: $cmd")
+            cmd == "bot_language" -> handleBotLanguage(command.args)
+            else -> CommandResult.Error(strings.bmUnknownCmd(cmd))
         }
     }
 
+
+    private suspend fun handleBotLanguage(args: List<String>): CommandResult {
+        val lang = args.firstOrNull()?.trim()?.lowercase()
+        if (lang.isNullOrEmpty()) {
+            val cur = botConfigRepository.config.value.botLanguage.name.lowercase()
+            return CommandResult.Text(strings.botLanguageCurrent(cur))
+        }
+        val target =
+            when (lang) {
+                "auto" -> BotLanguage.AUTO
+                "en" -> BotLanguage.EN
+                "ru" -> BotLanguage.RU
+                else -> return CommandResult.Text(strings.botLanguageInvalid(lang))
+            }
+        botConfigRepository.updateConfig { it.copy(botLanguage = target) }
+        return CommandResult.Text(strings.botLanguageSet(lang))
+    }
     private fun handleActive(): CommandResult {
         val ops = operationsTracker.list()
         if (ops.isEmpty()) {
-            return CommandResult.Text("⚙️ Нет активных фоновых операций.")
+            return CommandResult.Text(strings.bmNoOps())
         }
-        val sb = StringBuilder("⚙️ <b>Активные фоновые операции (${ops.size}):</b>\n\n")
+        val sb = StringBuilder(strings.bmOpsHeader(ops.size))
         val now = System.currentTimeMillis()
         for ((idx, op) in ops.withIndex()) {
             val elapsedSec = (now - op.startedAtMs) / 1000
             sb.append("${idx + 1}. <b>${op.name}</b> (id: <code>${op.id}</code>)\n")
-            sb.append("   • Длительность: ${elapsedSec}s\n")
+            sb.append(strings.bmOpDuration(elapsedSec) + "\n")
             if (op.description.isNotBlank()) {
-                sb.append("   • Инфо: ${op.description}\n")
+                sb.append(strings.bmOpInfo(op.description) + "\n")
             }
         }
-        sb.append("\nДля экстренной остановки используйте /stop_all")
+        sb.append(strings.bmStopHint())
         return CommandResult.Text(sb.toString())
     }
 
     private fun handleStopAll(): CommandResult {
         val count = operationsTracker.cancelAll()
-        logger.w("TaskManager", "Экстренная остановка фоновых операций через /stop_all (остановлено: $count)")
-        return CommandResult.Text("🛑 Прервано активных фоновых операций: <b>$count</b>")
+        logger.w("TaskManager", "Emergency stop of background operations via /stop_all (stopped: $count)")
+        return CommandResult.Text(strings.bmStopped(count))
     }
 
     private fun handleLog(args: List<String>): CommandResult {
@@ -97,13 +121,13 @@ class BotManagementCommandsHandler(
 
         val entries = logger.getFiltered(count = linesCount, minLevel = levelArg)
         if (entries.isEmpty()) {
-            val filterNote = if (levelArg != null) " с уровнем >= $levelArg" else ""
-            return CommandResult.Text("📜 Журнал логов пуст$filterNote.")
+            val filterNote = if (levelArg != null) strings.bmLogFilterNote(levelArg.toString()) else ""
+            return CommandResult.Text(strings.bmLogEmpty(filterNote))
         }
 
         val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        val levelHeader = if (levelArg != null) " (уровень >= $levelArg)" else ""
-        val sb = StringBuilder("📜 <b>Последние ${entries.size} записей лога$levelHeader:</b>\n\n")
+        val levelHeader = if (levelArg != null) strings.bmLogLevelHeader(levelArg.toString()) else ""
+        val sb = StringBuilder(strings.bmLogHeader(entries.size, levelHeader))
         for (e in entries) {
             val icon =
                 when (e.level) {
@@ -116,44 +140,36 @@ class BotManagementCommandsHandler(
             val time = dateFormat.format(Date(e.timestampMs))
             sb.append("$icon <code>$time</code> [${e.tag}] ${e.message}\n")
         }
-        sb.append("\n<i>Использование: /log [N] [TRACE|DEBUG|INFO|WARN|ERROR]</i>")
+        sb.append(strings.bmLogUsage())
         return CommandResult.Text(sb.toString())
     }
 
     private fun handleUnsentFiles(): CommandResult =
-        CommandResult.Text("📁 <b>Очередь неотправленных файлов:</b>\nОчередь пуста. Все файлы доставлены.")
+        CommandResult.Text(strings.bmUnsentEmpty())
 
     private fun handleBotStatus(): CommandResult {
         val cfg = botConfigRepository.config.value
-        val tgStatus = if (cfg.telegramBotEnabled) "✅ Активен" else "❌ Выключен"
-        val smsStatus = if (cfg.smsBotEnabled) "✅ Активен" else "❌ Выключен"
+        val tgStatus = if (cfg.telegramBotEnabled) strings.bmActive() else strings.bmDisabled()
+        val smsStatus = if (cfg.smsBotEnabled) strings.bmActive() else strings.bmDisabled()
         val targetsCount = cfg.smsForwardTargetNumbers.size
         return CommandResult.Text(
-            """
-            🤖 <b>Статус каналов и пересылки Remote Bot:</b>
-            
-            • <b>Telegram Бот:</b> $tgStatus (режим: <code>${cfg.connectionMode}</code>)
-              - Пересылка SMS: ${if (cfg.tgForwardSmsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Пересылка звонков: ${if (cfg.tgForwardCallsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Пересылка Push: ${if (cfg.tgForwardNotificationsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Статус зарядки/питания: ${if (cfg.tgForwardBatteryChargingEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Низкий заряд (≤20% каждые 3%): ${if (cfg.tgForwardBatteryLowEnabled) "Вкл ✅" else "Выкл ❌"}
-            
-            • <b>SMS Бот:</b> $smsStatus
-              - Пересылка SMS: ${if (cfg.smsForwardSmsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Пересылка звонков: ${if (cfg.smsForwardMissedCallsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Пересылка Push: ${if (cfg.smsForwardNotificationsEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Статус зарядки/питания: ${if (cfg.smsForwardBatteryChargingEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Низкий заряд (≤20% каждые 3%): ${if (cfg.smsForwardBatteryLowEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Транслитерация: ${if (cfg.smsTransliterationEnabled) "Вкл ✅" else "Выкл ❌"}
-              - Номеров пересылки: $targetsCount
-            
-            <i>Управление:</i>
-            <code>/tg_bot [on|off]</code> — включить/выключить Telegram
-            <code>/sms_bot [on|off]</code> — включить/выключить SMS канал
-            <code>/tg_forward [sms|calls|push|battery_charge|battery_low|battery] [on|off]</code> — пересылка в Telegram
-            <code>/sms_forward [on|off|missed|push|battery_charge|battery_low|battery|translit]</code> — пересылка по SMS
-            """.trimIndent(),
+            strings.bmStatusPanel(
+                    tgStatus,
+                    cfg.connectionMode.toString(),
+                    smsStatus,
+                    if (cfg.tgForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsForwardMissedCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.smsTransliterationEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    targetsCount,
+                ),
         )
     }
 
@@ -161,22 +177,13 @@ class BotManagementCommandsHandler(
         val cfg = botConfigRepository.config.value
         if (args.isEmpty() || args[0].equals("status", ignoreCase = true)) {
             return CommandResult.Text(
-                """
-                ✈️ <b>Пересылка событий в Telegram:</b>
-                • Входящие SMS: ${if (cfg.tgForwardSmsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Звонки: ${if (cfg.tgForwardCallsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Push-уведомления: ${if (cfg.tgForwardNotificationsEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Статус зарядки и питания: ${if (cfg.tgForwardBatteryChargingEnabled) "Вкл ✅" else "Выкл ❌"}
-                • Низкий заряд (≤20% каждые 3%): ${if (cfg.tgForwardBatteryLowEnabled) "Вкл ✅" else "Выкл ❌"}
-                
-                <i>Управление:</i>
-                <code>/tg_forward sms on|off</code> — пересылка SMS в Telegram
-                <code>/tg_forward calls on|off</code> — пересылка звонков в Telegram
-                <code>/tg_forward push on|off</code> — пересылка Push в Telegram
-                <code>/tg_forward battery_charge on|off</code> — оповещения о подключении/отключении ЗУ
-                <code>/tg_forward battery_low on|off</code> — оповещения о разряде батареи (≤20% каждые 3%)
-                <code>/tg_forward battery on|off</code> — вкл/выкл все оповещения батареи
-                """.trimIndent(),
+                strings.bmTgForwardPanel(
+                    if (cfg.tgForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                    if (cfg.tgForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                ),
             )
         }
         val type = args[0].lowercase()
@@ -185,23 +192,23 @@ class BotManagementCommandsHandler(
         return when (type) {
             "sms" -> {
                 botConfigRepository.updateConfig { it.copy(tgForwardSmsEnabled = enable) }
-                CommandResult.Text("Пересылка входящих SMS в Telegram: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.bmFwdTgSms(if (enable) strings.bmEnabledFem() else strings.bmDisabledFem()))
             }
             "call", "calls" -> {
                 botConfigRepository.updateConfig { it.copy(tgForwardCallsEnabled = enable) }
-                CommandResult.Text("Пересылка звонков в Telegram: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.bmFwdTgCalls(if (enable) strings.bmEnabledFem() else strings.bmDisabledFem()))
             }
             "push", "notifications" -> {
                 botConfigRepository.updateConfig { it.copy(tgForwardNotificationsEnabled = enable) }
-                CommandResult.Text("Пересылка Push-уведомлений в Telegram: ${if (enable) "Включена ✅" else "Отключена ⏹"}")
+                CommandResult.Text(strings.bmFwdTgPush(if (enable) strings.bmEnabledFem() else strings.bmDisabledFem()))
             }
             "battery_charge", "charge", "charging" -> {
                 botConfigRepository.updateConfig { it.copy(tgForwardBatteryChargingEnabled = enable) }
-                CommandResult.Text("Оповещения о статусе зарядки и питания в Telegram: ${if (enable) "Включены ✅" else "Отключены ⏹"}")
+                CommandResult.Text(strings.bmFwdTgCharge(if (enable) strings.bmEnabledPlur() else strings.bmDisabledPlur()))
             }
             "battery_low", "low_battery", "low" -> {
                 botConfigRepository.updateConfig { it.copy(tgForwardBatteryLowEnabled = enable) }
-                CommandResult.Text("Оповещения о низком заряде (≤20% каждые 3%) в Telegram: ${if (enable) "Включены ✅" else "Отключены ⏹"}")
+                CommandResult.Text(strings.bmFwdTgLow(if (enable) strings.bmEnabledPlur() else strings.bmDisabledPlur()))
             }
             "battery" -> {
                 botConfigRepository.updateConfig {
@@ -210,11 +217,11 @@ class BotManagementCommandsHandler(
                         tgForwardBatteryLowEnabled = enable,
                     )
                 }
-                CommandResult.Text("Все оповещения о батарее и зарядке в Telegram: ${if (enable) "Включены ✅" else "Отключены ⏹"}")
+                CommandResult.Text(strings.bmFwdTgBattery(if (enable) strings.bmEnabledPlur() else strings.bmDisabledPlur()))
             }
             else ->
                 CommandResult.Error(
-                    "Неизвестный тип. Доступны: sms, calls, push, battery_charge, battery_low, battery. Пример: <code>/tg_forward battery_low on</code>",
+                    strings.bmTgForwardUnknownType(),
                 )
         }
     }
@@ -222,9 +229,9 @@ class BotManagementCommandsHandler(
     private suspend fun handleTgBot(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             val isEnabled = botConfigRepository.config.value.telegramBotEnabled
-            val state = if (isEnabled) "включен ✅" else "выключен ❌"
+            val state = if (isEnabled) strings.bmStateOn() else strings.bmStateOff()
             return CommandResult.Text(
-                "🤖 <b>Telegram-бот</b> сейчас $state.\nИспользуйте: <code>/tg_bot on</code> или <code>/tg_bot off</code>",
+                strings.bmTgBotState(state),
             )
         }
         val target =
@@ -232,19 +239,19 @@ class BotManagementCommandsHandler(
                 "on", "1", "true", "start", "enable" -> true
                 "off", "0", "false", "stop", "disable" -> false
                 "toggle" -> !botConfigRepository.config.value.telegramBotEnabled
-                else -> return CommandResult.Error("Формат: <code>/tg_bot on</code> или <code>/tg_bot off</code>")
+                else -> return CommandResult.Error(strings.bmTgBotUsage())
             }
         botConfigRepository.updateConfig { it.copy(telegramBotEnabled = target) }
-        val res = if (target) "включен ✅ (прием команд возобновлен)" else "выключен ❌ (опрос команд приостановлен)"
-        return CommandResult.Text("🤖 <b>Telegram-бот</b> $res")
+        val res = if (target) strings.bmTgOnRes() else strings.bmTgOffRes()
+        return CommandResult.Text(strings.bmTgBotResult(res))
     }
 
     private suspend fun handleSmsBot(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             val isEnabled = botConfigRepository.config.value.smsBotEnabled
-            val state = if (isEnabled) "включен ✅" else "выключен ❌"
+            val state = if (isEnabled) strings.bmStateOn() else strings.bmStateOff()
             return CommandResult.Text(
-                "💬 <b>SMS-бот</b> сейчас $state.\nИспользуйте: <code>/sms_bot on</code> или <code>/sms_bot off</code>",
+                strings.bmSmsBotState(state),
             )
         }
         val target =
@@ -252,23 +259,23 @@ class BotManagementCommandsHandler(
                 "on", "1", "true", "start", "enable" -> true
                 "off", "0", "false", "stop", "disable" -> false
                 "toggle" -> !botConfigRepository.config.value.smsBotEnabled
-                else -> return CommandResult.Error("Формат: <code>/sms_bot on</code> или <code>/sms_bot off</code>")
+                else -> return CommandResult.Error(strings.bmSmsBotUsage())
             }
         botConfigRepository.updateConfig { it.copy(smsBotEnabled = target) }
-        val res = if (target) "включен ✅ (прием SMS команд и пересылка активны)" else "выключен ❌ (сотовая отправка отключена)"
-        return CommandResult.Text("💬 <b>SMS-бот</b> $res")
+        val res = if (target) strings.bmSmsOnRes() else strings.bmSmsOffRes()
+        return CommandResult.Text(strings.bmSmsBotResult(res))
     }
 
     private suspend fun handleBotToggle(args: List<String>): CommandResult {
         if (args.isEmpty()) {
-            return CommandResult.Error("Формат: <code>/bot_toggle &lt;tg|sms&gt; [on|off]</code>")
+            return CommandResult.Error(strings.bmBotToggleUsage())
         }
         val channel = args[0].lowercase()
         val rest = if (args.size > 1) args.subList(1, args.size) else emptyList()
         return when (channel) {
             "tg", "telegram" -> handleTgBot(rest)
             "sms" -> handleSmsBot(rest)
-            else -> CommandResult.Error("Неизвестный канал: $channel. Доступны: tg, sms")
+            else -> CommandResult.Error(strings.bmUnknownChannel(channel))
         }
     }
 }

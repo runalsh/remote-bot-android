@@ -15,6 +15,7 @@ import android.os.Environment
 import android.os.StatFs
 import android.os.SystemClock
 import com.remotebot.core.common.logger.AppLogger
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
@@ -36,14 +37,9 @@ class SystemInfoCommandsHandler(
     private val rootStatusProvider: RootStatusProvider,
     private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
-    private fun isEnglish(): Boolean {
-        val lang = botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO
-        return when (lang) {
-            BotLanguage.EN -> true
-            BotLanguage.RU -> false
-            BotLanguage.AUTO -> !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
-        }
-    }
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "system_info",
@@ -61,7 +57,7 @@ class SystemInfoCommandsHandler(
             "battery" -> handleBattery()
             "network" -> handleNetwork()
             "uptime" -> handleUptime()
-            else -> CommandResult.Error("Неизвестная команда системной информации: $cmd")
+            else -> CommandResult.Error(strings.siUnknownCmd(cmd))
         }
     }
 
@@ -101,9 +97,9 @@ class SystemInfoCommandsHandler(
                 val hours = TimeUnit.MILLISECONDS.toHours(uptimeMs) % 24
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMs) % 60
                 val uptimeStr = if (days > 0) {
-                    if (isEnglish()) "${days}d ${hours}h ${minutes}m" else "${days}д ${hours}ч ${minutes}м"
+                    strings.siUptimeDays(days, hours, minutes)
                 } else {
-                    if (isEnglish()) "${hours}h ${minutes}m" else "${hours}ч ${minutes}м"
+                    strings.siUptimeHours(hours, minutes)
                 }
 
                 val localIp = SystemControlUtils.getLocalIpAddress() ?: "127.0.0.1"
@@ -113,60 +109,38 @@ class SystemInfoCommandsHandler(
                 val netType =
                     when {
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> "Wi-Fi"
-                        caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "Мобильная сеть (LTE/5G)"
+                        caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> strings.siNetCellular()
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "Ethernet"
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true -> "VPN"
-                        else -> "Отключена"
+                        else -> strings.siNetOff()
                     }
 
                 val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
                 val sensorsCount = sensorManager?.getSensorList(Sensor.TYPE_ALL)?.size ?: 0
 
                 val isRoot = SystemControlUtils.isRootGranted(rootStatusProvider)
-                val rootStr = if (isRoot) "🟢 Предоставлен (UID 0)" else "🔴 Нет / Отказано"
+                val rootStr = if (isRoot) strings.siRootGranted() else strings.siRootDenied()
 
                 val text =
-                    """
-                    📱 <b>Сводка системы (System Info)</b>
-                    
-                    <b>Устройство:</b>
-                    • Модель: <code>$model</code>
-                    • ОС: <code>$androidVer</code>
-                    • Сборка: <code>$buildId</code>
-                    • Патч безопасности: <code>$securityPatch</code>
-                    • Root доступ: <b>$rootStr</b>
-                    • Аптайм: <code>$uptimeStr</code>
-                    
-                    <b>Аппаратная часть:</b>
-                    • CPU: <code>$cpuCores ядер ($abis)</code>
-                    • RAM: <code>$usedRamMb / $totalRamMb МБ ($ramPercent% занято)</code>
-                    • ROM: <code>$availRomGb ГБ свободно из $totalRomGb ГБ</code>
-                    • Экран: <code>$displayRes</code>
-                    • Датчики: <code>$sensorsCount доступно</code>
-                    
-                    <b>Связь и Сеть:</b>
-                    • Тип подключения: <code>$netType</code>
-                    • Локальный IP: <code>$localIp</code>
-                    """.trimIndent()
+                    strings.siSummary(model, androidVer, buildId, securityPatch, rootStr, uptimeStr, cpuCores, abis, usedRamMb, totalRamMb, ramPercent.toInt(), availRomGb, totalRomGb, displayRes, sensorsCount, netType, localIp)
 
-                val isEn = isEnglish()
                 val keyboard =
                     InlineKeyboardMarkup(
                         listOf(
                             listOf(
-                                InlineKeyboardButton(if (isEn) "🎛 Toggles" else "🎛 Панель переключателей", "/toggles"),
-                                InlineKeyboardButton(if (isEn) "🔋 Battery" else "🔋 Батарея", "/battery"),
+                                InlineKeyboardButton(strings.siBtnTogglesPanel(), "/toggles"),
+                                InlineKeyboardButton(strings.siBtnBattery(), "/battery"),
                             ),
                             listOf(
-                                InlineKeyboardButton(if (isEn) "🌐 Network Interfaces" else "🌐 Сетевые интерфейсы", "/network"),
+                                InlineKeyboardButton(strings.siBtnNetworkInterfaces(), "/network"),
                             ),
                         ),
                     )
 
                 CommandResult.Text(text, keyboard)
             } catch (e: Exception) {
-                logger.e("SystemControl", "Ошибка сбора system_info: ${e.localizedMessage}", e)
-                CommandResult.Error("Ошибка получения системной информации: ${e.localizedMessage}")
+                logger.e("SystemControl", "system_info collection error: ${e.localizedMessage}", e)
+                CommandResult.Error(strings.siSysInfoError(e.localizedMessage ?: ""))
             }
         }
 
@@ -176,7 +150,7 @@ class SystemInfoCommandsHandler(
             val batteryStatus = context.registerReceiver(null, intentFilter)
 
             if (batteryStatus == null) {
-                return CommandResult.Error("Не удалось прочитать состояние батареи.")
+                return CommandResult.Error(strings.siBatteryReadError())
             }
 
             val level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
@@ -186,35 +160,40 @@ class SystemInfoCommandsHandler(
             val status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
             val statusStr =
                 when (status) {
-                    BatteryManager.BATTERY_STATUS_CHARGING -> "⚡ Заряжается"
-                    BatteryManager.BATTERY_STATUS_DISCHARGING -> "🔋 Разряжается"
-                    BatteryManager.BATTERY_STATUS_FULL -> "🟢 Полный заряд (100%)"
-                    BatteryManager.BATTERY_STATUS_NOT_CHARGING -> "⚪ Не заряжается"
-                    else -> "Неизвестно"
+                    BatteryManager.BATTERY_STATUS_CHARGING -> strings.siBatCharging()
+                    BatteryManager.BATTERY_STATUS_DISCHARGING -> strings.siBatDischarging()
+                    BatteryManager.BATTERY_STATUS_FULL -> strings.siBatFull()
+                    BatteryManager.BATTERY_STATUS_NOT_CHARGING -> strings.siBatNotCharging()
+                    else -> strings.siBatUnknown()
                 }
 
             val chargePlug = batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1)
             val plugStr =
                 when (chargePlug) {
-                    BatteryManager.BATTERY_PLUGGED_AC -> "Сеть 220V (AC)"
-                    BatteryManager.BATTERY_PLUGGED_USB -> "USB порт"
-                    BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Беспроводная зарядка"
-                    else -> "От батареи (без кабеля)"
+                    BatteryManager.BATTERY_PLUGGED_AC -> strings.siPlugAc()
+                    BatteryManager.BATTERY_PLUGGED_USB -> strings.siPlugUsb()
+                    BatteryManager.BATTERY_PLUGGED_WIRELESS -> strings.siPlugWireless()
+                    else -> strings.siPlugBattery()
                 }
 
             val health = batteryStatus.getIntExtra(BatteryManager.EXTRA_HEALTH, -1)
             val healthStr =
                 when (health) {
-                    BatteryManager.BATTERY_HEALTH_GOOD -> "✅ Отличное (Good)"
-                    BatteryManager.BATTERY_HEALTH_OVERHEAT -> "🔥 Перегрев (Overheat)"
-                    BatteryManager.BATTERY_HEALTH_DEAD -> "💀 Неисправна (Dead)"
-                    BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE -> "⚠️ Перенапряжение"
-                    BatteryManager.BATTERY_HEALTH_COLD -> "❄️ Переохлаждение"
-                    else -> "Нормальное"
+                    BatteryManager.BATTERY_HEALTH_GOOD -> strings.siHealthGood()
+                    BatteryManager.BATTERY_HEALTH_OVERHEAT -> strings.siHealthOverheat()
+                    BatteryManager.BATTERY_HEALTH_DEAD -> strings.siHealthDead()
+                    BatteryManager.BATTERY_HEALTH_OVER_VOLTAGE -> strings.siHealthOverVoltage()
+                    BatteryManager.BATTERY_HEALTH_COLD -> strings.siHealthCold()
+                    else -> strings.siHealthNormal()
                 }
 
             val voltage = batteryStatus.getIntExtra(BatteryManager.EXTRA_VOLTAGE, -1)
-            val voltageStr = if (voltage > 0) String.format(Locale.US, "%.2f В (%d мВ)", voltage / 1000.0, voltage) else "N/A"
+            val voltageStr =
+                if (voltage > 0) {
+                    strings.siVoltage(String.format(Locale.US, "%.2f", voltage / 1000.0), voltage)
+                } else {
+                    strings.siNA()
+                }
 
             val temperature = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, -1)
             val tempStr = if (temperature > 0) String.format(Locale.US, "%.1f °C", temperature / 10.0) else "N/A"
@@ -231,39 +210,24 @@ class SystemInfoCommandsHandler(
                 }
 
             val text =
-                """
-                $icon <b>Состояние аккумулятора (Battery)</b>
-                
-                • Уровень заряда: <b>$batteryPct%</b>
-                • Статус: <b>$statusStr</b>
-                • Источник питания: <code>$plugStr</code>
-                • Температура: <code>$tempStr</code>
-                • Напряжение: <code>$voltageStr</code>
-                • Здоровье батареи: <code>$healthStr</code>
-                • Технология: <code>$technology</code>
-                """.trimIndent()
+                strings.siBatteryBlock(icon, batteryPct, statusStr, plugStr, tempStr, voltageStr, healthStr, technology)
 
             val isPowerSave = SystemControlUtils.isPowerSaveModeOn(context)
-            val isEn = isEnglish()
-            val powerSaveText = if (isEn) {
-                if (isPowerSave) "🔋 Battery Saver [ON]" else "🔋 Battery Saver [OFF]"
-            } else {
-                if (isPowerSave) "🔋 Энергосбережение [ВКЛ]" else "🔋 Энергосбережение [ВЫКЛ]"
-            }
+            val powerSaveText = if (isPowerSave) strings.siPowerSaveOn() else strings.siPowerSaveOff()
             val keyboard =
                 InlineKeyboardMarkup(
                     listOf(
                         listOf(
                             InlineKeyboardButton(powerSaveText, "/powersave toggle"),
-                            InlineKeyboardButton(if (isEn) "🔄 Refresh" else "🔄 Обновить", "/battery"),
+                            InlineKeyboardButton(strings.siBtnRefresh(), "/battery"),
                         ),
                     ),
                 )
 
             return CommandResult.Text(text, keyboard)
         } catch (e: Exception) {
-            logger.e("SystemControl", "Ошибка считывания батареи: ${e.localizedMessage}", e)
-            return CommandResult.Error("Сбой чтения параметров батареи: ${e.localizedMessage}")
+            logger.e("SystemControl", "Battery read error: ${e.localizedMessage}", e)
+            return CommandResult.Error(strings.siBatParamsError(e.localizedMessage ?: ""))
         }
     }
 
@@ -273,7 +237,7 @@ class SystemInfoCommandsHandler(
             try {
                 val interfaces = NetworkInterface.getNetworkInterfaces()?.toList() ?: emptyList()
                 if (interfaces.isEmpty()) {
-                    return@withContext CommandResult.Text("🌐 <b>Сетевые интерфейсы не найдены.</b>")
+                    return@withContext CommandResult.Text(strings.siNoInterfaces())
                 }
 
                 val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -284,17 +248,17 @@ class SystemInfoCommandsHandler(
                 val activeTransport =
                     when {
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true -> "Wi-Fi 📶"
-                        caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> "Мобильная сеть (LTE/5G) 📱"
+                        caps?.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) == true -> strings.siIfaceCellular()
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) == true -> "Ethernet 🔌"
                         caps?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true -> "VPN 🔒"
-                        else -> "Отсутствует ⚪"
+                        else -> strings.siIfaceAbsent()
                     }
 
                 val dnsList = linkProps?.dnsServers?.mapNotNull { it.hostAddress }?.joinToString(", ") ?: "N/A"
 
                 val sb = StringBuilder()
-                sb.append("🌐 <b>Сетевые интерфейсы устройства</b>\n\n")
-                sb.append("• <b>Основное подключение:</b> $activeTransport\n")
+                sb.append(strings.siNetTitle())
+                sb.append(strings.siNetPrimary(activeTransport))
                 if (dnsList.isNotBlank() && dnsList != "N/A") {
                     sb.append("• <b>DNS:</b> <code>$dnsList</code>\n")
                 }
@@ -357,35 +321,34 @@ class SystemInfoCommandsHandler(
                         sb.append("  • IPv6: <code>${ipv6List.take(2).joinToString(", ")}</code>\n")
                     }
                     if (ipv4List.isEmpty() && ipv6List.isEmpty()) {
-                        sb.append("  • IP: <i>нет адресов</i>\n")
+                        sb.append(strings.siNoAddresses())
                     }
                     sb.append("\n")
                 }
 
-                logger.i("SystemControl", "Сбор сетевых интерфейсов выполнен (/network), найдено: ${interfaces.size}")
+                logger.i("SystemControl", "Network interfaces collected (/network), found: ${interfaces.size}")
                 val keyboard =
                     InlineKeyboardMarkup(
                         listOf(
                             listOf(
                                 InlineKeyboardButton("📶 Wi-Fi", "/wifi"),
-                                InlineKeyboardButton("📱 Моб. данные", "/mobile_data"),
+                                InlineKeyboardButton(strings.siBtnMobileData(), "/mobile_data"),
                             ),
                             listOf(
-                                InlineKeyboardButton("🔄 Обновить", "/network"),
+                                InlineKeyboardButton(strings.siBtnRefresh(), "/network"),
                             ),
                         ),
                     )
                 CommandResult.Text(sb.toString().trimEnd(), keyboard)
             } catch (e: Exception) {
-                logger.e("SystemControl", "Ошибка сбора сетевых интерфейсов: ${e.localizedMessage}", e)
-                CommandResult.Error("Сбой получения сетевых интерфейсов: ${e.localizedMessage}")
+                logger.e("SystemControl", "Network interfaces collection error: ${e.localizedMessage}", e)
+                CommandResult.Error(strings.siNetError(e.localizedMessage ?: ""))
             }
         }
 
     private fun handleUptime(): CommandResult {
-        val isEn = isEnglish()
         val osUptimeMs = SystemClock.elapsedRealtime()
-        val osUptimeStr = formatDuration(osUptimeMs, isEn)
+        val osUptimeStr = formatDuration(osUptimeMs)
 
         val appUptimeMs =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -394,29 +357,17 @@ class SystemInfoCommandsHandler(
             } else {
                 0L
             }
-        val appUptimeStr = if (appUptimeMs > 0) formatDuration(appUptimeMs, isEn) else (if (isEn) "N/A" else "Н/Д")
+        val appUptimeStr = if (appUptimeMs > 0) formatDuration(appUptimeMs) else strings.siNA()
 
         val text =
-            buildString {
-                if (isEn) {
-                    appendLine("⏱️ <b>Continuous Uptime</b>")
-                    appendLine()
-                    appendLine("🤖 <b>Bot Service:</b> <code>$appUptimeStr</code>")
-                    appendLine("📱 <b>Android System:</b> <code>$osUptimeStr</code>")
-                } else {
-                    appendLine("⏱️ <b>Время непрерывной работы (Uptime)</b>")
-                    appendLine()
-                    appendLine("🤖 <b>Служба бота:</b> <code>$appUptimeStr</code>")
-                    appendLine("📱 <b>Система Android:</b> <code>$osUptimeStr</code>")
-                }
-            }.trimEnd()
+            strings.siUptimeText(appUptimeStr, osUptimeStr)
 
         val keyboard =
             InlineKeyboardMarkup(
                 listOf(
                     listOf(
-                        InlineKeyboardButton(if (isEn) "📊 Status" else "📊 Статус", "/status"),
-                        InlineKeyboardButton(if (isEn) "🎛️ Toggles" else "🎛️ Переключатели", "/toggles"),
+                        InlineKeyboardButton(strings.siBtnStatus(), "/status"),
+                        InlineKeyboardButton(strings.siBtnToggles(), "/toggles"),
                     ),
                 ),
             )
@@ -424,17 +375,17 @@ class SystemInfoCommandsHandler(
         return CommandResult.Text(text, keyboard)
     }
 
-    private fun formatDuration(millis: Long, isEn: Boolean = false): String {
+    private fun formatDuration(millis: Long): String {
         if (millis <= 0) return "—"
         val seconds = millis / 1000
         val days = seconds / 86400
         val hours = (seconds % 86400) / 3600
         val minutes = (seconds % 3600) / 60
         val secs = seconds % 60
-        val dUnit = if (isEn) "d " else "д "
-        val hUnit = if (isEn) "h " else "ч "
-        val mUnit = if (isEn) "m " else "м "
-        val sUnit = if (isEn) "s" else "с"
+        val dUnit = strings.siUnitD()
+        val hUnit = strings.siUnitH()
+        val mUnit = strings.siUnitM()
+        val sUnit = strings.siUnitS()
         return buildString {
             if (days > 0) append("$days$dUnit")
             if (hours > 0) append("$hours$hUnit")

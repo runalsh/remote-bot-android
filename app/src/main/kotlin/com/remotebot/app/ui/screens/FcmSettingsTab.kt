@@ -27,6 +27,8 @@ import com.remotebot.app.ui.screens.push.HmsHuaweiSection
 import com.remotebot.app.ui.screens.push.PushGatewaySection
 import com.remotebot.app.ui.screens.push.PushServersPoolCard
 import com.remotebot.app.ui.theme.AppColors
+import androidx.compose.ui.res.stringResource
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.core.push.DynamicHmsManager
@@ -99,12 +101,12 @@ fun FcmSettingsTab(
                     context.contentResolver.openInputStream(it)?.use { stream ->
                         val content = stream.bufferedReader().readText()
                         googleJsonText = content
-                        logger.i("FCM", "Загружен файл google-services.json (${content.length} симв.)")
-                        Toast.makeText(context, "Файл google-services.json загружен", Toast.LENGTH_SHORT).show()
+                        logger.i("FCM", "google-services.json loaded (${content.length} chars)")
+                        Toast.makeText(context, context.getString(R.string.fcm_toast_google_loaded), Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    logger.e("FCM", "Ошибка чтения google-services.json: ${e.message}", e)
-                    Toast.makeText(context, "Ошибка чтения файла: ${e.message}", Toast.LENGTH_SHORT).show()
+                    logger.e("FCM", "google-services.json read error: ${e.message}", e)
+                    Toast.makeText(context, context.getString(R.string.fcm_toast_read_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -119,12 +121,12 @@ fun FcmSettingsTab(
                     context.contentResolver.openInputStream(it)?.use { stream ->
                         val content = stream.bufferedReader().readText()
                         hmsJsonText = content
-                        logger.i("HMS", "Загружен файл agconnect-services.json (${content.length} симв.)")
-                        Toast.makeText(context, "Файл agconnect-services.json загружен", Toast.LENGTH_SHORT).show()
+                        logger.i("HMS", "agconnect-services.json loaded (${content.length} chars)")
+                        Toast.makeText(context, context.getString(R.string.fcm_toast_agconnect_loaded), Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    logger.e("HMS", "Ошибка чтения agconnect-services.json: ${e.message}", e)
-                    Toast.makeText(context, "Ошибка чтения файла: ${e.message}", Toast.LENGTH_SHORT).show()
+                    logger.e("HMS", "agconnect-services.json read error: ${e.message}", e)
+                    Toast.makeText(context, context.getString(R.string.fcm_toast_read_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -177,7 +179,7 @@ fun FcmSettingsTab(
                                         ),
                             )
                             Text(
-                                text = "Режим Push Wakeup (Пробуждение)",
+                                text = stringResource(R.string.fcm_wakeup_mode),
                                 fontWeight = FontWeight.Bold,
                                 style = MaterialTheme.typography.titleMedium,
                             )
@@ -186,9 +188,9 @@ fun FcmSettingsTab(
                         Text(
                             text =
                                 if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
-                                    "🟢 АКТИВЕН: Бот спит и просыпается по входящим пушам (экономия 99% батареи)"
+                                    stringResource(R.string.push_status_active)
                                 } else {
-                                    "⚪ ВЫКЛЮЧЕН: Активен постоянный фоновый Long Polling в Telegram"
+                                    stringResource(R.string.push_status_inactive)
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color =
@@ -207,7 +209,7 @@ fun FcmSettingsTab(
                             connectionMode = target
                             scope.launch {
                                 configRepo.updateConfig { it.copy(connectionMode = target) }
-                                logger.i("Push", "Переключен режим доставки: $target")
+                                logger.i("Push", "Delivery mode switched: $target")
                             }
                         },
                     )
@@ -222,12 +224,12 @@ fun FcmSettingsTab(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "🔔 Провайдер Push-уведомлений",
+                    text = stringResource(R.string.fcm_provider_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                 )
                 Text(
-                    text = "Выберите активную службу доставки пушей. Можно использовать FCM, HMS или оба канала одновременно:",
+                    text = stringResource(R.string.fcm_provider_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -317,7 +319,7 @@ fun PushProviderSegmentedSlider(
         listOf(
             PushProvider.FCM to "🔥 Google FCM",
             PushProvider.HMS to "🦅 Huawei HMS",
-            PushProvider.HYBRID to "⚡ Гибридный",
+            PushProvider.HYBRID to stringResource(R.string.fcm_provider_hybrid),
         )
     val selectedIndex =
         when (selectedProvider) {

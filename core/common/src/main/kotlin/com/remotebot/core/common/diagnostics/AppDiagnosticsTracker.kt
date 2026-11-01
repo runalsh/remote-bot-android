@@ -46,7 +46,7 @@ object AppDiagnosticsTracker {
     private val networkEvents = ConcurrentLinkedQueue<NetworkEvent>()
     private val authFailureEvents = ConcurrentLinkedQueue<AuthFailureEvent>()
 
-    private const val RETENTION_WINDOW_MS = 3600_000L // 1 час максимальная история
+    private const val RETENTION_WINDOW_MS = 3600_000L // 1 hour max history
 
     private val _metricsSnapshot = MutableStateFlow(buildSnapshot())
     val metricsSnapshot: StateFlow<DebugMetricsSnapshot> = _metricsSnapshot.asStateFlow()
@@ -139,11 +139,11 @@ object AppDiagnosticsTracker {
         val now = System.currentTimeMillis()
         val uptime = now - appStartTimeMs
 
-        val w5m = aggregateWindow("5 минут", 5 * 60_000L, now)
-        val w15m = aggregateWindow("15 минут", 15 * 60_000L, now)
-        val w30m = aggregateWindow("30 минут", 30 * 60_000L, now)
-        val w1h = aggregateWindow("1 час", 60 * 60_000L, now)
-        val wSinceStart = aggregateWindow("С запуска", null, now)
+        val w5m = aggregateWindow("5m", 5 * 60_000L, now)
+        val w15m = aggregateWindow("15m", 15 * 60_000L, now)
+        val w30m = aggregateWindow("30m", 30 * 60_000L, now)
+        val w1h = aggregateWindow("1h", 60 * 60_000L, now)
+        val wSinceStart = aggregateWindow("since_start", null, now)
 
         return DebugMetricsSnapshot(
             isTrackingEnabled = isTrackingActive,
