@@ -252,22 +252,25 @@ class DefaultTelephonyRepository(
                     val lastDigits = digitsOnly.takeLast(7)
                     val phoneUri = android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_URI
                     val fallbackName =
-                        context.contentResolver.query(
-                            phoneUri,
-                            arrayOf(
-                                android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-                                android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER,
-                            ),
-                            "${android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER} LIKE ?",
-                            arrayOf("%$lastDigits%"),
-                            null,
-                        )?.use { cursor ->
-                            if (cursor.moveToFirst()) {
-                                cursor.getString(cursor.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
-                            } else {
-                                null
+                        context.contentResolver
+                            .query(
+                                phoneUri,
+                                arrayOf(
+                                    android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
+                                    android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER,
+                                ),
+                                "${android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER} LIKE ?",
+                                arrayOf("%$lastDigits%"),
+                                null,
+                            )?.use { cursor ->
+                                if (cursor.moveToFirst()) {
+                                    cursor.getString(
+                                        cursor.getColumnIndex(android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME),
+                                    )
+                                } else {
+                                    null
+                                }
                             }
-                        }
                     if (!fallbackName.isNullOrBlank()) return@withContext fallbackName
                 }
                 null

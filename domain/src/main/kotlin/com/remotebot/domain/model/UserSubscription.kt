@@ -26,4 +26,3 @@ data class UserSubscription(
             SubscriptionEventType.SYSTEM -> receiveSystem
         }
 }
-

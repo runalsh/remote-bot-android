@@ -13,8 +13,10 @@ interface BotConfigRepository {
 
     fun isPhoneAllowed(phone: String): Boolean
 
-    fun isUserSubscribedTo(userId: Long, eventType: com.remotebot.domain.model.SubscriptionEventType): Boolean =
-        config.value.isUserSubscribedTo(userId, eventType)
+    fun isUserSubscribedTo(
+        userId: Long,
+        eventType: com.remotebot.domain.model.SubscriptionEventType,
+    ): Boolean = config.value.isUserSubscribedTo(userId, eventType)
 }
 
 interface ProxyConfigRepository {

@@ -14,26 +14,25 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.remotebot.app.service.RemoteBotAccessibilityService
 import com.remotebot.app.R
+import com.remotebot.app.service.RemoteBotAccessibilityService
 import com.remotebot.app.service.RemoteBotNotificationListenerService
 import com.remotebot.app.service.RemoteBotService
 import com.remotebot.app.ui.components.AppStatusBadge
@@ -80,7 +79,6 @@ fun DebugTab(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
 
     val config by configRepo.config.collectAsState()
@@ -94,140 +92,160 @@ fun DebugTab(
     val isRootGranted by rootProvider.isRootGranted.collectAsState()
     val isRootSimulatedAbsent by rootProvider.isRootSimulatedAbsent.collectAsState()
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Debug mode header
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+        item {
+            // Debug mode header
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("🛠️", fontSize = 24.sp)
-                    Column {
-                        Text(
-                            text = stringResource(R.string.debug_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Text(
-                            text = stringResource(R.string.debug_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            configRepo.updateConfig { it.copy(isDebugModeEnabled = false) }
-                            onExitDebugMode()
-                            Toast.makeText(context, context.getString(R.string.debug_dbg_off), Toast.LENGTH_SHORT).show()
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text("🛠️", fontSize = 24.sp)
+                        Column {
+                            Text(
+                                text = stringResource(R.string.debug_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
+                                text = stringResource(R.string.debug_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError,
-                        ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                ) {
-                    Text(stringResource(R.string.debug_btn_exit), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                configRepo.updateConfig { it.copy(isDebugModeEnabled = false) }
+                                onExitDebugMode()
+                                Toast.makeText(context, context.getString(R.string.debug_dbg_off), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    ) {
+                        Text(stringResource(R.string.debug_btn_exit), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
 
-        // Block 1.5: Experimental Features Lab
-        DebugExperimentalFeaturesCard(
-            config = config,
-            configRepo = configRepo,
-        )
+        item {
+            // Block 1.5: Experimental Features Lab
+            DebugExperimentalFeaturesCard(
+                config = config,
+                configRepo = configRepo,
+            )
+        }
 
-        // Runtime analytics & metrics: Wakeups, Network connections by server, Auth errors
-        DebugDiagnosticsMetricsCard()
+        item {
+            // Runtime analytics & metrics: Wakeups, Network connections by server, Auth errors
+            DebugDiagnosticsMetricsCard()
+        }
 
-        // Block 0: System resource monitor (CPU, Memory, Network TX/RX, Disk I/O)
-        DebugResourcesProfilerCard(
-            context = context,
-            logger = logger,
-        )
+        item {
+            // Block 0: System resource monitor (CPU, Memory, Network TX/RX, Disk I/O)
+            DebugResourcesProfilerCard(
+                context = context,
+                logger = logger,
+            )
+        }
 
-        // Block 1: Notification Simulation Lab
-        DebugNotificationSimulationCard(
-            notificationRepo = notificationRepo,
-            logger = logger,
-        )
+        item {
+            // Block 1: Notification Simulation Lab
+            DebugNotificationSimulationCard(
+                notificationRepo = notificationRepo,
+                logger = logger,
+            )
+        }
 
-        // Block 2: Process & Lifecycle Inspector
-        DebugServiceAndDozeCard(
-            context = context,
-            isFgServiceRunning = isFgServiceRunning,
-            servicePid = servicePid,
-            serviceUptimeMillis = serviceUptimeMillis,
-            isNotifListenerConnected = isNotifListenerConnected,
-            eventsIntercepted = eventsIntercepted,
-            recentNotificationsCount = notificationRepo.recentNotificationsCount,
-            isAccessibilityRunning = isAccessibilityRunning,
-            logger = logger,
-        )
+        item {
+            // Block 2: Process & Lifecycle Inspector
+            DebugServiceAndDozeCard(
+                context = context,
+                isFgServiceRunning = isFgServiceRunning,
+                servicePid = servicePid,
+                serviceUptimeMillis = serviceUptimeMillis,
+                isNotifListenerConnected = isNotifListenerConnected,
+                eventsIntercepted = eventsIntercepted,
+                recentNotificationsCount = notificationRepo.recentNotificationsCount,
+                isAccessibilityRunning = isAccessibilityRunning,
+                logger = logger,
+            )
+        }
 
-        // Block 2.5: Push Gateway, FCM, HMS, and Telegram API servers dashboard
-        PushGatewayDashboardCard(
-            config = config,
-            poolManager = poolManager,
-            apiClient = apiClient,
-            logger = logger,
-        )
+        item {
+            // Block 2.5: Push Gateway, FCM, HMS, and Telegram API servers dashboard
+            PushGatewayDashboardCard(
+                config = config,
+                poolManager = poolManager,
+                apiClient = apiClient,
+                logger = logger,
+            )
+        }
 
-        // Block 3: Network & Proxy Sandbox
-        DebugNetworkInspectorCard(
-            config = config,
-            proxyRepo = proxyRepo,
-            apiClient = apiClient,
-            logger = logger,
-        )
+        item {
+            // Block 3: Network & Proxy Sandbox
+            DebugNetworkInspectorCard(
+                config = config,
+                proxyRepo = proxyRepo,
+                apiClient = apiClient,
+                logger = logger,
+            )
+        }
 
-        // Block 4: Storage & Cache Inspector
-        DebugStorageAndCacheCard(
-            notificationRepo = notificationRepo,
-            fileManagerRepo = fileManagerRepo,
-            logger = logger,
-            context = context,
-        )
+        item {
+            // Block 4: Storage & Cache Inspector
+            DebugStorageAndCacheCard(
+                notificationRepo = notificationRepo,
+                fileManagerRepo = fileManagerRepo,
+                logger = logger,
+                context = context,
+            )
+        }
 
-        // Block 5: Environment & State Controls
-        DebugEnvironmentControlsCard(
-            configRepo = configRepo,
-            proxyRepo = proxyRepo,
-            locationRepo = locationRepo,
-            rootProvider = rootProvider,
-            isRootSimulatedAbsent = isRootSimulatedAbsent,
-            logger = logger,
-        )
+        item {
+            // Block 5: Environment & State Controls
+            DebugEnvironmentControlsCard(
+                configRepo = configRepo,
+                proxyRepo = proxyRepo,
+                locationRepo = locationRepo,
+                rootProvider = rootProvider,
+                isRootSimulatedAbsent = isRootSimulatedAbsent,
+                logger = logger,
+            )
+        }
     }
 }
 
@@ -421,8 +439,14 @@ private fun DebugResourcesProfilerCard(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            MetricRow(title = stringResource(R.string.debug_cpu_cores), value = stringResource(R.string.debug_cpu_cores_val, availableCores, cpuArch))
-            MetricRow(title = stringResource(R.string.debug_jvm_threads), value = stringResource(R.string.debug_jvm_threads_val, activeThreads))
+            MetricRow(
+                title = stringResource(R.string.debug_cpu_cores),
+                value = stringResource(R.string.debug_cpu_cores_val, availableCores, cpuArch),
+            )
+            MetricRow(
+                title = stringResource(R.string.debug_jvm_threads),
+                value = stringResource(R.string.debug_jvm_threads_val, activeThreads),
+            )
             MetricRow(title = stringResource(R.string.debug_cpu_usage), value = processCpuTimeFormatted)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
@@ -583,17 +607,38 @@ private fun DebugResourcesProfilerCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = stringResource(R.string.debug_min, String.format(stringResource(R.string.debug_fmt_mb0f), memoryHistory.minOrNull() ?: 0)),
+                            text =
+                                stringResource(
+                                    R.string.debug_min,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.minOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = stringResource(R.string.debug_max, String.format(stringResource(R.string.debug_fmt_mb0f), memoryHistory.maxOrNull() ?: 0)),
+                            text =
+                                stringResource(
+                                    R.string.debug_max,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.maxOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = stringResource(R.string.debug_now, String.format(stringResource(R.string.debug_fmt_mb0f), memoryHistory.lastOrNull() ?: 0)),
+                            text =
+                                stringResource(
+                                    R.string.debug_now,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.lastOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -933,7 +978,14 @@ private fun DebugServiceAndDozeCard(
 
             StatusRow(
                 label = "NotificationListenerService",
-                status = if (isNotifListenerConnected) stringResource(R.string.debug_nls_connected) else stringResource(R.string.debug_nls_disconnected),
+                status =
+                    if (isNotifListenerConnected) {
+                        stringResource(
+                            R.string.debug_nls_connected,
+                        )
+                    } else {
+                        stringResource(R.string.debug_nls_disconnected)
+                    },
                 isOk = isNotifListenerConnected,
             )
 
@@ -951,7 +1003,14 @@ private fun DebugServiceAndDozeCard(
 
             StatusRow(
                 label = "AccessibilityService",
-                status = if (isAccessibilityRunning) stringResource(R.string.debug_a11y_active) else stringResource(R.string.debug_a11y_disabled),
+                status =
+                    if (isAccessibilityRunning) {
+                        stringResource(
+                            R.string.debug_a11y_active,
+                        )
+                    } else {
+                        stringResource(R.string.debug_a11y_disabled)
+                    },
                 isOk = isAccessibilityRunning,
             )
 
@@ -1148,7 +1207,14 @@ private fun DebugNetworkInspectorCard(
                         },
                 ) {
                     Text(
-                        text = if (proxyConfig.type != ProxyType.NONE) "Proxy: ${proxyConfig.type.name}" else stringResource(R.string.debug_direct_noproxy),
+                        text =
+                            if (proxyConfig.type !=
+                                ProxyType.NONE
+                            ) {
+                                "Proxy: ${proxyConfig.type.name}"
+                            } else {
+                                stringResource(R.string.debug_direct_noproxy)
+                            },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color =
@@ -1213,7 +1279,11 @@ private fun DebugNetworkInspectorCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.debug_direct_label), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.debug_direct_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Text(
                         text = directTestResult ?: stringResource(R.string.debug_direct_hint, activeApiRoot),
                         style = MaterialTheme.typography.bodySmall,
@@ -1284,7 +1354,9 @@ private fun DebugNetworkInspectorCard(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = proxyTestResult ?: stringResource(R.string.debug_proxy_hint, proxyConfig.host, proxyConfig.port, activeApiRoot),
+                            text =
+                                proxyTestResult
+                                    ?: stringResource(R.string.debug_proxy_hint, proxyConfig.host, proxyConfig.port, activeApiRoot),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1531,7 +1603,14 @@ private fun DebugNetworkInspectorCard(
                                 conn.outputStream.write(payload.toByteArray())
                                 val code = conn.responseCode
                                 val body = if (code == 200) conn.inputStream.bufferedReader().readText() else "HTTP $code"
-                                wakeupTestResult = if (code in 200..299) context.getString(R.string.debug_wakeup_sent, code) else context.getString(R.string.debug_http_fail, code, body)
+                                wakeupTestResult =
+                                    if (code in
+                                        200..299
+                                    ) {
+                                        context.getString(R.string.debug_wakeup_sent, code)
+                                    } else {
+                                        context.getString(R.string.debug_http_fail, code, body)
+                                    }
                                 logger.i("NetworkDebug", "Wakeup ping: $wakeupTestResult")
                             } catch (e: Exception) {
                                 wakeupTestResult = context.getString(R.string.debug_wakeup_fail, e.message)
@@ -1668,7 +1747,11 @@ private fun DebugStorageAndCacheCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stringResource(R.string.debug_echo_cache), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.debug_fmt_entries, echoCacheSize), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_entries, echoCacheSize),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
@@ -1676,7 +1759,11 @@ private fun DebugStorageAndCacheCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stringResource(R.string.debug_dedup_label), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.debug_fmt_entries, dedupCacheSize), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_entries, dedupCacheSize),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
@@ -1684,7 +1771,11 @@ private fun DebugStorageAndCacheCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stringResource(R.string.debug_unsent_label), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.debug_fmt_files, unsentFiles.size), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_files, unsentFiles.size),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
@@ -1692,7 +1783,11 @@ private fun DebugStorageAndCacheCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(stringResource(R.string.debug_logfile_label), style = MaterialTheme.typography.bodySmall)
-                Text(stringResource(R.string.debug_fmt_kb1, logSizeKb), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_kb1, logSizeKb),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
@@ -1809,7 +1904,12 @@ private fun DebugStorageAndCacheCard(
                             dumpFile.writeText(dumpContent)
                             withContext(Dispatchers.Main) {
                                 logger.i("DebugExport", "Full system dump saved: ${dumpFile.absolutePath}")
-                                Toast.makeText(context, context.getString(R.string.debug_dump_saved, dumpFile.name), Toast.LENGTH_LONG).show()
+                                Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.debug_dump_saved, dumpFile.name),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
                             }
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
@@ -1874,7 +1974,11 @@ private fun DebugEnvironmentControlsCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(R.string.debug_sim_root), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        stringResource(R.string.debug_sim_root),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                     Text(
                         text = stringResource(R.string.debug_sim_root_desc),
                         style = MaterialTheme.typography.bodySmall,
@@ -2094,4 +2198,3 @@ private fun DebugExperimentalFeaturesCard(
         }
     }
 }
-

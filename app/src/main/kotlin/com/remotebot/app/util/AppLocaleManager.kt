@@ -9,15 +9,17 @@ import com.remotebot.domain.model.BotLanguage
 import java.util.Locale
 
 object AppLocaleManager {
-    fun getLocaleForLanguage(language: BotLanguage): Locale? {
-        return when (language) {
+    fun getLocaleForLanguage(language: BotLanguage): Locale? =
+        when (language) {
             BotLanguage.EN -> Locale.ENGLISH
             BotLanguage.RU -> Locale("ru")
             BotLanguage.AUTO -> null
         }
-    }
 
-    fun applyLocale(context: Context, language: BotLanguage) {
+    fun applyLocale(
+        context: Context,
+        language: BotLanguage,
+    ) {
         val targetLocale = getLocaleForLanguage(language)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -43,7 +45,10 @@ object AppLocaleManager {
         res.updateConfiguration(config, res.displayMetrics)
     }
 
-    fun wrapContext(context: Context, language: BotLanguage): Context {
+    fun wrapContext(
+        context: Context,
+        language: BotLanguage,
+    ): Context {
         val targetLocale = getLocaleForLanguage(language) ?: return context
         val config = Configuration(context.resources.configuration)
         config.setLocale(targetLocale)

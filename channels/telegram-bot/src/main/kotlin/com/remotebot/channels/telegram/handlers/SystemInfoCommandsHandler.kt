@@ -14,8 +14,8 @@ import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.os.SystemClock
-import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
@@ -96,11 +96,12 @@ class SystemInfoCommandsHandler(
                 val days = TimeUnit.MILLISECONDS.toDays(uptimeMs)
                 val hours = TimeUnit.MILLISECONDS.toHours(uptimeMs) % 24
                 val minutes = TimeUnit.MILLISECONDS.toMinutes(uptimeMs) % 60
-                val uptimeStr = if (days > 0) {
-                    strings.siUptimeDays(days, hours, minutes)
-                } else {
-                    strings.siUptimeHours(hours, minutes)
-                }
+                val uptimeStr =
+                    if (days > 0) {
+                        strings.siUptimeDays(days, hours, minutes)
+                    } else {
+                        strings.siUptimeHours(hours, minutes)
+                    }
 
                 val localIp = SystemControlUtils.getLocalIpAddress() ?: "127.0.0.1"
                 val connManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -122,7 +123,25 @@ class SystemInfoCommandsHandler(
                 val rootStr = if (isRoot) strings.siRootGranted() else strings.siRootDenied()
 
                 val text =
-                    strings.siSummary(model, androidVer, buildId, securityPatch, rootStr, uptimeStr, cpuCores, abis, usedRamMb, totalRamMb, ramPercent.toInt(), availRomGb, totalRomGb, displayRes, sensorsCount, netType, localIp)
+                    strings.siSummary(
+                        model,
+                        androidVer,
+                        buildId,
+                        securityPatch,
+                        rootStr,
+                        uptimeStr,
+                        cpuCores,
+                        abis,
+                        usedRamMb,
+                        totalRamMb,
+                        ramPercent.toInt(),
+                        availRomGb,
+                        totalRomGb,
+                        displayRes,
+                        sensorsCount,
+                        netType,
+                        localIp,
+                    )
 
                 val keyboard =
                     InlineKeyboardMarkup(

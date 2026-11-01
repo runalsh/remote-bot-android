@@ -42,7 +42,10 @@ class BaseCommandsHandler(
         )
     override val isDestructive: Boolean = false
 
-    private val strings get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO)
+    private val strings get() =
+        TelegramBotStrings.get(
+            botConfigRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+        )
 
     override suspend fun execute(command: IncomingCommand): CommandResult {
         val cmd = command.name.lowercase().removePrefix("/")
@@ -73,7 +76,7 @@ class BaseCommandsHandler(
                 val config = botConfigRepository?.config?.value
                 val activeEndpoint = apiClient?.lastActiveEndpointUrl ?: (config?.customApiRoot ?: "https://api.telegram.org")
                 val mode = config?.connectionMode?.name ?: "LONG_POLLING"
-                
+
                 // Check ping of active Telegram API endpoint
                 val apiDiag = diagnosticManager?.checkHttpEndpoint(activeEndpoint)
                 val apiStatusStr =
@@ -162,7 +165,7 @@ class BaseCommandsHandler(
             }
             "echo" -> {
                 val text = command.args.joinToString(" ")
-                                val emptyMsg = strings.bsEchoEmpty()
+                val emptyMsg = strings.bsEchoEmpty()
                 val echoPrefix = strings.bsEchoPrefix()
                 CommandResult.Text(if (text.isBlank()) emptyMsg else "$echoPrefix$text")
             }
@@ -211,7 +214,13 @@ class BaseCommandsHandler(
                     appendLine(groupTitle)
                     for (item in list) {
                         val icon = if (item.isGranted) "✅" else "❌"
-                        appendLine(strings.bsPermLine(icon, strings.permName(item.id), if (item.isGranted) strings.statusGranted() else strings.statusDenied()))
+                        appendLine(
+                            strings.bsPermLine(
+                                icon,
+                                strings.permName(item.id),
+                                if (item.isGranted) strings.statusGranted() else strings.statusDenied(),
+                            ),
+                        )
                         val permDesc = strings.permDesc(item.id)
                         if (!item.isGranted && permDesc.isNotBlank()) {
                             appendLine("   ↳ <i>$permDesc</i>")
@@ -279,33 +288,19 @@ class BaseCommandsHandler(
         return CommandResult.Text(text, keyboard = keyboard)
     }
 
-    private fun handleCategoryBase(): CommandResult {
-        return CommandResult.Text(strings.categoryBase(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryBase(): CommandResult = CommandResult.Text(strings.categoryBase(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategoryMedia(): CommandResult {
-        return CommandResult.Text(strings.categoryMedia(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryMedia(): CommandResult = CommandResult.Text(strings.categoryMedia(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategoryComm(): CommandResult {
-        return CommandResult.Text(strings.categoryComm(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryComm(): CommandResult = CommandResult.Text(strings.categoryComm(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategoryGeoSec(): CommandResult {
-        return CommandResult.Text(strings.categoryGeoSec(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryGeoSec(): CommandResult = CommandResult.Text(strings.categoryGeoSec(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategoryFiles(): CommandResult {
-        return CommandResult.Text(strings.categoryFiles(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryFiles(): CommandResult = CommandResult.Text(strings.categoryFiles(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategorySystem(): CommandResult {
-        return CommandResult.Text(strings.categorySystem(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategorySystem(): CommandResult = CommandResult.Text(strings.categorySystem(), keyboard = createCategoryKeyboard())
 
-    private fun handleCategoryAuto(): CommandResult {
-        return CommandResult.Text(strings.categoryAuto(), keyboard = createCategoryKeyboard())
-    }
+    private fun handleCategoryAuto(): CommandResult = CommandResult.Text(strings.categoryAuto(), keyboard = createCategoryKeyboard())
 
     private fun handleFullHelp(versionDisplay: String): CommandResult {
         val isRoot = rootStatusProvider.isRootGrantedSync()
@@ -322,4 +317,3 @@ class BaseCommandsHandler(
         return CommandResult.Text(strings.fullHelp(versionDisplay, rootText), keyboard = keyboard)
     }
 }
-

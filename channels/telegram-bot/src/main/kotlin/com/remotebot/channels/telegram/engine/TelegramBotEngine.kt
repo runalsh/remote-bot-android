@@ -41,9 +41,10 @@ class TelegramBotEngine(
     private val logger: AppLogger? = null,
 ) : PushWakeupHandler {
     private val strings
-        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-            configRepository.config.value.botLanguage,
-        )
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository.config.value.botLanguage,
+            )
 
     private var pollingJob: Job? = null
     private var eventObserversJob: Job? = null

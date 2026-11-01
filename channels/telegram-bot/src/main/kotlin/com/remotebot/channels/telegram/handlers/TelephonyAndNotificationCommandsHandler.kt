@@ -1,13 +1,13 @@
 package com.remotebot.channels.telegram.handlers
 
-import com.remotebot.domain.repository.BotConfigRepository
-import com.remotebot.domain.model.BotLanguage
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CallType
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.NotificationRule
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.repository.NotificationRepository
 import com.remotebot.domain.repository.TelephonyRepository
 import java.text.SimpleDateFormat
@@ -185,7 +185,14 @@ class TelephonyAndNotificationCommandsHandler(
                             }
                         val nameStr = if (!call.name.isNullOrBlank()) " (${call.name})" else ""
                         val timeStr = dateFormat.format(Date(call.dateMs))
-                        val durationStr = if (call.durationSec > 0) strings.tnCallDuration(call.durationSec / 60, call.durationSec % 60) else ""
+                        val durationStr =
+                            if (call.durationSec >
+                                0
+                            ) {
+                                strings.tnCallDuration(call.durationSec / 60, call.durationSec % 60)
+                            } else {
+                                ""
+                            }
 
                         sb.append("$icon <b>#${index + 1} | ${call.number}</b>$nameStr$durationStr\n")
                         sb.append(strings.tnCallMeta(timeStr, call.type.name) + "\n\n")
@@ -292,7 +299,11 @@ class TelephonyAndNotificationCommandsHandler(
                 packageName.contains("telegram", ignoreCase = true) -> "Telegram"
                 packageName.contains("vk", ignoreCase = true) -> "VK"
                 packageName.contains("viber", ignoreCase = true) -> "Viber"
-                packageName.contains("tinkoff", ignoreCase = true) || packageName.contains("tbank", ignoreCase = true) -> strings.tnAppTbank()
+                packageName.contains(
+                    "tinkoff",
+                    ignoreCase = true,
+                ) ||
+                    packageName.contains("tbank", ignoreCase = true) -> strings.tnAppTbank()
                 else -> packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
             }
 

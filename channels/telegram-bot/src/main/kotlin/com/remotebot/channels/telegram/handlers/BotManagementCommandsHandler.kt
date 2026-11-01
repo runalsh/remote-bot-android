@@ -1,11 +1,11 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.backup.BackupManager
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.common.tracker.ActiveOperationsTracker
-import com.remotebot.domain.model.BotLanguage
-import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.LogLevel
@@ -67,11 +67,12 @@ class BotManagementCommandsHandler(
         }
     }
 
-
     private suspend fun handleBotLanguage(args: List<String>): CommandResult {
         val lang = args.firstOrNull()?.trim()?.lowercase()
         if (lang.isNullOrEmpty()) {
-            val cur = botConfigRepository.config.value.botLanguage.name.lowercase()
+            val cur =
+                botConfigRepository.config.value.botLanguage.name
+                    .lowercase()
             return CommandResult.Text(strings.botLanguageCurrent(cur))
         }
         val target =
@@ -84,6 +85,7 @@ class BotManagementCommandsHandler(
         botConfigRepository.updateConfig { it.copy(botLanguage = target) }
         return CommandResult.Text(strings.botLanguageSet(lang))
     }
+
     private fun handleActive(): CommandResult {
         val ops = operationsTracker.list()
         if (ops.isEmpty()) {
@@ -144,8 +146,7 @@ class BotManagementCommandsHandler(
         return CommandResult.Text(sb.toString())
     }
 
-    private fun handleUnsentFiles(): CommandResult =
-        CommandResult.Text(strings.bmUnsentEmpty())
+    private fun handleUnsentFiles(): CommandResult = CommandResult.Text(strings.bmUnsentEmpty())
 
     private fun handleBotStatus(): CommandResult {
         val cfg = botConfigRepository.config.value
@@ -154,22 +155,22 @@ class BotManagementCommandsHandler(
         val targetsCount = cfg.smsForwardTargetNumbers.size
         return CommandResult.Text(
             strings.bmStatusPanel(
-                    tgStatus,
-                    cfg.connectionMode.toString(),
-                    smsStatus,
-                    if (cfg.tgForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.tgForwardCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.tgForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.tgForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.tgForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsForwardMissedCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    if (cfg.smsTransliterationEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
-                    targetsCount,
-                ),
+                tgStatus,
+                cfg.connectionMode.toString(),
+                smsStatus,
+                if (cfg.tgForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.tgForwardCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.tgForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.tgForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.tgForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsForwardSmsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsForwardMissedCallsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsForwardNotificationsEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsForwardBatteryChargingEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsForwardBatteryLowEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                if (cfg.smsTransliterationEnabled) strings.bmInlineOn() else strings.bmInlineOff(),
+                targetsCount,
+            ),
         )
     }
 

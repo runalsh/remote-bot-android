@@ -6,8 +6,8 @@ import android.content.ContentResolver
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
-import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
 import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
@@ -74,7 +74,11 @@ class SystemSettingsCommandsHandler(
         return when (lang) {
             BotLanguage.EN -> true
             BotLanguage.RU -> false
-            BotLanguage.AUTO -> !java.util.Locale.getDefault().language.equals("ru", ignoreCase = true)
+            BotLanguage.AUTO ->
+                !java.util.Locale
+                    .getDefault()
+                    .language
+                    .equals("ru", ignoreCase = true)
         }
     }
 
@@ -129,7 +133,9 @@ class SystemSettingsCommandsHandler(
                 val adbWifiPort = if (adbWifiOn) getAdbWifiPort().takeIf { it > 0 } ?: 5555 else 5555
                 val localIp = SystemControlUtils.getLocalIpAddress() ?: strings.ipNotFound()
 
-                textBuilder.append(strings.qsPanelRoot(airplaneOn, hotspotOn, mobileDataOn, gpsOn, powerSaveOn, adbOn, adbWifiOn, localIp, adbWifiPort))
+                textBuilder.append(
+                    strings.qsPanelRoot(airplaneOn, hotspotOn, mobileDataOn, gpsOn, powerSaveOn, adbOn, adbWifiOn, localIp, adbWifiPort),
+                )
 
                 val airplaneBtn = strings.qsBtnAirplane(airplaneOn)
                 val hotspotBtn = if (hotspotOn) "📡 Hotspot [$onLabel] ⚡" else "📡 Hotspot [$offLabel] ⚡"
@@ -159,7 +165,10 @@ class SystemSettingsCommandsHandler(
                 buttonRows.add(
                     listOf(
                         InlineKeyboardButton(if (adbOn) "🔌 USB ADB [$onLabel] ⚡" else "🔌 USB ADB [$offLabel] ⚡", "/adb toggle"),
-                        InlineKeyboardButton(if (adbWifiOn) "📶 ADB-WiFi [$onLabel] ⚡" else "📶 ADB-WiFi [$offLabel] ⚡", "/adb_wifi toggle"),
+                        InlineKeyboardButton(
+                            if (adbWifiOn) "📶 ADB-WiFi [$onLabel] ⚡" else "📶 ADB-WiFi [$offLabel] ⚡",
+                            "/adb_wifi toggle",
+                        ),
                     ),
                 )
             } else {
@@ -198,7 +207,13 @@ class SystemSettingsCommandsHandler(
                     val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
                         strings.psStatus(statusEmoji, rootNote),
-                        SystemControlUtils.makeSingleToggleKeyboard("/powersave", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/powersave",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -211,7 +226,13 @@ class SystemSettingsCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.psOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.psOnFail())
@@ -227,7 +248,13 @@ class SystemSettingsCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.psOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.psOffFail())
@@ -246,7 +273,13 @@ class SystemSettingsCommandsHandler(
                         val label = if (target) strings.radioWordOn() + " 🔋" else strings.radioWordOff() + " ⚪"
                         CommandResult.Text(
                             strings.psToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", target, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.psToggleFail())
@@ -284,7 +317,12 @@ class SystemSettingsCommandsHandler(
                     val statusEmoji = if (isEnabled) strings.abStateOn() else strings.abStateOff()
                     CommandResult.Text(
                         strings.abStatus(statusEmoji),
-                        SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", isEnabled, hasRoot = isRootGranted(), strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/auto_brightness",
+                            isEnabled,
+                            hasRoot = isRootGranted(),
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -292,7 +330,12 @@ class SystemSettingsCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.abOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", true, hasRoot = isRootGranted(), strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                true,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.abOnFail())
@@ -303,7 +346,12 @@ class SystemSettingsCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.abOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", false, hasRoot = isRootGranted(), strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                false,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.abOffFail())
@@ -317,7 +365,12 @@ class SystemSettingsCommandsHandler(
                         val label = if (target) strings.radioWordOnF() + " ☀️" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
                             strings.abToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", target, hasRoot = isRootGranted(), strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                target,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(
@@ -507,7 +560,13 @@ class SystemSettingsCommandsHandler(
                         strings.adbStatus(statusEmoji, if (isEnabled) 1 else 0)
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "enable", "1" -> {
@@ -515,7 +574,13 @@ class SystemSettingsCommandsHandler(
                     logger.i("SystemControl", "USB debugging (ADB) enabled via Root")
                     CommandResult.Text(
                         strings.adbOnOk(),
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            true,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "off", "disable", "0" -> {
@@ -523,7 +588,13 @@ class SystemSettingsCommandsHandler(
                     logger.i("SystemControl", "USB debugging (ADB) disabled via Root")
                     CommandResult.Text(
                         strings.adbOffOk(),
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            false,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "toggle" -> {
@@ -534,7 +605,13 @@ class SystemSettingsCommandsHandler(
                     logger.i("SystemControl", "ADB mode toggled: $newState")
                     CommandResult.Text(
                         msg,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", newState, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            newState,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 else -> CommandResult.Error(strings.adbUsage())
@@ -618,7 +695,13 @@ class SystemSettingsCommandsHandler(
                         }
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg in listOf("on", "enable", "1") || firstArg.toIntOrNull() != null -> {
@@ -629,7 +712,13 @@ class SystemSettingsCommandsHandler(
                         strings.awifiOnOkA(customPort, ip)
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            true,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg in listOf("off", "disable", "0") -> {
@@ -637,7 +726,13 @@ class SystemSettingsCommandsHandler(
                     logger.i("SystemControl", "Wi-Fi debugging disabled")
                     CommandResult.Text(
                         "🔴 <b>Wi-Fi debugging disabled.</b> ⚡",
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            false,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg == "toggle" -> {
@@ -654,7 +749,13 @@ class SystemSettingsCommandsHandler(
                     logger.i("SystemControl", "Wi-Fi debugging toggled: $newState")
                     CommandResult.Text(
                         msg,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", newState, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            newState,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 else ->

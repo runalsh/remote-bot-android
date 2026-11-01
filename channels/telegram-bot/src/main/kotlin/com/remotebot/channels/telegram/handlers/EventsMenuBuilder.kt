@@ -1,11 +1,11 @@
 package com.remotebot.channels.telegram.handlers
 
-import com.remotebot.domain.model.InlineKeyboardButton
-import com.remotebot.domain.model.InlineKeyboardMarkup
-import com.remotebot.domain.model.UserSubscription
 import com.remotebot.channels.telegram.strings.BotStrings
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.model.BotLanguage
+import com.remotebot.domain.model.InlineKeyboardButton
+import com.remotebot.domain.model.InlineKeyboardMarkup
+import com.remotebot.domain.model.UserSubscription
 
 object EventsMenuBuilder {
     fun build(
@@ -32,26 +32,26 @@ object EventsMenuBuilder {
         val callsBtn = if (sub.receiveCalls) strings.evBtnCallsOn() else strings.evBtnCallsOff()
         val systemBtn = if (sub.receiveSystem) strings.evBtnSystemOn() else strings.evBtnSystemOff()
 
-        val markup = InlineKeyboardMarkup(
-            listOf(
+        val markup =
+            InlineKeyboardMarkup(
                 listOf(
-                    InlineKeyboardButton(notifBtn, callbackData = "sub_toggle:$userId:notif"),
-                    InlineKeyboardButton(smsBtn, callbackData = "sub_toggle:$userId:sms"),
+                    listOf(
+                        InlineKeyboardButton(notifBtn, callbackData = "sub_toggle:$userId:notif"),
+                        InlineKeyboardButton(smsBtn, callbackData = "sub_toggle:$userId:sms"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton(callsBtn, callbackData = "sub_toggle:$userId:calls"),
+                        InlineKeyboardButton(systemBtn, callbackData = "sub_toggle:$userId:system"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton(strings.evBtnAllOff(), callbackData = "sub_toggle:$userId:all_off"),
+                        InlineKeyboardButton(strings.evBtnAllOn(), callbackData = "sub_toggle:$userId:all_on"),
+                    ),
+                    listOf(
+                        InlineKeyboardButton(strings.evBtnRefresh(), callbackData = "sub_toggle:$userId:refresh"),
+                    ),
                 ),
-                listOf(
-                    InlineKeyboardButton(callsBtn, callbackData = "sub_toggle:$userId:calls"),
-                    InlineKeyboardButton(systemBtn, callbackData = "sub_toggle:$userId:system"),
-                ),
-                listOf(
-                    InlineKeyboardButton(strings.evBtnAllOff(), callbackData = "sub_toggle:$userId:all_off"),
-                    InlineKeyboardButton(strings.evBtnAllOn(), callbackData = "sub_toggle:$userId:all_on"),
-                ),
-                listOf(
-                    InlineKeyboardButton(strings.evBtnRefresh(), callbackData = "sub_toggle:$userId:refresh"),
-                ),
-            ),
-        )
+            )
         return Pair(text, markup)
     }
 }
-

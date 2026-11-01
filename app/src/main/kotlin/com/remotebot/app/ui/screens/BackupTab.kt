@@ -8,18 +8,17 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.AppCard
 import com.remotebot.app.ui.components.AppTextField
-import androidx.compose.ui.res.stringResource
-import com.remotebot.app.R
 import com.remotebot.core.common.backup.BackupManager
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.repository.BotConfigRepository
@@ -40,7 +39,6 @@ fun BackupTab(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
 
     var exportedJson by remember { mutableStateOf("") }
     var importJsonText by remember { mutableStateOf("") }
@@ -100,7 +98,12 @@ fun BackupTab(
                         withContext(Dispatchers.Main) {
                             logger.e("Backup", "Backup save-to-file error: ${e.localizedMessage}", e)
                             logger.t("Backup", "Export error stack:\n${e.stackTraceToString()}")
-                            Toast.makeText(context, context.getString(R.string.backup_file_save_error, e.localizedMessage ?: ""), Toast.LENGTH_LONG).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.backup_file_save_error, e.localizedMessage ?: ""),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                         }
                     }
                 }
@@ -146,20 +149,35 @@ fun BackupTab(
                                     configRepo.updateConfig { data.botConfig }
                                     proxyRepo.updateProxy(data.proxyConfig)
                                     logger.i("Backup", "Configuration successfully restored from file: $uri")
-                                    Toast.makeText(context, context.getString(R.string.backup_restore_file_success), Toast.LENGTH_LONG).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            context.getString(R.string.backup_restore_file_success),
+                                            Toast.LENGTH_LONG,
+                                        ).show()
                                 }
                             } else {
                                 val err = result.exceptionOrNull()
                                 logger.w("Backup", "Backup file validation error: ${err?.message}")
                                 logger.t("Backup", "File import error stack:\n${err?.stackTraceToString()}")
-                                Toast.makeText(context, context.getString(R.string.backup_file_format_error, err?.message ?: ""), Toast.LENGTH_LONG).show()
+                                Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.backup_file_format_error, err?.message ?: ""),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
                             }
                         }
                     } catch (e: Exception) {
                         withContext(Dispatchers.Main) {
                             logger.e("Backup", "Backup file read error: ${e.localizedMessage}", e)
                             logger.t("Backup", "Read error stack:\n${e.stackTraceToString()}")
-                            Toast.makeText(context, context.getString(R.string.backup_read_error, e.localizedMessage ?: ""), Toast.LENGTH_LONG).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.backup_read_error, e.localizedMessage ?: ""),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                         }
                     }
                 }
@@ -168,125 +186,145 @@ fun BackupTab(
             }
         }
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // Export
-        AppCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = stringResource(R.string.backup_export_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Button(
-                    onClick = {
-                        val defaultName = "remotebot-backup-${SimpleDateFormat("yyyyMMdd-HHmmss", Locale.getDefault()).format(Date())}.json"
-                        logger.d("Backup", "Opening the system save-file picker ($defaultName)...")
-                        exportFileLauncher.launch(defaultName)
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.backup_export_button))
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        logger.d("Backup", "Building the bot and proxy settings backup...")
-                        val botCfg = configRepo.config.value
-                        val proxyCfg = proxyRepo.proxyConfig.value
-                        exportedJson = backupManager.exportBackup(botCfg, proxyCfg)
-                        logger.i("Backup", "Configuration backup exported to the clipboard")
-                        logger.t("Backup", "Exported JSON (${exportedJson.length} chars):\n$exportedJson")
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText("RemoteBot Backup", exportedJson))
-                        Toast.makeText(context, context.getString(R.string.backup_copied_toast), Toast.LENGTH_SHORT).show()
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text(stringResource(R.string.backup_clipboard_button))
-                }
-            }
-
-            if (exportedJson.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                AppTextField(
-                    value = exportedJson,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = stringResource(R.string.backup_file_json),
-                    singleLine = false,
-                    maxLines = 6,
-                    showClearButton = false,
+        item {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.backup_export_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Button(
+                        onClick = {
+                            val defaultName = "remotebot-backup-${SimpleDateFormat(
+                                "yyyyMMdd-HHmmss",
+                                Locale.getDefault(),
+                            ).format(Date())}.json"
+                            logger.d("Backup", "Opening the system save-file picker ($defaultName)...")
+                            exportFileLauncher.launch(defaultName)
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.backup_export_button))
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            logger.d("Backup", "Building the bot and proxy settings backup...")
+                            val botCfg = configRepo.config.value
+                            val proxyCfg = proxyRepo.proxyConfig.value
+                            exportedJson = backupManager.exportBackup(botCfg, proxyCfg)
+                            logger.i("Backup", "Configuration backup exported to the clipboard")
+                            logger.t("Backup", "Exported JSON (${exportedJson.length} chars):\n$exportedJson")
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            clipboard.setPrimaryClip(ClipData.newPlainText("RemoteBot Backup", exportedJson))
+                            Toast.makeText(context, context.getString(R.string.backup_copied_toast), Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text(stringResource(R.string.backup_clipboard_button))
+                    }
+                }
+
+                if (exportedJson.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AppTextField(
+                        value = exportedJson,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = stringResource(R.string.backup_file_json),
+                        singleLine = false,
+                        maxLines = 6,
+                        showClearButton = false,
+                    )
+                }
             }
         }
 
         // Import
-        AppCard(modifier = Modifier.fillMaxWidth()) {
-            Text(text = stringResource(R.string.backup_import_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(8.dp))
+        item {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = stringResource(R.string.backup_import_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    logger.d("Backup", "Opening the system file picker for import...")
-                    importFileLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.backup_import_file_button))
-            }
+                Button(
+                    onClick = {
+                        logger.d("Backup", "Opening the system file picker for import...")
+                        importFileLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.backup_import_file_button))
+                }
 
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = stringResource(R.string.backup_or_paste_manually),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = stringResource(R.string.backup_or_paste_manually),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
 
-            AppTextField(
-                value = importJsonText,
-                onValueChange = { importJsonText = it },
-                label = stringResource(R.string.backup_json_label),
-                placeholder = "{\"version\": \"2.0.0\", ...}",
-                singleLine = false,
-                maxLines = 6,
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = {
-                    logger.d("Backup", "Parsing and validating backup JSON (${importJsonText.length} chars)...")
-                    logger.t("Backup", "Input JSON:\n$importJsonText")
-                    val result = backupManager.parseBackup(importJsonText.trim())
-                    if (result.isSuccess) {
-                        val data = result.getOrThrow()
-                        logger.d("Backup", "JSON validated successfully: version=${data.version}, created=${data.exportedAtMs}")
-                        logger.t("Backup", "Restorable botConfig: ${data.botConfig}, proxyConfig: ${data.proxyConfig}")
-                        scope.launch {
-                            configRepo.updateConfig { data.botConfig }
-                            proxyRepo.updateProxy(data.proxyConfig)
-                            logger.i("Backup", "Configuration successfully restored from the imported JSON")
-                            Toast.makeText(context, context.getString(R.string.backup_restored_success), Toast.LENGTH_LONG).show()
-                            importJsonText = ""
+                AppTextField(
+                    value = importJsonText,
+                    onValueChange = { importJsonText = it },
+                    label = stringResource(R.string.backup_json_label),
+                    placeholder = "{\"version\": \"2.0.0\", ...}",
+                    singleLine = false,
+                    maxLines = 6,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        logger.d("Backup", "Parsing and validating backup JSON (${importJsonText.length} chars)...")
+                        logger.t("Backup", "Input JSON:\n$importJsonText")
+                        val result = backupManager.parseBackup(importJsonText.trim())
+                        if (result.isSuccess) {
+                            val data = result.getOrThrow()
+                            logger.d("Backup", "JSON validated successfully: version=${data.version}, created=${data.exportedAtMs}")
+                            logger.t("Backup", "Restorable botConfig: ${data.botConfig}, proxyConfig: ${data.proxyConfig}")
+                            scope.launch {
+                                configRepo.updateConfig { data.botConfig }
+                                proxyRepo.updateProxy(data.proxyConfig)
+                                logger.i("Backup", "Configuration successfully restored from the imported JSON")
+                                Toast.makeText(context, context.getString(R.string.backup_restored_success), Toast.LENGTH_LONG).show()
+                                importJsonText = ""
+                            }
+                        } else {
+                            val err = result.exceptionOrNull()
+                            logger.w("Backup", "JSON validation error on import: ${err?.message}")
+                            logger.t("Backup", "Import error stack:\n${err?.stackTraceToString()}")
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.backup_validation_error, err?.message ?: ""),
+                                    Toast.LENGTH_LONG,
+                                ).show()
                         }
-                    } else {
-                        val err = result.exceptionOrNull()
-                        logger.w("Backup", "JSON validation error on import: ${err?.message}")
-                        logger.t("Backup", "Import error stack:\n${err?.stackTraceToString()}")
-                        Toast.makeText(context, context.getString(R.string.backup_validation_error, err?.message ?: ""), Toast.LENGTH_LONG).show()
-                    }
-                },
-                enabled = importJsonText.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(stringResource(R.string.backup_btn_restore_text))
+                    },
+                    enabled = importJsonText.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.backup_btn_restore_text))
+                }
             }
         }
     }

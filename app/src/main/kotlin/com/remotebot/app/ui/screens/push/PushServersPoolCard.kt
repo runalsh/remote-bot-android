@@ -12,10 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.BotConfig
@@ -75,7 +75,11 @@ fun PushServersPoolCard(
                         )
                     serversList = serversList + newServer
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.sms_trusted_numbers_add), tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = stringResource(R.string.sms_trusted_numbers_add),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 
@@ -187,7 +191,12 @@ private fun PushServerItemEditor(
                         Toast.makeText(context, context.getString(R.string.push_pool_json_loaded), Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(context, context.getString(R.string.push_pool_read_file_error, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            context,
+                            context.getString(R.string.push_pool_read_file_error, e.message ?: ""),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                 }
             }
         }
@@ -213,7 +222,11 @@ private fun PushServerItemEditor(
                         Text(if (expanded) stringResource(R.string.push_pool_collapse) else stringResource(R.string.push_pool_configure))
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete), tint = MaterialTheme.colorScheme.error)
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.common_delete),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
@@ -245,7 +258,11 @@ private fun PushServerItemEditor(
                     singleLine = true,
                 )
 
-                Text(stringResource(R.string.push_pool_provider_type), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.push_pool_provider_type),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(PushProvider.FCM to "Google FCM", PushProvider.HMS to "Huawei HMS").forEach { (prov, title) ->
                         FilterChip(

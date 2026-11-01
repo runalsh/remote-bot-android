@@ -77,6 +77,7 @@ class DefaultPermissionsStatusProvider(
             }
             allSucceeded
         }
+
     override fun getPermissionsStatus(): List<PermissionItemInfo> {
         val isRoot = rootStatusProvider.isRootGrantedSync()
 

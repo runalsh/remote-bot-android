@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.topjohnwu.superuser.Shell
@@ -59,7 +59,14 @@ fun ConfidentialPermissionsSection(
                         }
                 },
         commandsHint = "/notify, /notifications, /notify_send, /answer, /resp, /notify_clear, /notify_rule",
-        buttonText = if (isRootGranted) stringResource(R.string.perm_btn_notif_listener_root) else stringResource(R.string.perm_btn_notif_listener_settings),
+        buttonText =
+            if (isRootGranted) {
+                stringResource(
+                    R.string.perm_btn_notif_listener_root,
+                )
+            } else {
+                stringResource(R.string.perm_btn_notif_listener_settings)
+            },
     ) {
         if (isRootGranted) {
             logger.d("Permissions", "Requesting Notification Listener enablement via Root")

@@ -20,9 +20,10 @@ class SystemControlCommandsHandler(
     private val botConfigRepository: com.remotebot.domain.repository.BotConfigRepository? = null,
 ) : CommandHandler {
     private val strings
-        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-            botConfigRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
-        )
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                botConfigRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+            )
 
     val infoHandler = SystemInfoCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)
     val radioHandler = DeviceRadioCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)

@@ -35,9 +35,10 @@ class TelegramInteractiveReplyHandler(
     )
 
     private val strings
-        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-            configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
-        )
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+            )
 
     private val pendingSmsReplies = ConcurrentHashMap<Long, PendingSmsReply>()
     private val pendingNotifReplies = ConcurrentHashMap<Long, PendingNotificationReply>()
@@ -150,7 +151,11 @@ class TelegramInteractiveReplyHandler(
                 if (success) {
                     apiClient.answerCallbackQuery(query.id, text = strings.irActionDone())
                 } else {
-                    apiClient.answerCallbackQuery(query.id, text = strings.irActionError(errorMsg ?: strings.irActionFailed()), showAlert = true)
+                    apiClient.answerCallbackQuery(
+                        query.id,
+                        text = strings.irActionError(errorMsg ?: strings.irActionFailed()),
+                        showAlert = true,
+                    )
                 }
             } catch (_: Exception) {
             }
@@ -160,7 +165,14 @@ class TelegramInteractiveReplyHandler(
             val origText = query.message?.text ?: ""
             if (msgId != null && origText.isNotEmpty()) {
                 val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                val statusText = if (success) strings.irActionStatusOk(timeFormat) else strings.irActionStatusErr(errorMsg ?: strings.irTimeout())
+                val statusText =
+                    if (success) {
+                        strings.irActionStatusOk(timeFormat)
+                    } else {
+                        strings.irActionStatusErr(
+                            errorMsg ?: strings.irTimeout(),
+                        )
+                    }
                 val updatedMessage = origText + statusText
                 try {
                     apiClient.editMessageText(chatId, msgId, updatedMessage, replyMarkup = null)
@@ -180,7 +192,9 @@ class TelegramInteractiveReplyHandler(
                 val action = parts[1]
                 val config = configRepository?.config?.value
                 if (config != null) {
-                    val currentSub = config.userSubscriptions[targetUserId] ?: com.remotebot.domain.model.UserSubscription(userId = targetUserId)
+                    val currentSub =
+                        config.userSubscriptions[targetUserId] ?: com.remotebot.domain.model
+                            .UserSubscription(userId = targetUserId)
                     val updatedSub =
                         when (action) {
                             "notif" -> currentSub.copy(receiveNotifications = !currentSub.receiveNotifications)
@@ -219,10 +233,11 @@ class TelegramInteractiveReplyHandler(
                             targetUserId,
                             updatedSub,
                             callerId = chatId,
-                            strings = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-                                configRepository?.config?.value?.botLanguage
-                                    ?: com.remotebot.domain.model.BotLanguage.AUTO,
-                            ),
+                            strings =
+                                com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                                    configRepository?.config?.value?.botLanguage
+                                        ?: com.remotebot.domain.model.BotLanguage.AUTO,
+                                ),
                         )
                     val msgId = query.message?.messageId
                     if (msgId != null) {
@@ -336,7 +351,9 @@ class TelegramInteractiveReplyHandler(
         val replyText = replyTo.text ?: ""
 
         // Incoming SMS matching pattern (e.g. prompt or incoming SMS header with target phone, with optional contact name)
-        val smsRegex = """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)""".toRegex()
+        val smsRegex =
+            """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)"""
+                .toRegex()
         val smsMatch = smsRegex.find(replyText)
         if (smsMatch != null) {
             if (text.equals("/cancel", ignoreCase = true) || text.equals("отмена", ignoreCase = true)) {

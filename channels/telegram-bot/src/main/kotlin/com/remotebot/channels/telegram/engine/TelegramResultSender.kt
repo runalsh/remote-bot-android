@@ -12,9 +12,10 @@ class TelegramResultSender(
     private val configRepository: com.remotebot.domain.repository.BotConfigRepository? = null,
 ) {
     private val strings
-        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-            configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
-        )
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+            )
 
     fun ensureFileReadable(file: File) {
         if (!file.canRead()) {

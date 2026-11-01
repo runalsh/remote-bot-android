@@ -10,5 +10,6 @@ data class PermissionItemInfo(
 
 interface PermissionsStatusProvider {
     fun getPermissionsStatus(): List<PermissionItemInfo>
+
     suspend fun grantAllPermissionsViaRoot(): Boolean
 }

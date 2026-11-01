@@ -6,10 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.ConnectionMode
@@ -143,7 +143,11 @@ fun PushGatewaySection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
                     Text(stringResource(R.string.push_retry_delay), style = MaterialTheme.typography.bodySmall)
-                    Text(stringResource(R.string.push_delay_seconds, delaySeconds.toInt()), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.push_delay_seconds, delaySeconds.toInt()),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
                 Slider(
                     value = delaySeconds,

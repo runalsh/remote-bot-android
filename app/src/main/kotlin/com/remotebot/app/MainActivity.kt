@@ -6,15 +6,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
-import androidx.compose.ui.res.stringResource
-import com.remotebot.app.util.AppLocaleManager
-import java.util.Locale
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -42,7 +33,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -52,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -69,6 +60,7 @@ import com.remotebot.app.ui.screens.StartTab
 import com.remotebot.app.ui.screens.TelegramSettingsTab
 import com.remotebot.app.ui.screens.debug.DebugTab
 import com.remotebot.app.ui.theme.AppTheme
+import com.remotebot.app.util.AppLocaleManager
 import com.remotebot.channels.telegram.api.TelegramApiClient
 import com.remotebot.core.common.backup.BackupManager
 import com.remotebot.core.common.logger.AppLogger
@@ -190,22 +182,67 @@ fun MainScreen(
     var logEnabledLevels by rememberSaveable { mutableStateOf(LogLevel.entries.map { it.name }.toSet()) }
     val baseNavItems =
         listOf(
-            BrowserTabItem(title = stringResource(R.string.nav_start), iconEmoji = "🚀", description = stringResource(R.string.nav_start_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_permissions), iconEmoji = "🛡", description = stringResource(R.string.nav_permissions_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_tasks), iconEmoji = "⏱️", description = stringResource(R.string.nav_tasks_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_telegram), iconRes = R.drawable.ic_telegram, description = stringResource(R.string.nav_telegram_desc)),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_start),
+                iconEmoji = "🚀",
+                description = stringResource(R.string.nav_start_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_permissions),
+                iconEmoji = "🛡",
+                description = stringResource(R.string.nav_permissions_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_tasks),
+                iconEmoji = "⏱️",
+                description = stringResource(R.string.nav_tasks_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_telegram),
+                iconRes = R.drawable.ic_telegram,
+                description = stringResource(R.string.nav_telegram_desc),
+            ),
             BrowserTabItem(title = stringResource(R.string.nav_sms), iconEmoji = "💬", description = stringResource(R.string.nav_sms_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_notifications), iconEmoji = "🔔", description = stringResource(R.string.nav_notifications_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_push), iconEmoji = "🔥", description = stringResource(R.string.nav_push_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_proxy), iconEmoji = "🌐", description = stringResource(R.string.nav_proxy_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_logs), iconEmoji = "📜", description = stringResource(R.string.nav_logs_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_backup), iconEmoji = "💾", description = stringResource(R.string.nav_backup_desc)),
-            BrowserTabItem(title = stringResource(R.string.nav_about), iconEmoji = "ℹ️", description = stringResource(R.string.nav_about_desc)),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_notifications),
+                iconEmoji = "🔔",
+                description = stringResource(R.string.nav_notifications_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_push),
+                iconEmoji = "🔥",
+                description = stringResource(R.string.nav_push_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_proxy),
+                iconEmoji = "🌐",
+                description = stringResource(R.string.nav_proxy_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_logs),
+                iconEmoji = "📜",
+                description = stringResource(R.string.nav_logs_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_backup),
+                iconEmoji = "💾",
+                description = stringResource(R.string.nav_backup_desc),
+            ),
+            BrowserTabItem(
+                title = stringResource(R.string.nav_about),
+                iconEmoji = "ℹ️",
+                description = stringResource(R.string.nav_about_desc),
+            ),
         )
 
     val navItems =
         if (isDebugEnabled) {
-            baseNavItems + BrowserTabItem(title = stringResource(R.string.nav_debug), iconEmoji = "🛠️", description = stringResource(R.string.nav_debug_desc))
+            baseNavItems +
+                BrowserTabItem(
+                    title = stringResource(R.string.nav_debug),
+                    iconEmoji = "🛠️",
+                    description = stringResource(R.string.nav_debug_desc),
+                )
         } else {
             baseNavItems
         }
@@ -318,62 +355,48 @@ fun MainScreen(
                             .weight(1f)
                             .fillMaxWidth(),
                 ) {
-                    AnimatedContent(
-                        targetState = safeSelectedTab,
-                        transitionSpec = {
-                            if (targetState > initialState) {
-                                (slideInHorizontally { width -> width / 4 } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { width -> -width / 4 } + fadeOut())
-                            } else {
-                                (slideInHorizontally { width -> -width / 4 } + fadeIn()) togetherWith
-                                    (slideOutHorizontally { width -> width / 4 } + fadeOut())
-                            }
-                        },
-                        label = "tab_transition",
-                    ) { targetTab ->
-                        when (targetTab) {
-                            0 ->
-                                StartTab(
-                                    onStartService = onStartService,
-                                    onStopService = onStopService,
-                                    onNavigateToPermissions = { navigateToTab(1) },
-                                    logger = logger,
-                                    rootProvider = rootProvider,
-                                    configRepo = configRepo,
-                                )
-                            1 -> PermissionsTab(logger = logger, rootProvider = rootProvider)
-                            2 -> ActiveTasksTab(operationsTracker = operationsTracker, logger = logger)
-                            3 -> TelegramSettingsTab(configRepo, apiClient, logger)
-                            4 -> SmsSettingsTab(configRepo, logger)
-                            5 -> NotificationsSettingsTab(configRepo, appManagerRepo, logger)
-                            6 -> FcmSettingsTab(configRepo, logger)
-                            7 -> ProxySettingsTab(configRepo, proxyRepo, apiClient, logger)
-                            8 ->
-                                LogsTab(
-                                    logger = logger,
-                                    enabledLevelNames = logEnabledLevels,
-                                    onLevelsChange = { logEnabledLevels = it },
-                                )
-                            9 -> BackupTab(configRepo, proxyRepo, backupManager, logger)
-                            10 ->
-                                AboutTab(
-                                    configRepo = configRepo,
-                                    onNavigateToDebug = { navigateToTab(11) },
-                                )
-                            11 ->
-                                DebugTab(
-                                    configRepo = configRepo,
-                                    proxyRepo = proxyRepo,
-                                    apiClient = apiClient,
-                                    poolManager = poolManager,
-                                    notificationRepo = notificationRepo,
-                                    fileManagerRepo = fileManagerRepo,
-                                    locationRepo = locationRepo,
-                                    rootProvider = rootProvider,
-                                    logger = logger,
-                                    onExitDebugMode = { navigateToTab(10) },
-                                )
-                        }
+                    when (safeSelectedTab) {
+                        0 ->
+                            StartTab(
+                                onStartService = onStartService,
+                                onStopService = onStopService,
+                                onNavigateToPermissions = { navigateToTab(1) },
+                                logger = logger,
+                                rootProvider = rootProvider,
+                                configRepo = configRepo,
+                            )
+                        1 -> PermissionsTab(logger = logger, rootProvider = rootProvider)
+                        2 -> ActiveTasksTab(operationsTracker = operationsTracker, logger = logger)
+                        3 -> TelegramSettingsTab(configRepo, apiClient, logger)
+                        4 -> SmsSettingsTab(configRepo, logger)
+                        5 -> NotificationsSettingsTab(configRepo, appManagerRepo, logger)
+                        6 -> FcmSettingsTab(configRepo, logger)
+                        7 -> ProxySettingsTab(configRepo, proxyRepo, apiClient, logger)
+                        8 ->
+                            LogsTab(
+                                logger = logger,
+                                enabledLevelNames = logEnabledLevels,
+                                onLevelsChange = { logEnabledLevels = it },
+                            )
+                        9 -> BackupTab(configRepo, proxyRepo, backupManager, logger)
+                        10 ->
+                            AboutTab(
+                                configRepo = configRepo,
+                                onNavigateToDebug = { navigateToTab(11) },
+                            )
+                        11 ->
+                            DebugTab(
+                                configRepo = configRepo,
+                                proxyRepo = proxyRepo,
+                                apiClient = apiClient,
+                                poolManager = poolManager,
+                                notificationRepo = notificationRepo,
+                                fileManagerRepo = fileManagerRepo,
+                                locationRepo = locationRepo,
+                                rootProvider = rootProvider,
+                                logger = logger,
+                                onExitDebugMode = { navigateToTab(10) },
+                            )
                     }
                 }
             }
