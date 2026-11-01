@@ -557,7 +557,9 @@
     <string name="tg_set_not_configured">не настроен</string>
     <string name="tg_set_secret_key">• Секретный ключ: %1$s</string>
     <string name="tg_set_not_set">не задан</string>
+    <string name="tg_set_push_provider">• Push-провайдер: %1$s</string>
     <string name="tg_set_firebase_project">• Firebase Project: %1$s</string>
+    <string name="tg_set_hms_appid">• Huawei App ID: %1$s</string>
     <string name="tg_set_not_initialized">не инициализирован</string>
     <string name="tg_set_lang_auto">🌐 Auto (система)</string>
     <string name="tg_set_lang_en">🇬🇧 Английский</string>
