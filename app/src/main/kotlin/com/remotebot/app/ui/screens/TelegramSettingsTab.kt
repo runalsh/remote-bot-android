@@ -835,30 +835,28 @@ fun TelegramSettingsTab(
                                             .onFailure { tokenError = it.localizedMessage ?: it.javaClass.simpleName }
                                     }
                                     com.remotebot.domain.model.PushProvider.HYBRID -> {
-                                        logger.d("BotConfig", "Requesting a token for hybrid mode...")
+                                        logger.d("BotConfig", "Requesting tokens for hybrid mode...")
                                         val fcmRes =
                                             com.remotebot.core.push.DynamicFirebaseManager
                                                 .getFcmToken()
-                                        if (fcmRes.isSuccess && !fcmRes.getOrNull().isNullOrBlank()) {
-                                            targetToken = fcmRes.getOrNull()
+                                        val fcmT = fcmRes.getOrNull()
+                                        val hmsAppId = config.hmsAppId?.trim() ?: ""
+                                        val hmsT = if (hmsAppId.isNotBlank()) {
+                                            com.remotebot.core.push.DynamicHmsManager
+                                                .getHmsToken(context, hmsAppId).getOrNull()
+                                        } else null
+
+                                        if (!fcmT.isNullOrBlank() && !hmsT.isNullOrBlank()) {
+                                            targetToken = "$fcmT+$hmsT"
+                                            providerRoute = "hybrid"
+                                        } else if (!fcmT.isNullOrBlank()) {
+                                            targetToken = fcmT
                                             providerRoute = "fcm"
+                                        } else if (!hmsT.isNullOrBlank()) {
+                                            targetToken = hmsT
+                                            providerRoute = "hms"
                                         } else {
-                                            val hmsAppId = config.hmsAppId?.trim() ?: ""
-                                            if (hmsAppId.isNotBlank()) {
-                                                val hmsRes =
-                                                    com.remotebot.core.push.DynamicHmsManager
-                                                        .getHmsToken(context, hmsAppId)
-                                                hmsRes
-                                                    .onSuccess {
-                                                        targetToken = it
-                                                        providerRoute = "hms"
-                                                    }.onFailure {
-                                                        tokenError = "FCM: ${fcmRes.exceptionOrNull()?.message}, HMS: ${it.message}"
-                                                    }
-                                            } else {
-                                                tokenError =
-                                                    fcmRes.exceptionOrNull()?.message ?: "FCM is unavailable and Huawei App ID is not set"
-                                            }
+                                            tokenError = "FCM: ${fcmRes.exceptionOrNull()?.message}, HMS app_id=$hmsAppId"
                                         }
                                     }
                                 }

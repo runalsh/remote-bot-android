@@ -370,7 +370,7 @@ fun MainScreen(
                         3 -> TelegramSettingsTab(configRepo, apiClient, logger)
                         4 -> SmsSettingsTab(configRepo, logger)
                         5 -> NotificationsSettingsTab(configRepo, appManagerRepo, logger)
-                        6 -> FcmSettingsTab(configRepo, logger)
+                        6 -> FcmSettingsTab(configRepo, apiClient, logger)
                         7 -> ProxySettingsTab(configRepo, proxyRepo, apiClient, logger)
                         8 ->
                             LogsTab(

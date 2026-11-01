@@ -173,3 +173,21 @@ test("Unknown endpoint returns 404", async () => {
   assert.equal(res.status, 404);
 });
 
+test("Stats endpoint returns 401 when secret does not match", async () => {
+  const req = new Request("http://localhost/stats/wrong_secret", { method: "GET" });
+  const env = { PUSH_GATEWAY_SECRET: "correct_secret" };
+  const res = await worker.fetch(req, env, {});
+  assert.equal(res.status, 401);
+});
+
+test("Stats endpoint returns metrics when authorized", async () => {
+  const req = new Request("http://localhost/stats/correct_secret", { method: "GET" });
+  const env = { PUSH_GATEWAY_SECRET: "correct_secret" };
+  const res = await worker.fetch(req, env, {});
+  assert.equal(res.status, 200);
+  const data = await res.json();
+  assert.equal(data.status, "ok");
+  assert.ok(data.boot_time);
+  assert.ok(typeof data.counters.requests_total === "number");
+});
+

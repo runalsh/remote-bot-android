@@ -21,9 +21,9 @@ Configure required parameters in your Cloudflare Worker dashboard:
 * **`FIREBASE_SERVICE_ACCOUNT`**: contents of the `serviceAccount.json` private key file from Firebase Console (*Project Settings $\to$ Service accounts $\to$ Generate new private key*).
 
 ### For Huawei HMS Push:
-* **`HUAWEI_APP_ID`**: Application ID (`app_id` field from `agconnect-services.json`).
-* **`HUAWEI_CLIENT_ID`**: Client ID (usually identical to `HUAWEI_APP_ID`).
-* **`HUAWEI_CLIENT_SECRET`**: Client secret (`client_secret` field from `agconnect-services.json`).
+* **`HUAWEI_APP_ID`**: Application ID (`app_id` field from `agconnect-services.json` or AppGallery Connect, e.g. `119367373`).
+* **`HUAWEI_CLIENT_ID`**: OAuth2 Client ID for Push Kit server. Set this to the exact same value as **`HUAWEI_APP_ID`** (e.g. `119367373`).
+* **`HUAWEI_CLIENT_SECRET`**: Server-side **App Secret** (Push Secret) from the AppGallery Connect console (*My projects $\to$ Select Project $\to$ Project settings / Push Kit $\to$ App information $\to$ ID cllient OAuth 2.0 $\to$ App Secret*). **Important:** This is NOT the `client_secret` from `agconnect-services.json` (the json contains the client SDK secret, whereas the Push REST API server requires the **App Secret**).
 
 ---
 
@@ -46,6 +46,7 @@ The gateway supports both automatic and explicit provider routing:
 | `https://<worker>/tg/:token/:secretKey` | Automatic | If only FCM is configured $\to$ sends FCM. If only HMS $\to$ sends HMS. |
 | `https://<worker>/tg/fcm/:fcmToken/:secretKey` | Google FCM | Explicit delivery via Firebase FCM. |
 | `https://<worker>/tg/hms/:hmsToken/:secretKey` | Huawei HMS | Explicit delivery via Huawei Push Kit. |
+| `https://<worker>/tg/hybrid/:fcmToken+hmsToken/:secretKey` | Hybrid (FCM + HMS) | Dual-Push: parallel dispatch to both Google FCM and Huawei HMS. |
 
 ---
 
