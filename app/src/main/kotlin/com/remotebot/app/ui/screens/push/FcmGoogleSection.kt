@@ -1,5 +1,6 @@
 package com.remotebot.app.ui.screens.push
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
@@ -316,6 +317,18 @@ fun FcmGoogleSection(
                             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                             maxLines = 3,
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("FCM Device Token", fcmToken)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, context.getString(R.string.push_fcm_token_copied), Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.push_fcm_copy_token))
+                        }
                     } else {
                         Text(
                             stringResource(R.string.push_fcm_not_init_desc),

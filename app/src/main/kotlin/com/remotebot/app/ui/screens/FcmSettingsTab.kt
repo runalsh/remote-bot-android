@@ -28,17 +28,21 @@ import com.remotebot.app.ui.screens.push.HmsHuaweiSection
 import com.remotebot.app.ui.screens.push.PushGatewaySection
 import com.remotebot.app.ui.screens.push.PushServersPoolCard
 import com.remotebot.app.ui.theme.AppColors
+import com.remotebot.channels.telegram.api.TelegramApiClient
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.core.push.DynamicHmsManager
 import com.remotebot.domain.model.ConnectionMode
 import com.remotebot.domain.model.PushProvider
 import com.remotebot.domain.repository.BotConfigRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun FcmSettingsTab(
     configRepo: BotConfigRepository,
+    apiClient: TelegramApiClient,
     logger: AppLogger,
 ) {
     val context = LocalContext.current
@@ -67,7 +71,8 @@ fun FcmSettingsTab(
     var isHmsSuccess by remember { mutableStateOf(false) }
     var isHmsProcessing by remember { mutableStateOf(false) }
 
-    // Push Gateway states
+    var isModeSwitching by remember { mutableStateOf(false) }
+    var modeSwitchError by remember { mutableStateOf<String?>(null) }
     var pushGatewayUrl by remember(config.pushGatewayUrl) {
         mutableStateOf(config.pushGatewayUrl ?: "")
     }
@@ -201,16 +206,111 @@ fun FcmSettingsTab(
                             )
                         }
 
-                        Switch(
-                            checked = connectionMode == ConnectionMode.PUSH_WAKEUP,
-                            onCheckedChange = { isChecked ->
-                                val target = if (isChecked) ConnectionMode.PUSH_WAKEUP else ConnectionMode.LONG_POLLING
-                                connectionMode = target
-                                scope.launch {
-                                    configRepo.updateConfig { it.copy(connectionMode = target) }
-                                    logger.i("Push", "Delivery mode switched: $target")
-                                }
-                            },
+                        if (isModeSwitching) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp,
+                            )
+                        } else {
+                            Switch(
+                                checked = connectionMode == ConnectionMode.PUSH_WAKEUP,
+                                onCheckedChange = { isChecked ->
+                                    val target = if (isChecked) ConnectionMode.PUSH_WAKEUP else ConnectionMode.LONG_POLLING
+                                    modeSwitchError = null
+                                    scope.launch {
+                                        isModeSwitching = true
+                                        try {
+                                            if (target == ConnectionMode.PUSH_WAKEUP) {
+                                                val gateway = config.pushGatewayUrl?.trim()?.trimEnd('/')
+                                                val secret = config.pushSecretKey?.trim() ?: ""
+                                                if (gateway.isNullOrBlank()) {
+                                                    modeSwitchError = context.getString(R.string.tg_gateway_url_missing)
+                                                    return@launch
+                                                }
+
+                                                val provider = config.pushProvider ?: PushProvider.FCM
+                                                var webhookUrl = ""
+
+                                                when (provider) {
+                                                    PushProvider.FCM -> {
+                                                        val fcmRes = DynamicFirebaseManager.getFcmToken()
+                                                        val token = fcmRes.getOrNull()
+                                                        if (token.isNullOrBlank()) {
+                                                            modeSwitchError = "FCM token not available: ${fcmRes.exceptionOrNull()?.message}"
+                                                            return@launch
+                                                        }
+                                                        webhookUrl = "$gateway/tg/fcm/$token/$secret"
+                                                    }
+                                                    PushProvider.HMS -> {
+                                                        val appId = config.hmsAppId?.trim() ?: ""
+                                                        if (appId.isBlank()) {
+                                                            modeSwitchError = "Huawei App ID is not configured"
+                                                            return@launch
+                                                        }
+                                                        val hmsRes = DynamicHmsManager.getHmsToken(context, appId)
+                                                        val token = hmsRes.getOrNull()
+                                                        if (token.isNullOrBlank()) {
+                                                            modeSwitchError = "HMS token not available: ${hmsRes.exceptionOrNull()?.message}"
+                                                            return@launch
+                                                        }
+                                                        webhookUrl = "$gateway/tg/hms/$token/$secret"
+                                                    }
+                                                    PushProvider.HYBRID -> {
+                                                        val fcmRes = DynamicFirebaseManager.getFcmToken()
+                                                        val fcmT = fcmRes.getOrNull()
+                                                        val appId = config.hmsAppId?.trim() ?: ""
+                                                        val hmsT = if (appId.isNotBlank()) {
+                                                            DynamicHmsManager.getHmsToken(context, appId).getOrNull()
+                                                        } else null
+
+                                                        if (fcmT.isNullOrBlank() && hmsT.isNullOrBlank()) {
+                                                            modeSwitchError = "Neither FCM nor HMS tokens could be obtained"
+                                                            return@launch
+                                                        }
+
+                                                        webhookUrl = if (!fcmT.isNullOrBlank() && !hmsT.isNullOrBlank()) {
+                                                            "$gateway/tg/hybrid/$fcmT+$hmsT/$secret"
+                                                        } else if (!fcmT.isNullOrBlank()) {
+                                                            "$gateway/tg/fcm/$fcmT/$secret"
+                                                        } else {
+                                                            "$gateway/tg/hms/$hmsT/$secret"
+                                                        }
+                                                    }
+                                                }
+
+                                                logger.i("Push", "Registering Telegram webhook: $webhookUrl")
+                                                withContext(Dispatchers.IO) {
+                                                    apiClient.setWebhook(webhookUrl)
+                                                }
+                                                logger.i("Push", "Telegram webhook registered successfully")
+                                            } else {
+                                                logger.i("Push", "Resetting Telegram webhook for Long Polling...")
+                                                withContext(Dispatchers.IO) {
+                                                    apiClient.deleteWebhook()
+                                                }
+                                                logger.i("Push", "Telegram webhook deleted successfully")
+                                            }
+
+                                            connectionMode = target
+                                            configRepo.updateConfig { it.copy(connectionMode = target) }
+                                            logger.i("Push", "Delivery mode switched: $target")
+                                        } catch (e: Exception) {
+                                            logger.e("Push", "Failed to switch mode: ${e.message}", e)
+                                            modeSwitchError = e.message ?: "Failed to switch mode"
+                                        } finally {
+                                            isModeSwitching = false
+                                        }
+                                    }
+                                },
+                            )
+                        }
+                    }
+
+                    if (modeSwitchError != null) {
+                        Text(
+                            text = "❌ $modeSwitchError",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
                         )
                     }
                 }

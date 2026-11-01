@@ -333,6 +333,8 @@ Click the button below to select apps.</string>
     <string name="push_hms_json_valid">✅ JSON is valid and ready to initialize</string>
     <string name="push_hms_btn_init">⚡ Apply and initialize HMS</string>
     <string name="push_hms_init_success">Huawei HMS initialized!</string>
+    <string name="push_fcm_copy_token">📋 Copy FCM Token</string>
+    <string name="push_fcm_token_copied">FCM token copied to clipboard!</string>
     <string name="push_hms_copy_token">📋 Copy HMS Token</string>
     <string name="push_hms_token_copied">HMS token copied to clipboard!</string>
     <string name="push_gateway_section_title">3. Push Gateway Configuration</string>

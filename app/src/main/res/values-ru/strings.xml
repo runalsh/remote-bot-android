@@ -333,6 +333,8 @@
     <string name="push_hms_json_valid">✅ JSON валиден и готов к инициализации</string>
     <string name="push_hms_btn_init">⚡ Применить и инициализировать HMS</string>
     <string name="push_hms_init_success">Huawei HMS инициализирован!</string>
+    <string name="push_fcm_copy_token">📋 Скопировать FCM токен</string>
+    <string name="push_fcm_token_copied">FCM токен скопирован в буфер обмена!</string>
     <string name="push_hms_copy_token">📋 Скопировать HMS токен</string>
     <string name="push_hms_token_copied">HMS токен скопирован в буфер!</string>
     <string name="push_gateway_section_title">3. Параметры Push Gateway</string>
