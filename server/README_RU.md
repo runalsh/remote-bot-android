@@ -57,18 +57,18 @@
 ### 1. Push Gateway (`serverpush/`)
 | Каталог | Стек | Особенности | Dockerfile |
 |---|---|---|---|
-| [`serverpush/go/`](file:///root/remote-bot-android/server/serverpush/go) | **Go 1.27.2** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический бинарник, SSL-сертификаты, автономный Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/go/Dockerfile) |
-| [`serverpush/python/`](file:///root/remote-bot-android/server/serverpush/python) | **Python 3.14.8** | Zero-dependency (чистая стандартная библиотека Python), быстрый запуск без компиляции. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/python/Dockerfile) |
-| [`serverpush/nginx/`](file:///root/remote-bot-android/server/serverpush/nginx) | **OpenResty 1.31.1.1-alpine-slim** | Сверхвысокая производительность Nginx + Lua, кэширование OAuth-токенов в shared memory. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/nginx/Dockerfile) |
-| [`serverpush/cloudflare-worker/`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Serverless Edge-воркер. Бесплатный запуск на инфраструктуре Cloudflare без необходимости арендовать собственный сервер. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker/Dockerfile) |
+| [`serverpush/go/`](file:///root/remote-bot-android/server/serverpush/go) | **Go** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический бинарник, SSL-сертификаты, автономный Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/go/Dockerfile) |
+| [`serverpush/python/`](file:///root/remote-bot-android/server/serverpush/python) | **Python** | Zero-dependency (чистая стандартная библиотека Python), быстрый запуск без компиляции. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/python/Dockerfile) |
+| [`serverpush/nginx/`](file:///root/remote-bot-android/server/serverpush/nginx) | **OpenResty** | Сверхвысокая производительность Nginx + Lua, кэширование OAuth-токенов в shared memory. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/nginx/Dockerfile) |
+| [`serverpush/cloudflare-worker/`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker) | **Cloudflare Workers** | Serverless Edge-воркер. Бесплатный запуск на инфраструктуре Cloudflare без необходимости арендовать собственный сервер. | [`Dockerfile`](file:///root/remote-bot-android/server/serverpush/cloudflare-worker/Dockerfile) |
 
 ### 2. API Reverse Proxy (`serverapi/`)
 | Каталог | Стек | Особенности | Dockerfile |
 |---|---|---|---|
-| [`serverapi/go/`](file:///root/remote-bot-android/server/serverapi/go) | **Go 1.27.2** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический `httputil.ReverseProxy`, стриминг без буферизации, поддержка Long Polling (`getUpdates`), Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/go/Dockerfile) |
-| [`serverapi/python/`](file:///root/remote-bot-android/server/serverapi/python) | **Python 3.14.8** | Легковесный прокси на `http.server` и `urllib`. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/python/Dockerfile) |
-| [`serverapi/nginx/`](file:///root/remote-bot-android/server/serverapi/nginx) | **Nginx 1.30.6-alpine-slim** | Классический production reverse proxy с оптимизированными TLS-буферами и client_max_body_size 50M. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/nginx/Dockerfile) |
-| [`serverapi/cloudflare-worker/`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker) | **Cloudflare Workers (Node 24.22.0)** | Edge-прокси в один файл JavaScript, работающий через глобальную сеть Cloudflare. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker/Dockerfile) |
+| [`serverapi/go/`](file:///root/remote-bot-android/server/serverapi/go) | **Go** | **Основной / Рекомендуемый**. Pure Scratch (0 MB ОС, нулевая поверхность атаки), статический `httputil.ReverseProxy`, стриминг без буферизации, поддержка Long Polling (`getUpdates`), Healthcheck (`-healthcheck`). | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/go/Dockerfile) |
+| [`serverapi/python/`](file:///root/remote-bot-android/server/serverapi/python) | **Python** | Легковесный прокси на `http.server` и `urllib`. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/python/Dockerfile) |
+| [`serverapi/nginx/`](file:///root/remote-bot-android/server/serverapi/nginx) | **Nginx** | Классический production reverse proxy с оптимизированными TLS-буферами и client_max_body_size 50M. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/nginx/Dockerfile) |
+| [`serverapi/cloudflare-worker/`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker) | **Cloudflare Workers** | Edge-прокси в один файл JavaScript, работающий через глобальную сеть Cloudflare. | [`Dockerfile`](file:///root/remote-bot-android/server/serverapi/cloudflare-worker/Dockerfile) |
 
 ---
 
