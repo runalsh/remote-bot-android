@@ -1,23 +1,23 @@
 [versions]
 agp = "8.13.2"
-kotlin = "2.0.21"
-coreKtx = "1.15.0"
-lifecycleRuntimeKtx = "2.8.7"
-activityCompose = "1.9.3"
-composeBom = "2024.12.01"
+kotlin = "2.1.21"
+coreKtx = "1.16.0"
+lifecycleRuntimeKtx = "2.9.4"
+activityCompose = "1.10.1"
+composeBom = "2025.11.01"
 coroutines = "1.10.1"
-serialization = "1.7.3"
-koin = "4.0.2"
-ktor = "3.1.1"
-room = "2.6.1"
-ksp = "2.0.21-1.0.28"
-cameraX = "1.4.1"
+serialization = "1.9.0"
+koin = "4.1.1"
+ktor = "3.3.3"
+room = "2.8.5"
+ksp = "2.1.21-2.0.2"
+cameraX = "1.5.0"
 libsu = "6.0.0"
-tink = "1.16.0"
-sqlcipher = "4.5.4"
-workManager = "2.10.0"
+tink = "1.24.0"
+sqlcipher = "4.17.0"
+workManager = "2.12.0"
 google-services = "4.5.0"
-firebase-bom = "34.19.0"
+firebase-bom = "35.1.0"
 play-services-location = "21.4.0"
 huawei-location = "6.20.0.300"
 huawei-agcp = "1.9.6.300"
@@ -25,6 +25,7 @@ huawei-push = "6.13.0.301"
 huawei-agconnect-core = "1.9.6.300"
 ktlint = "14.2.0"
 detekt = "1.23.8"
+gradle-versions = "0.67.0"
 
 [libraries]
 # AndroidX & Compose
@@ -38,6 +39,7 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-material-icons = { group = "androidx.compose.material", name = "material-icons-core" }
 
 # CameraX
 androidx-camera-core = { group = "androidx.camera", name = "camera-core", version.ref = "cameraX" }
@@ -81,7 +83,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 
 # Security & Root
 tink-android = { group = "com.google.crypto.tink", name = "tink-android", version.ref = "tink" }
-sqlcipher-android = { group = "net.zetetic", name = "android-database-sqlcipher", version.ref = "sqlcipher" }
+sqlcipher-android = { group = "net.zetetic", name = "sqlcipher-android", version.ref = "sqlcipher" }
 libsu-core = { group = "com.github.topjohnwu.libsu", name = "core", version.ref = "libsu" }
 libsu-service = { group = "com.github.topjohnwu.libsu", name = "service", version.ref = "libsu" }
 libsu-nio = { group = "com.github.topjohnwu.libsu", name = "nio", version.ref = "libsu" }
@@ -101,4 +103,5 @@ ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 google-services = { id = "com.google.gms.google-services", version.ref = "google-services" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+gradle-versions = { id = "io.github.ben-manes.versions", version.ref = "gradle-versions" }
 

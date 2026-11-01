@@ -1,4 +1,4 @@
-FROM openresty/openresty:1.31.1.1-alpine-slim
+FROM openresty/openresty:1.31.8.1-alpine-slim
 
 RUN apk --no-cache add ca-certificates wget tzdata && \
     /usr/local/openresty/bin/opm get pintsized/lua-resty-http SkyLothar/lua-resty-jwt || true

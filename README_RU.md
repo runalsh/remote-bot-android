@@ -145,14 +145,14 @@
 ### 1. Push Gateways (`server/serverpush/`)
 Принимают вебхуки от Telegram и мгновенно отправляют silent data push в FCM и HMS:
 - **Go (`go/`)**: Минималистичный бинарник `FROM scratch` (~10 МБ RAM, встроенные хелсчеки).
-- **Python (`python/`)**: Микросервис на Python 3.14 Alpine.
+- **Python (`python/`)**: Микросервис на Python 3.15 Alpine.
 - **OpenResty (`nginx/`)**: Высокопроизводительный Lua-шлюз на базе OpenResty Alpine.
 - **Cloudflare Worker (`cloudflare-worker/`)**: Edge-скрипт на JavaScript для serverless развертывания.
 
 ### 2. Telegram API Reverse Proxies (`server/serverapi/`)
 Реверс-прокси для `api.telegram.org` с поддержкой TLS:
 - **Go (`go/`)**: Высокопроизводительный обратный прокси `FROM scratch`.
-- **Python (`python/`)**: Легковесный прокси на Python 3.14.
+- **Python (`python/`)**: Легковесный прокси на Python 3.15.
 - **Nginx (`nginx/`)**: Nginx 1.30.6 Alpine прокси.
 - **Cloudflare Worker (`cloudflare-worker/`)**: Прокси-скрипт для Cloudflare Workers.
 

@@ -17,6 +17,7 @@ class FirebasePushService : FirebaseMessagingService() {
     private val scope = CoroutineScope(Dispatchers.IO)
     private val json = Json { ignoreUnknownKeys = true }
 
+    @Deprecated("Deprecated in FirebaseMessagingService")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         logger.i("FCM", "New FCM push token received: ${token.take(8)}...${token.takeLast(4)}")

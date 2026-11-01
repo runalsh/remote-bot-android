@@ -21,6 +21,15 @@ plugins {
     alias(libs.plugins.google.services) apply false
     alias(libs.plugins.ktlint) apply false
     alias(libs.plugins.detekt) apply false
+    alias(libs.plugins.gradle.versions)
+}
+
+tasks.withType<com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask> {
+    rejectVersionIf {
+        val current = candidate.version.uppercase()
+        val isNonStable = listOf("ALPHA", "BETA", "RC", "CR", "M", "PREVIEW", "DEV").any { current.contains(it) }
+        isNonStable
+    }
 }
 
 subprojects {

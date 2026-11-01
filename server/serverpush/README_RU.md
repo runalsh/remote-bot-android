@@ -192,9 +192,10 @@ sudo luarocks install lua-cjson
 2. **Загрузка исходников**:
    ```bash
    cd /tmp
-   # Загрузка Nginx
-   wget http://nginx.org/download/nginx-1.24.0.tar.gz
-   tar -zxvf nginx-1.24.0.tar.gz
+   # Загрузка стабильной версии Nginx
+   NGINX_VERSION=$(curl -s http://nginx.org/en/download.html | grep -oP 'nginx-\K[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+   wget "http://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz"
+   tar -zxvf "nginx-${NGINX_VERSION}.tar.gz"
 
    # Загрузка модулей Lua и Devel Kit
    git clone https://github.com/vision5/ngx_devel_kit.git
@@ -203,7 +204,7 @@ sudo luarocks install lua-cjson
 
 3. **Конфигурация и компиляция**:
    ```bash
-   cd /tmp/nginx-1.24.0
+   cd /tmp/nginx-${NGINX_VERSION}
    export LUAJIT_LIB=/usr/lib/x86_64-linux-gnu
    export LUAJIT_INC=/usr/include/luajit-2.1
 

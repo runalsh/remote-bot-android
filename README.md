@@ -145,14 +145,14 @@ The repository includes lightweight server gateways located in [`server/`](serve
 ### 1. Push Gateways (`server/serverpush/`)
 Translates Telegram webhook `POST` updates into Google FCM and Huawei HMS push notifications:
 - **Go (`go/`)**: Ultra-lightweight `FROM scratch` binary (~10 MB RAM, self-contained healthchecks).
-- **Python (`python/`)**: Python 3.14 Alpine microservice based on standard HTTP server.
+- **Python (`python/`)**: Python 3.15 Alpine microservice based on standard HTTP server.
 - **OpenResty (`nginx/`)**: High-performance Lua gateway based on OpenResty Alpine.
 - **Cloudflare Worker (`cloudflare-worker/`)**: Serverless JavaScript implementation for edge deployment.
 
 ### 2. Telegram API Reverse Proxies (`server/serverapi/`)
 Reverse proxies for `api.telegram.org` with TLS support:
 - **Go (`go/`)**: High-concurrency `FROM scratch` reverse proxy.
-- **Python (`python/`)**: Minimal Python 3.14 proxy.
+- **Python (`python/`)**: Minimal Python 3.15 proxy.
 - **Nginx (`nginx/`)**: High-throughput Nginx 1.30.6 Alpine proxy.
 - **Cloudflare Worker (`cloudflare-worker/`)**: Edge reverse proxy script.
 

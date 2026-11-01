@@ -179,7 +179,7 @@ class TelegramInteractiveReplyHandler(
                 val targetUserId = parts[0].toLongOrNull() ?: return true
                 val action = parts[1]
                 val config = configRepository?.config?.value
-                if (config != null && configRepository != null) {
+                if (config != null) {
                     val currentSub = config.userSubscriptions[targetUserId] ?: com.remotebot.domain.model.UserSubscription(userId = targetUserId)
                     val updatedSub =
                         when (action) {
