@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.messaging.FirebaseMessaging
+import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.ParsedFirebaseConfig
 import com.remotebot.domain.parser.GoogleServicesJsonParser
 import kotlinx.coroutines.tasks.await
@@ -24,6 +25,7 @@ object DynamicFirebaseManager {
         context: Context,
         config: ParsedFirebaseConfig,
     ): Result<FirebaseApp> {
+        AppLogger.i("FCM", "Initializing Firebase dynamically: projectId=${config.projectId}, appId=${config.appId}")
         return runCatching {
             val options =
                 FirebaseOptions
@@ -47,12 +49,17 @@ object DynamicFirebaseManager {
                         defaultApp.options.apiKey == options.apiKey &&
                         defaultApp.options.projectId == options.projectId
                     ) {
+                        AppLogger.d("FCM", "FirebaseApp already initialized with identical options, reusing instance")
                         return@runCatching defaultApp
                     }
                     defaultApp.delete()
                 }
             }
-            FirebaseApp.initializeApp(context.applicationContext, options)
+            val app = FirebaseApp.initializeApp(context.applicationContext, options)
+            AppLogger.i("FCM", "FirebaseApp initialized successfully: ${app.name}")
+            app
+        }.onFailure { err ->
+            AppLogger.e("FCM", "Failed to initialize FirebaseApp: ${err.localizedMessage}", err)
         }
     }
 
@@ -101,19 +108,33 @@ object DynamicFirebaseManager {
     suspend fun getFcmToken(
         context: Context? = null,
         timeoutMs: Long = 12000L,
-    ): Result<String> =
-        runCatching {
+    ): Result<String> {
+        AppLogger.i("FCM", "Requesting FCM push token (FirebaseMessaging.getInstance().token), timeout=${timeoutMs}ms...")
+        return runCatching {
             if (!isInitialized()) {
-                throw IllegalStateException("Firebase is not initialized. Provide google-services.json.")
+                val err = "Firebase is not initialized. Provide google-services.json."
+                AppLogger.e("FCM", err)
+                throw IllegalStateException(err)
             }
             if (context != null && !isGooglePlayServicesAvailable(context)) {
                 val status = getGooglePlayServicesStatus(context)
+                AppLogger.e("FCM", "Google Play Services error: $status")
                 throw IllegalStateException(status)
             }
             kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 kotlinx.coroutines.withTimeout(timeoutMs) {
-                    FirebaseMessaging.getInstance().token.await()
+                    val token = FirebaseMessaging.getInstance().token.await()
+                    if (token.isNullOrBlank()) {
+                        AppLogger.w("FCM", "Empty FCM token returned from FirebaseMessaging")
+                        throw IllegalStateException("Empty FCM token received")
+                    }
+                    AppLogger.i("FCM", "FCM token obtained successfully: ${token.take(8)}...${token.takeLast(4)}")
+                    AppLogger.t("FCM", "Full FCM Device Token (length=${token.length}): $token")
+                    token
                 }
             }
+        }.onFailure { error ->
+            AppLogger.e("FCM", "Failed to obtain FCM token: ${error.localizedMessage}", error)
         }
+    }
 }
