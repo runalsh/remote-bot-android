@@ -1,11 +1,80 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
-
 version: 2
 updates:
-  - package-ecosystem: "" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # 1. Android & Gradle (libs.versions.toml)
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      compose:
+        patterns:
+          - "androidx.compose*"
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin*"
+
+  # 2. GitHub Actions workflows (.github/workflows/*.yml)
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+          - "docker/*"
+
+  # 3. Node.js (Cloudflare Workers)
+  - package-ecosystem: "npm"
+    directory: "/server/serverpush/cloudflare-worker"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/server/serverapi/cloudflare-worker"
+    schedule:
+      interval: "weekly"
+
+  # 4. Go microservices (Push Gateway & API Reverse Proxy)
+  - package-ecosystem: "gomod"
+    directory: "/server/serverpush/go"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "gomod"
+    directory: "/server/serverapi/go"
+    schedule:
+      interval: "weekly"
+
+  # 5. Docker base images (Go, Python, Nginx)
+  - package-ecosystem: "docker"
+    directory: "/server/serverpush/python"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/server/serverapi/python"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/server/serverpush/go"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/server/serverapi/go"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/server/serverpush/nginx"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/server/serverapi/nginx"
     schedule:
       interval: "weekly"
