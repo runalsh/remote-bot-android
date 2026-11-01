@@ -158,11 +158,13 @@ jobs:
 
   # ============================================================================
   # 4. Build APKs (Debug and Release)
+  # In Pull Requests: runs in parallel with lint & tests (builds Debug APK immediately)
+  # On main/push: waits for lint & unit-tests before building & packaging
   # ============================================================================
   build-apk:
     name: Build APK (Debug & Release)
     runs-on: ubuntu-latest
-    needs: [lint, unit-tests]
+    needs: ${{ github.event_name == 'pull_request' && fromJSON('["wrapper-validation"]') || fromJSON('["lint", "unit-tests"]') }}
     env:
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3g -Dorg.gradle.daemon=false"
     steps:
@@ -189,12 +191,13 @@ jobs:
         run: make build-debug
 
       - name: Decode Release Keystore
-        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        if: ${{ github.event_name != 'pull_request' && env.KEYSTORE_BASE64 != '' }}
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: echo "$KEYSTORE_BASE64" | base64 -d > release.jks
 
       - name: Assemble Release APK
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           KEYSTORE_FILE: release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -214,6 +217,7 @@ jobs:
           retention-days: 14
 
       - name: Upload Release APK
+        if: ${{ github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v7
         with:
           name: app-release
