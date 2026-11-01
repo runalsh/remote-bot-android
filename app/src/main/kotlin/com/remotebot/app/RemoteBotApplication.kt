@@ -3,6 +3,7 @@ package com.remotebot.app
 import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.remotebot.app.di.appModule
+import com.remotebot.app.util.AppLocaleManager
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.domain.model.ParsedFirebaseConfig
 import com.remotebot.domain.provider.RootStatusProvider
@@ -14,7 +15,6 @@ import org.koin.android.ext.android.get
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
-import com.remotebot.app.util.AppLocaleManager
 
 class RemoteBotApplication : Application() {
     override fun onCreate() {

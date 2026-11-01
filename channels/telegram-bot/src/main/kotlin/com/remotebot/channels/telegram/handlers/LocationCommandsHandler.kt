@@ -3,15 +3,15 @@ package com.remotebot.channels.telegram.handlers
 import com.remotebot.channels.telegram.api.TelegramApiClient
 import com.remotebot.channels.telegram.strings.BotStrings
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
-import com.remotebot.domain.model.BotLanguage
-import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.CommandSource
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.model.LocationData
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.repository.LocationRepository
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,7 +23,6 @@ class LocationCommandsHandler(
     private val operationsTracker: com.remotebot.core.common.tracker.ActiveOperationsTracker? = null,
     private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
-
     private val strings
         get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
 
@@ -272,12 +271,20 @@ class LocationCommandsHandler(
 
             val altSpeedText =
                 if (loc.altitudeMeters != 0.0 || loc.speedMps > 0f) {
-            strings.locAltitudeSpeed("%.1f".format(loc.altitudeMeters), "%.1f".format(loc.speedMps * 3.6f))
+                    strings.locAltitudeSpeed("%.1f".format(loc.altitudeMeters), "%.1f".format(loc.speedMps * 3.6f))
                 } else {
                     ""
                 }
 
-            return strings.locResultBody("${loc.latitude}, ${loc.longitude}", "%.1f".format(loc.accuracyMeters), methodText, timeStr, addressText, gmapsUrl, osmUrl)
+            return strings.locResultBody(
+                "${loc.latitude}, ${loc.longitude}",
+                "%.1f".format(loc.accuracyMeters),
+                methodText,
+                timeStr,
+                addressText,
+                gmapsUrl,
+                osmUrl,
+            )
         }
 
         fun buildSingleLocationKeyboard(strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup {
@@ -293,7 +300,10 @@ class LocationCommandsHandler(
             return InlineKeyboardMarkup(listOf(row1, row2))
         }
 
-        fun buildTrackingKeyboard(isTrackingActive: Boolean, strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup {
+        fun buildTrackingKeyboard(
+            isTrackingActive: Boolean,
+            strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO),
+        ): InlineKeyboardMarkup {
             val row1 =
                 listOf(
                     InlineKeyboardButton(strings.locBtn30s(), callbackData = "/track 30s"),
@@ -320,7 +330,10 @@ class LocationCommandsHandler(
             return InlineKeyboardMarkup(listOf(row1, row2, row3))
         }
 
-        fun buildLocationKeyboard(isTrackingActive: Boolean, strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO)): InlineKeyboardMarkup = buildTrackingKeyboard(isTrackingActive, strings)
+        fun buildLocationKeyboard(
+            isTrackingActive: Boolean,
+            strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO),
+        ): InlineKeyboardMarkup = buildTrackingKeyboard(isTrackingActive, strings)
     }
 
     private suspend fun handleGps(args: List<String>): CommandResult {
@@ -492,7 +505,9 @@ class LocationCommandsHandler(
                 ),
             )
         }
-        rowActions.add(InlineKeyboardButton(strings.locShakeBtnRefresh(), callbackData = "/shake_detector panel $activeLevel $activeCooldown"))
+        rowActions.add(
+            InlineKeyboardButton(strings.locShakeBtnRefresh(), callbackData = "/shake_detector panel $activeLevel $activeCooldown"),
+        )
 
         val statusText =
             if (cfg.isEnabled) {

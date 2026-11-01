@@ -42,7 +42,10 @@ class RemoteBotService : LifecycleService() {
             return if (startTime > 0) System.currentTimeMillis() - startTime else 0L
         }
 
-        fun formatUptime(millis: Long, context: Context): String {
+        fun formatUptime(
+            millis: Long,
+            context: Context,
+        ): String {
             if (millis <= 0) return "—"
             val seconds = millis / 1000
             val days = seconds / 86400

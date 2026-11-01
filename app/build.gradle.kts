@@ -114,10 +114,13 @@ android {
             val keyAliasVal = props.getProperty("keyAlias") ?: System.getenv("KEY_ALIAS")
             val keyPasswordVal = props.getProperty("keyPassword") ?: System.getenv("KEY_PASSWORD")
 
-            val resolvedStoreFile = if (!storeFilePath.isNullOrBlank()) {
-                val f = file(storeFilePath)
-                if (f.exists()) f else rootProject.file(storeFilePath)
-            } else null
+            val resolvedStoreFile =
+                if (!storeFilePath.isNullOrBlank()) {
+                    val f = file(storeFilePath)
+                    if (f.exists()) f else rootProject.file(storeFilePath)
+                } else {
+                    null
+                }
 
             if (resolvedStoreFile != null && resolvedStoreFile.exists() && !keyAliasVal.isNullOrBlank()) {
                 storeFile = resolvedStoreFile

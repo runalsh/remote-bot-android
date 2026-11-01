@@ -10,9 +10,9 @@ enum class ConnectionMode {
 
 @Serializable
 enum class BotLanguage {
-    AUTO,    // System language
-    EN,      // English
-    RU,      // Russian
+    AUTO, // System language
+    EN, // English
+    RU, // Russian
 }
 
 @Serializable
@@ -88,7 +88,10 @@ data class BotConfig(
     val userSubscriptions: Map<Long, UserSubscription> = emptyMap(), // Per-user subscriptions to event types
     val botLanguage: BotLanguage = BotLanguage.AUTO, // Bot UI language (AUTO / EN / RU)
 ) {
-    fun isUserSubscribedTo(userId: Long, eventType: SubscriptionEventType): Boolean {
+    fun isUserSubscribedTo(
+        userId: Long,
+        eventType: SubscriptionEventType,
+    ): Boolean {
         if (allowedUserIds.isNotEmpty() && !allowedUserIds.contains(userId)) {
             return false
         }

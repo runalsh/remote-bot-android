@@ -180,13 +180,31 @@ class TelephonyCommandsTest {
 
     @Test
     fun testTelephonyRepositoryResolveContactNameDefault() {
-        val repo = object : com.remotebot.domain.repository.TelephonyRepository {
-            override suspend fun sendSms(address: String, message: String, simSlot: Int?): Result<Unit> = Result.success(Unit)
-            override suspend fun getRecentSms(limit: Int, simSlot: Int?): Result<List<SmsMessage>> = Result.success(emptyList())
-            override suspend fun getCallHistory(limit: Int): Result<List<CallLogEntry>> = Result.success(emptyList())
-            override suspend fun makeCall(number: String, simSlot: Int?): Result<Unit> = Result.success(Unit)
-            override suspend fun sendUssd(code: String, simSlot: Int?): Result<String> = Result.success("OK")
-        }
+        val repo =
+            object : com.remotebot.domain.repository.TelephonyRepository {
+                override suspend fun sendSms(
+                    address: String,
+                    message: String,
+                    simSlot: Int?,
+                ): Result<Unit> = Result.success(Unit)
+
+                override suspend fun getRecentSms(
+                    limit: Int,
+                    simSlot: Int?,
+                ): Result<List<SmsMessage>> = Result.success(emptyList())
+
+                override suspend fun getCallHistory(limit: Int): Result<List<CallLogEntry>> = Result.success(emptyList())
+
+                override suspend fun makeCall(
+                    number: String,
+                    simSlot: Int?,
+                ): Result<Unit> = Result.success(Unit)
+
+                override suspend fun sendUssd(
+                    code: String,
+                    simSlot: Int?,
+                ): Result<String> = Result.success("OK")
+            }
         kotlinx.coroutines.runBlocking {
             assertEquals(null, repo.resolveContactName("+79033885660"))
         }
@@ -194,7 +212,9 @@ class TelephonyCommandsTest {
 
     @Test
     fun testSmsReplyRegexWithAndWithoutContactName() {
-        val smsRegex = """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)""".toRegex()
+        val smsRegex =
+            """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)"""
+                .toRegex()
 
         val textWithoutName = "Входящее SMS от +79033885660 [SIM 1] (13:50:00):\n«Привет»"
         val matchWithoutName = smsRegex.find(textWithoutName)

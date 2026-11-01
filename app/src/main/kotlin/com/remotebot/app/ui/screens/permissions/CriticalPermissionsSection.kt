@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.provider.RootStatusProvider
@@ -140,7 +140,14 @@ fun CriticalPermissionsSection(
                         }
                 },
         commandsHint = stringResource(R.string.perm_hint_accessibility),
-        buttonText = if (isRootGranted) stringResource(R.string.perm_btn_accessibility_root) else stringResource(R.string.perm_btn_accessibility_settings),
+        buttonText =
+            if (isRootGranted) {
+                stringResource(
+                    R.string.perm_btn_accessibility_root,
+                )
+            } else {
+                stringResource(R.string.perm_btn_accessibility_settings)
+            },
     ) {
         if (isRootGranted) {
             logger.d("Permissions", "Requesting Accessibility Service enablement via Root")
@@ -164,7 +171,12 @@ fun CriticalPermissionsSection(
                 withContext(Dispatchers.Main) {
                     if (res.isSuccess) {
                         logger.i("Permissions", "Accessibility enabled successfully via Root")
-                        Toast.makeText(context, context.getString(R.string.perm_accessibility_root_enabled_toast), Toast.LENGTH_SHORT).show()
+                        Toast
+                            .makeText(
+                                context,
+                                context.getString(R.string.perm_accessibility_root_enabled_toast),
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         onRefreshRequest()
                     } else {
                         logger.w("Permissions", "Root enablement failed, opening the system Accessibility settings")

@@ -211,7 +211,11 @@ class DefaultCameraRepository(
                                     }
 
                                     override fun onConfigureFailed(captureSession: CameraCaptureSession) {
-                                        if (cont.isActive) cont.resumeWith(Result.failure(RuntimeException("Camera session configuration failure")))
+                                        if (cont.isActive) {
+                                            cont.resumeWith(
+                                                Result.failure(RuntimeException("Camera session configuration failure")),
+                                            )
+                                        }
                                     }
                                 },
                                 handler,

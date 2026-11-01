@@ -8,14 +8,14 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import com.remotebot.app.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.AppStatusBadge
 import com.remotebot.app.ui.components.BadgeStatus
 import com.remotebot.app.ui.theme.AppColors
@@ -59,9 +59,10 @@ fun PushGatewayDashboardCard(
     var isCheckingAll by remember { mutableStateOf(false) }
 
     val isFcmInit = remember(config.googleServicesJson) { DynamicFirebaseManager.isInitialized() }
-    val isHmsInit = remember(config.agconnectServicesJson) {
-        DynamicHmsManager.isInitialized() && !config.agconnectServicesJson.isNullOrBlank()
-    }
+    val isHmsInit =
+        remember(config.agconnectServicesJson) {
+            DynamicHmsManager.isInitialized() && !config.agconnectServicesJson.isNullOrBlank()
+        }
 
     val allPushServers =
         remember(config.pushServers, config.pushGatewayUrl) {
@@ -160,7 +161,15 @@ fun PushGatewayDashboardCard(
                     async {
                         pingUrl(
                             key = "api_$root",
-                            name = if (root.contains("api.telegram.org")) context.getString(R.string.dbg_official_api) else context.getString(R.string.dbg_mirror_name, idx + 1),
+                            name =
+                                if (root.contains("api.telegram.org")) {
+                                    context.getString(R.string.dbg_official_api)
+                                } else {
+                                    context.getString(
+                                        R.string.dbg_mirror_name,
+                                        idx + 1,
+                                    )
+                                },
                             targetUrl = root,
                             isTelegramApi = true,
                         )
@@ -344,7 +353,15 @@ fun PushGatewayDashboardCard(
 
             apiRoots.forEachIndexed { idx, root ->
                 val health = serverHealthMap["api_$root"]
-                val name = if (root.contains("api.telegram.org")) stringResource(R.string.dbg_official_api) else "Telegram Mirror #${idx + 1}"
+                val name =
+                    if (root.contains(
+                            "api.telegram.org",
+                        )
+                    ) {
+                        stringResource(R.string.dbg_official_api)
+                    } else {
+                        "Telegram Mirror #${idx + 1}"
+                    }
                 ServerItemRow(
                     name = name,
                     url = root,

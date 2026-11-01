@@ -359,9 +359,10 @@ class TelegramEventForwarder(
     }
 
     private val strings
-        get() = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
-            configRepository.config.value.botLanguage,
-        )
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository.config.value.botLanguage,
+            )
 
     private fun escapeHtml(text: String): String =
         text

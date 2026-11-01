@@ -666,8 +666,10 @@ class DomainModelsTest {
     fun test2FaNotificationKeyboardGenerationByConfigFlag() {
         val actions =
             listOf(
-                com.remotebot.domain.model.NotificationActionButton(0, "Подтвердить"),
-                com.remotebot.domain.model.NotificationActionButton(1, "Отклонить"),
+                com.remotebot.domain.model
+                    .NotificationActionButton(0, "Подтвердить"),
+                com.remotebot.domain.model
+                    .NotificationActionButton(1, "Отклонить"),
             )
 
         fun buildKeyboard(config: BotConfig): List<InlineKeyboardButton> {
@@ -706,7 +708,10 @@ class DomainModelsTest {
         val fifoQueue = java.util.concurrent.ConcurrentLinkedQueue<String>()
         val active2FaMap = java.util.concurrent.ConcurrentHashMap<String, String>()
 
-        fun postNotif(id: String, is2Fa: Boolean) {
+        fun postNotif(
+            id: String,
+            is2Fa: Boolean,
+        ) {
             recentMap[id] = "data_$id"
             fifoQueue.add(id)
             if (is2Fa) {
@@ -969,4 +974,3 @@ class DomainModelsTest {
         assertTrue(repo.isUserSubscribedTo(testUserId, SubscriptionEventType.SYSTEM))
     }
 }
-

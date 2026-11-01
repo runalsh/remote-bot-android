@@ -25,7 +25,6 @@ import com.remotebot.domain.repository.BotConfigRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
-
 @Composable
 fun FcmGoogleSection(
     context: Context,
@@ -85,11 +84,21 @@ fun FcmGoogleSection(
                                 val text = clip.getItemAt(0).text?.toString() ?: ""
                                 if (text.isNotBlank()) {
                                     onGoogleJsonTextChange(text)
-                                    Toast.makeText(context, context.getString(R.string.push_paste_clipboard_toast, text.length), Toast.LENGTH_SHORT).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            context.getString(R.string.push_paste_clipboard_toast, text.length),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                 }
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, context.getString(R.string.push_clipboard_error_toast, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.push_clipboard_error_toast, e.message ?: ""),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -142,7 +151,12 @@ fun FcmGoogleSection(
                         val parseResult = DynamicFirebaseManager.parseGoogleServicesJson(googleJsonText)
                         if (parseResult.isFailure) {
                             onIsFcmProcessingChange(false)
-                            onFcmStatusMessageChange(context.getString(R.string.push_fcm_parse_error, parseResult.exceptionOrNull()?.localizedMessage ?: ""))
+                            onFcmStatusMessageChange(
+                                context.getString(
+                                    R.string.push_fcm_parse_error,
+                                    parseResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsFcmSuccessChange(false)
                             return@launch
                         }
@@ -151,7 +165,12 @@ fun FcmGoogleSection(
                         val initResult = DynamicFirebaseManager.initialize(context, parsed)
                         if (initResult.isFailure) {
                             onIsFcmProcessingChange(false)
-                            onFcmStatusMessageChange(context.getString(R.string.push_fcm_init_error, initResult.exceptionOrNull()?.localizedMessage ?: ""))
+                            onFcmStatusMessageChange(
+                                context.getString(
+                                    R.string.push_fcm_init_error,
+                                    initResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsFcmSuccessChange(false)
                             return@launch
                         }
@@ -272,7 +291,11 @@ fun FcmGoogleSection(
                     if (!isGmsAvailable) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = stringResource(R.string.push_fcm_gms_warning, DynamicFirebaseManager.getGooglePlayServicesStatus(context)),
+                            text =
+                                stringResource(
+                                    R.string.push_fcm_gms_warning,
+                                    DynamicFirebaseManager.getGooglePlayServicesStatus(context),
+                                ),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -304,5 +327,4 @@ fun FcmGoogleSection(
             }
         }
     }
-
 }

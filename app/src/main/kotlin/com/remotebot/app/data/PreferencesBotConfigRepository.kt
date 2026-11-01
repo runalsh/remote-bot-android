@@ -20,7 +20,12 @@ class PreferencesBotConfigRepository(
     private val secureStorage: SecureStorageManager? = null,
 ) : BotConfigRepository {
     private val prefs = context.getSharedPreferences("remotebot_config", Context.MODE_PRIVATE)
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true; encodeDefaults = true }
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            encodeDefaults = true
+        }
 
     private val _config = MutableStateFlow(loadConfig())
     override val config: StateFlow<BotConfig> = _config.asStateFlow()

@@ -9,9 +9,8 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,16 +18,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.ui.screens.push.FcmGoogleSection
 import com.remotebot.app.ui.screens.push.HmsHuaweiSection
 import com.remotebot.app.ui.screens.push.PushGatewaySection
 import com.remotebot.app.ui.screens.push.PushServersPoolCard
 import com.remotebot.app.ui.theme.AppColors
-import androidx.compose.ui.res.stringResource
-import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.core.push.DynamicHmsManager
@@ -44,7 +43,6 @@ fun FcmSettingsTab(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
     val config by configRepo.config.collectAsState()
 
     var pushProvider by remember(config.pushProvider) {
@@ -131,181 +129,193 @@ fun FcmSettingsTab(
             }
         }
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         // TOP: Active status and Push Wakeup mode toggle
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                        },
-                ),
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            },
+                    ),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Box(
-                                modifier =
-                                    Modifier
-                                        .size(10.dp)
-                                        .background(
-                                            if (connectionMode ==
-                                                ConnectionMode.PUSH_WAKEUP
-                                            ) {
-                                                AppColors.success
-                                            } else {
-                                                MaterialTheme.colorScheme.outline
-                                            },
-                                            androidx.compose.foundation.shape.CircleShape,
-                                        ),
-                            )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Box(
+                                    modifier =
+                                        Modifier
+                                            .size(10.dp)
+                                            .background(
+                                                if (connectionMode ==
+                                                    ConnectionMode.PUSH_WAKEUP
+                                                ) {
+                                                    AppColors.success
+                                                } else {
+                                                    MaterialTheme.colorScheme.outline
+                                                },
+                                                androidx.compose.foundation.shape.CircleShape,
+                                            ),
+                                )
+                                Text(
+                                    text = stringResource(R.string.fcm_wakeup_mode),
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = stringResource(R.string.fcm_wakeup_mode),
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.titleMedium,
+                                text =
+                                    if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
+                                        stringResource(R.string.push_status_active)
+                                    } else {
+                                        stringResource(R.string.push_status_inactive)
+                                    },
+                                style = MaterialTheme.typography.bodySmall,
+                                color =
+                                    if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
+                                        AppColors.success
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
                             )
                         }
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text =
-                                if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
-                                    stringResource(R.string.push_status_active)
-                                } else {
-                                    stringResource(R.string.push_status_inactive)
-                                },
-                            style = MaterialTheme.typography.bodySmall,
-                            color =
-                                if (connectionMode == ConnectionMode.PUSH_WAKEUP) {
-                                    AppColors.success
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
+
+                        Switch(
+                            checked = connectionMode == ConnectionMode.PUSH_WAKEUP,
+                            onCheckedChange = { isChecked ->
+                                val target = if (isChecked) ConnectionMode.PUSH_WAKEUP else ConnectionMode.LONG_POLLING
+                                connectionMode = target
+                                scope.launch {
+                                    configRepo.updateConfig { it.copy(connectionMode = target) }
+                                    logger.i("Push", "Delivery mode switched: $target")
+                                }
+                            },
                         )
                     }
+                }
+            }
+        }
 
-                    Switch(
-                        checked = connectionMode == ConnectionMode.PUSH_WAKEUP,
-                        onCheckedChange = { isChecked ->
-                            val target = if (isChecked) ConnectionMode.PUSH_WAKEUP else ConnectionMode.LONG_POLLING
-                            connectionMode = target
-                            scope.launch {
-                                configRepo.updateConfig { it.copy(connectionMode = target) }
-                                logger.i("Push", "Delivery mode switched: $target")
-                            }
+        // Push provider selection card
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.fcm_provider_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        text = stringResource(R.string.fcm_provider_desc),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+
+                    PushProviderSegmentedSlider(
+                        selectedProvider = pushProvider,
+                        onProviderSelected = { selected ->
+                            pushProvider = selected
+                            scope.launch { configRepo.updateConfig { it.copy(pushProvider = selected) } }
                         },
                     )
                 }
             }
         }
 
-        // Push provider selection card
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Text(
-                    text = stringResource(R.string.fcm_provider_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(R.string.fcm_provider_desc),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-
-                PushProviderSegmentedSlider(
-                    selectedProvider = pushProvider,
-                    onProviderSelected = { selected ->
-                        pushProvider = selected
-                        scope.launch { configRepo.updateConfig { it.copy(pushProvider = selected) } }
-                    },
+        // Google FCM block (displayed for FCM or HYBRID)
+        if (pushProvider == PushProvider.FCM || pushProvider == PushProvider.HYBRID) {
+            item {
+                FcmGoogleSection(
+                    context = context,
+                    scope = scope,
+                    configRepo = configRepo,
+                    googleJsonText = googleJsonText,
+                    onGoogleJsonTextChange = { googleJsonText = it },
+                    googlePickerLauncher = googlePickerLauncher,
+                    fcmToken = fcmToken,
+                    onFcmTokenChange = { fcmToken = it },
+                    fcmStatusMessage = fcmStatusMessage,
+                    onFcmStatusMessageChange = { fcmStatusMessage = it },
+                    isFcmSuccess = isFcmSuccess,
+                    onIsFcmSuccessChange = { isFcmSuccess = it },
+                    isFcmProcessing = isFcmProcessing,
+                    onIsFcmProcessingChange = { isFcmProcessing = it },
                 )
             }
         }
 
-        // Google FCM block (displayed for FCM or HYBRID)
-        if (pushProvider == PushProvider.FCM || pushProvider == PushProvider.HYBRID) {
-            FcmGoogleSection(
-                context = context,
-                scope = scope,
-                configRepo = configRepo,
-                googleJsonText = googleJsonText,
-                onGoogleJsonTextChange = { googleJsonText = it },
-                googlePickerLauncher = googlePickerLauncher,
-                fcmToken = fcmToken,
-                onFcmTokenChange = { fcmToken = it },
-                fcmStatusMessage = fcmStatusMessage,
-                onFcmStatusMessageChange = { fcmStatusMessage = it },
-                isFcmSuccess = isFcmSuccess,
-                onIsFcmSuccessChange = { isFcmSuccess = it },
-                isFcmProcessing = isFcmProcessing,
-                onIsFcmProcessingChange = { isFcmProcessing = it },
-            )
-        }
-
         // Huawei HMS block (displayed for HMS or HYBRID)
         if (pushProvider == PushProvider.HMS || pushProvider == PushProvider.HYBRID) {
-            HmsHuaweiSection(
-                context = context,
-                scope = scope,
-                configRepo = configRepo,
-                hmsJsonText = hmsJsonText,
-                onHmsJsonTextChange = { hmsJsonText = it },
-                hmsPickerLauncher = hmsPickerLauncher,
-                hmsToken = hmsToken,
-                onHmsTokenChange = { hmsToken = it },
-                hmsStatusMessage = hmsStatusMessage,
-                onHmsStatusMessageChange = { hmsStatusMessage = it },
-                isHmsSuccess = isHmsSuccess,
-                onIsHmsSuccessChange = { isHmsSuccess = it },
-                isHmsProcessing = isHmsProcessing,
-                onIsHmsProcessingChange = { isHmsProcessing = it },
-            )
+            item {
+                HmsHuaweiSection(
+                    context = context,
+                    scope = scope,
+                    configRepo = configRepo,
+                    hmsJsonText = hmsJsonText,
+                    onHmsJsonTextChange = { hmsJsonText = it },
+                    hmsPickerLauncher = hmsPickerLauncher,
+                    hmsToken = hmsToken,
+                    onHmsTokenChange = { hmsToken = it },
+                    hmsStatusMessage = hmsStatusMessage,
+                    onHmsStatusMessageChange = { hmsStatusMessage = it },
+                    isHmsSuccess = isHmsSuccess,
+                    onIsHmsSuccessChange = { isHmsSuccess = it },
+                    isHmsProcessing = isHmsProcessing,
+                    onIsHmsProcessingChange = { isHmsProcessing = it },
+                )
+            }
         }
 
         // Single gateway (for quick connection of one address)
-        PushGatewaySection(
-            context = context,
-            scope = scope,
-            configRepo = configRepo,
-            logger = logger,
-            pushGatewayUrl = pushGatewayUrl,
-            onPushGatewayUrlChange = { pushGatewayUrl = it },
-            pushSecretKey = pushSecretKey,
-            onPushSecretKeyChange = { pushSecretKey = it },
-            connectionMode = connectionMode,
-            onConnectionModeChange = { connectionMode = it },
-        )
+        item {
+            PushGatewaySection(
+                context = context,
+                scope = scope,
+                configRepo = configRepo,
+                logger = logger,
+                pushGatewayUrl = pushGatewayUrl,
+                onPushGatewayUrlChange = { pushGatewayUrl = it },
+                pushSecretKey = pushSecretKey,
+                onPushSecretKeyChange = { pushSecretKey = it },
+                connectionMode = connectionMode,
+                onConnectionModeChange = { connectionMode = it },
+            )
+        }
 
         // Multi-server push server pool (Failover, Round-Robin, Lowest Latency)
-        PushServersPoolCard(
-            context = context,
-            scope = scope,
-            config = config,
-            configRepo = configRepo,
-            logger = logger,
-        )
+        item {
+            PushServersPoolCard(
+                context = context,
+                scope = scope,
+                config = config,
+                configRepo = configRepo,
+                logger = logger,
+            )
+        }
     }
 }
 

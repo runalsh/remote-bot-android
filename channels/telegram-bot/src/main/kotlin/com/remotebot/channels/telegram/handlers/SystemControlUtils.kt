@@ -2,13 +2,13 @@ package com.remotebot.channels.telegram.handlers
 
 import android.content.Context
 import android.os.PowerManager
+import com.remotebot.channels.telegram.strings.BotStrings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
 import com.topjohnwu.superuser.Shell
-import com.remotebot.channels.telegram.strings.BotStrings
-import com.remotebot.channels.telegram.strings.TelegramBotStrings
-import com.remotebot.domain.model.BotLanguage
 import java.net.Inet4Address
 import java.net.NetworkInterface
 

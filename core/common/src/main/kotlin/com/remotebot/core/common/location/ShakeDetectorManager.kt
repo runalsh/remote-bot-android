@@ -89,7 +89,10 @@ class ShakeDetectorManager(
                             _shakeEvents.tryEmit(Unit)
                         }
                     } else if (accelerationScore > 0.8) {
-                        AppLogger.d("ShakeDetectorManager", "📈 Accelerometer: ${"%.2f".format(accelerationScore)} m/s² (threshold: $threshold)")
+                        AppLogger.d(
+                            "ShakeDetectorManager",
+                            "📈 Accelerometer: ${"%.2f".format(accelerationScore)} m/s² (threshold: $threshold)",
+                        )
                     }
                 }
 

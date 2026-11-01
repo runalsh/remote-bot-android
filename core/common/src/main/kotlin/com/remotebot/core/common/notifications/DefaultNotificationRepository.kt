@@ -218,12 +218,16 @@ class DefaultNotificationRepository(
             }
 
             // 5.3 For trusted 2FA (Multifactor, etc.): if shade contains active push with buttons
-            val multifactorSbn = activeSbns.find { sbn ->
-                (sbn.packageName == "ru.multifactor.app" || trusted2FaPackages.contains(sbn.packageName.lowercase())) &&
-                    sbn.notification.actions?.isNotEmpty() == true
-            }
+            val multifactorSbn =
+                activeSbns.find { sbn ->
+                    (sbn.packageName == "ru.multifactor.app" || trusted2FaPackages.contains(sbn.packageName.lowercase())) &&
+                        sbn.notification.actions?.isNotEmpty() == true
+                }
             if (multifactorSbn != null) {
-                AppLogger.i("DefaultNotificationRepository", "2FA notification found in shade (${multifactorSbn.packageName}): ${multifactorSbn.key}")
+                AppLogger.i(
+                    "DefaultNotificationRepository",
+                    "2FA notification found in shade (${multifactorSbn.packageName}): ${multifactorSbn.key}",
+                )
                 recentSbnById[notificationId] = multifactorSbn
                 active2FaSbnById[notificationId] = multifactorSbn
                 return multifactorSbn
@@ -238,8 +242,9 @@ class DefaultNotificationRepository(
         replyText: String,
     ): Result<Unit> =
         runCatching {
-            val sbn = findSbn(notificationId)
-                ?: throw IllegalStateException("Notification $notificationId not found or expired")
+            val sbn =
+                findSbn(notificationId)
+                    ?: throw IllegalStateException("Notification $notificationId not found or expired")
 
             val actions = sbn.notification.actions ?: throw IllegalStateException("Notification has no action buttons")
             var replied = false
@@ -271,8 +276,9 @@ class DefaultNotificationRepository(
         actionIndex: Int,
     ): Result<Unit> =
         runCatching {
-            val sbn = findSbn(notificationId)
-                ?: throw IllegalStateException("Notification $notificationId not found or expired")
+            val sbn =
+                findSbn(notificationId)
+                    ?: throw IllegalStateException("Notification $notificationId not found or expired")
 
             val actions = sbn.notification.actions ?: throw IllegalStateException("Notification has no action buttons")
             if (actionIndex < 0 || actionIndex >= actions.size) {

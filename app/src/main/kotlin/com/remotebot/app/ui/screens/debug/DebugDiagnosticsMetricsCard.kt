@@ -8,15 +8,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.remotebot.core.common.diagnostics.AppDiagnosticsTracker
 import com.remotebot.app.R
+import com.remotebot.core.common.diagnostics.AppDiagnosticsTracker
 import com.remotebot.domain.model.ServerConnectionStats
 import com.remotebot.domain.model.ServerType
 import com.remotebot.domain.model.WakeupSource
@@ -115,7 +115,14 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             }
 
             // Time window selector (5 min, 15 min, 30 min, 1 hour, since startup)
-            val windowLabels = listOf(stringResource(R.string.dbg_w5), stringResource(R.string.dbg_w15), stringResource(R.string.dbg_w30), stringResource(R.string.dbg_w60), stringResource(R.string.dbg_wstart))
+            val windowLabels =
+                listOf(
+                    stringResource(R.string.dbg_w5),
+                    stringResource(R.string.dbg_w15),
+                    stringResource(R.string.dbg_w30),
+                    stringResource(R.string.dbg_w60),
+                    stringResource(R.string.dbg_wstart),
+                )
             Row(
                 modifier =
                     Modifier
@@ -349,9 +356,24 @@ private fun ServerStatRow(stats: ServerConnectionStats) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                BadgeChip(label = stringResource(R.string.dbg_success), count = stats.successCount, color = Color(0xFF2E7D32), modifier = Modifier.weight(1f))
-                BadgeChip(label = stringResource(R.string.dbg_failure), count = stats.failureCount, color = Color(0xFFC62828), modifier = Modifier.weight(1f))
-                BadgeChip(label = stringResource(R.string.dbg_timeout), count = stats.timeoutCount, color = Color(0xFFE65100), modifier = Modifier.weight(1f))
+                BadgeChip(
+                    label = stringResource(R.string.dbg_success),
+                    count = stats.successCount,
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f),
+                )
+                BadgeChip(
+                    label = stringResource(R.string.dbg_failure),
+                    count = stats.failureCount,
+                    color = Color(0xFFC62828),
+                    modifier = Modifier.weight(1f),
+                )
+                BadgeChip(
+                    label = stringResource(R.string.dbg_timeout),
+                    count = stats.timeoutCount,
+                    color = Color(0xFFE65100),
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -381,4 +403,3 @@ private fun BadgeChip(
         }
     }
 }
-

@@ -10,14 +10,14 @@ import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
-import com.remotebot.core.common.logger.AppLogger
-import com.remotebot.domain.repository.BotConfigRepository
-import com.remotebot.domain.model.BotLanguage
 import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -89,7 +89,13 @@ class DeviceRadioCommandsHandler(
                     val text =
                         strings.radioWifiStatus(statusEmoji, ssid, rssi, linkSpeed, ip)
 
-                    val keyboard = SystemControlUtils.makeSingleToggleKeyboard("/wifi", isEnabled, hasRoot = isRootGranted(), strings = strings)
+                    val keyboard =
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/wifi",
+                            isEnabled,
+                            hasRoot = isRootGranted(),
+                            strings = strings,
+                        )
                     CommandResult.Text(text, keyboard)
                 }
 
@@ -319,7 +325,12 @@ class DeviceRadioCommandsHandler(
                         val label = if (isTorchOn) strings.radioStateOnG() else strings.radioStateOffW()
                         CommandResult.Text(
                             strings.radioTorchState(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", isTorchOn, hasRoot = isRootGranted(), strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/flashlight",
+                                isTorchOn,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     }
                     "on", "1" -> {
@@ -348,7 +359,12 @@ class DeviceRadioCommandsHandler(
                         logger.i("SystemControl", "Flashlight toggled: $label")
                         CommandResult.Text(
                             strings.radioTorchToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", target, hasRoot = isRootGranted(), strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/flashlight",
+                                target,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     }
                     else -> CommandResult.Error(strings.radioUsage("/flashlight [on|off|toggle|status]"))
@@ -392,7 +408,13 @@ class DeviceRadioCommandsHandler(
                     val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
                         strings.radioAirplaneStatus(statusEmoji, rootNote),
-                        SystemControlUtils.makeSingleToggleKeyboard("/airplane", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/airplane",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -405,7 +427,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioAirplaneOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioAirplaneRootFail())
@@ -421,7 +449,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioAirplaneOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioAirplaneRootFail())
@@ -440,7 +474,13 @@ class DeviceRadioCommandsHandler(
                         val label = if (target) strings.radioWordOn() + " ✈️" else strings.radioWordOff() + " 🌐"
                         CommandResult.Text(
                             strings.radioAirplaneToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", target, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioAirplaneRootFail())
@@ -481,7 +521,13 @@ class DeviceRadioCommandsHandler(
                     val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
                         strings.radioHotspotStatus(statusEmoji, rootNote),
-                        SystemControlUtils.makeSingleToggleKeyboard("/hotspot", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/hotspot",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -494,7 +540,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioHotspotOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioHotspotStartFail())
@@ -510,7 +562,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioHotspotOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioHotspotStopFail())
@@ -529,7 +587,13 @@ class DeviceRadioCommandsHandler(
                         val label = if (target) strings.radioWordOnF() + " 📡" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
                             strings.radioHotspotToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", target, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioHotspotToggleFail())
@@ -579,7 +643,13 @@ class DeviceRadioCommandsHandler(
                     val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
                         strings.radioDataStatus(statusEmoji, rootNote),
-                        SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/mobile_data",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -592,7 +662,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioDataOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioDataOnFail())
@@ -608,7 +684,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioDataOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioDataOffFail())
@@ -627,7 +709,13 @@ class DeviceRadioCommandsHandler(
                         val label = if (target) strings.radioWordOnF() + " 🟢" else strings.radioWordOffF() + " 🔴"
                         CommandResult.Text(
                             strings.radioDataToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", target, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioDataToggleFail())
@@ -666,7 +754,13 @@ class DeviceRadioCommandsHandler(
                     val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
                         strings.radioGpsStatus(statusEmoji, rootNote),
-                        SystemControlUtils.makeSingleToggleKeyboard("/gps", isEnabled, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/gps",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
@@ -679,7 +773,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioGpsOnOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", true, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioGpsOnFail())
@@ -695,7 +795,13 @@ class DeviceRadioCommandsHandler(
                     if (success) {
                         CommandResult.Text(
                             strings.radioGpsOffOk(),
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", false, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioGpsOffFail())
@@ -714,7 +820,13 @@ class DeviceRadioCommandsHandler(
                         val label = if (target) strings.radioWordOnF() + " 📍" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
                             strings.radioGpsToggled(label),
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", target, requiresRoot = true, hasRoot = hasRoot, strings = strings),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(strings.radioGpsToggleFail())

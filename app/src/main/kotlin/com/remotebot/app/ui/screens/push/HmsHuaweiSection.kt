@@ -85,11 +85,21 @@ fun HmsHuaweiSection(
                                 val text = clip.getItemAt(0).text?.toString() ?: ""
                                 if (text.isNotBlank()) {
                                     onHmsJsonTextChange(text)
-                                    Toast.makeText(context, context.getString(R.string.push_paste_clipboard_toast, text.length), Toast.LENGTH_SHORT).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            context.getString(R.string.push_paste_clipboard_toast, text.length),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                 }
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, context.getString(R.string.push_clipboard_error_toast, e.message ?: ""), Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.push_clipboard_error_toast, e.message ?: ""),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
@@ -142,7 +152,12 @@ fun HmsHuaweiSection(
                         val parseResult = DynamicHmsManager.parseAgconnectJson(hmsJsonText)
                         if (parseResult.isFailure) {
                             onIsHmsProcessingChange(false)
-                            onHmsStatusMessageChange(context.getString(R.string.push_hms_parse_error, parseResult.exceptionOrNull()?.localizedMessage ?: ""))
+                            onHmsStatusMessageChange(
+                                context.getString(
+                                    R.string.push_hms_parse_error,
+                                    parseResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsHmsSuccessChange(false)
                             return@launch
                         }
@@ -151,7 +166,12 @@ fun HmsHuaweiSection(
                         val initResult = DynamicHmsManager.initialize(context, parsed)
                         if (initResult.isFailure) {
                             onIsHmsProcessingChange(false)
-                            onHmsStatusMessageChange(context.getString(R.string.push_hms_init_error, initResult.exceptionOrNull()?.localizedMessage ?: ""))
+                            onHmsStatusMessageChange(
+                                context.getString(
+                                    R.string.push_hms_init_error,
+                                    initResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsHmsSuccessChange(false)
                             return@launch
                         }
@@ -277,7 +297,6 @@ fun HmsHuaweiSection(
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
-
 
                     Spacer(modifier = Modifier.height(6.dp))
 

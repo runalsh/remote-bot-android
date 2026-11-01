@@ -12,12 +12,16 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class BaseCommandsHandlerTest {
-
-    private class FakeRootStatusProvider(private val isRoot: Boolean = true) : RootStatusProvider {
+    private class FakeRootStatusProvider(
+        private val isRoot: Boolean = true,
+    ) : RootStatusProvider {
         override val isRootGranted: StateFlow<Boolean?> = MutableStateFlow(isRoot)
         override val isRootSimulatedAbsent: StateFlow<Boolean> = MutableStateFlow(false)
+
         override suspend fun checkRoot(forceRefresh: Boolean): Boolean = isRoot
+
         override fun isRootGrantedSync(): Boolean = isRoot
+
         override fun setSimulateRootAbsent(simulatedAbsent: Boolean) {}
     }
 
@@ -25,12 +29,13 @@ class BaseCommandsHandlerTest {
         language: com.remotebot.domain.model.BotLanguage = com.remotebot.domain.model.BotLanguage.RU,
     ) : com.remotebot.domain.repository.BotConfigRepository {
         private val state =
-            MutableStateFlow(com.remotebot.domain.model.BotConfig(botLanguage = language))
+            MutableStateFlow(
+                com.remotebot.domain.model
+                    .BotConfig(botLanguage = language),
+            )
         override val config: StateFlow<com.remotebot.domain.model.BotConfig> = state
 
-        override suspend fun updateConfig(
-            update: (com.remotebot.domain.model.BotConfig) -> com.remotebot.domain.model.BotConfig,
-        ) {
+        override suspend fun updateConfig(update: (com.remotebot.domain.model.BotConfig) -> com.remotebot.domain.model.BotConfig) {
             state.value = update(state.value)
         }
 
@@ -44,16 +49,18 @@ class BaseCommandsHandlerTest {
         ): Boolean = true
     }
 
-    private fun createHandler(isRoot: Boolean = true): BaseCommandsHandler {
-        return BaseCommandsHandler(
+    private fun createHandler(isRoot: Boolean = true): BaseCommandsHandler =
+        BaseCommandsHandler(
             rootStatusProvider = FakeRootStatusProvider(isRoot),
             appVersion = "2.1.0",
             botConfigRepository = FakeBotConfigRepository(),
         )
-    }
 
-    private fun createCommand(name: String, args: List<String> = emptyList()): IncomingCommand {
-        return IncomingCommand(
+    private fun createCommand(
+        name: String,
+        args: List<String> = emptyList(),
+    ): IncomingCommand =
+        IncomingCommand(
             id = "test_cmd_1",
             name = name,
             rawText = name,
@@ -62,7 +69,6 @@ class BaseCommandsHandlerTest {
             senderId = "123456",
             chatId = 123456L,
         )
-    }
 
     @Test
     fun testMainMenuGenerationForStartAndHelp() {
@@ -80,18 +86,19 @@ class BaseCommandsHandlerTest {
                 assertNotNull(keyboard, "Main menu must have keyboard")
                 val allButtons = keyboard.inlineKeyboard.flatten()
 
-                val expectedCallbacks = listOf(
-                    "/menu_cat_base",
-                    "/menu_cat_media",
-                    "/menu_cat_comm",
-                    "/menu_cat_geo_sec",
-                    "/menu_cat_files",
-                    "/menu_cat_system",
-                    "/menu_cat_auto",
-                    "/toggles",
-                    "/menu_all",
-                    "/status",
-                )
+                val expectedCallbacks =
+                    listOf(
+                        "/menu_cat_base",
+                        "/menu_cat_media",
+                        "/menu_cat_comm",
+                        "/menu_cat_geo_sec",
+                        "/menu_cat_files",
+                        "/menu_cat_system",
+                        "/menu_cat_auto",
+                        "/toggles",
+                        "/menu_all",
+                        "/status",
+                    )
                 for (expected in expectedCallbacks) {
                     assertTrue(
                         allButtons.any { it.callbackData == expected },
@@ -113,7 +120,11 @@ class BaseCommandsHandlerTest {
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "Base category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -125,15 +136,29 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_cat_media"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val required = listOf(
-                "/photo", "/videorec", "/gallery", "/rec", "/rec_file",
-                "/tts", "/player", "/volume", "/ring_mode", "/device_search",
-                "/screenshot", "/screen_rec",
-            )
+            val required =
+                listOf(
+                    "/photo",
+                    "/videorec",
+                    "/gallery",
+                    "/rec",
+                    "/rec_file",
+                    "/tts",
+                    "/player",
+                    "/volume",
+                    "/ring_mode",
+                    "/device_search",
+                    "/screenshot",
+                    "/screen_rec",
+                )
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "Media category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -145,14 +170,28 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_cat_comm"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val required = listOf(
-                "/sms", "/sms_inbox", "/call", "/callshistory", "/ussd",
-                "/notify", "/notify_send", "/fake_notify", "/answer", "/notify_clear", "/notify_rule",
-            )
+            val required =
+                listOf(
+                    "/sms",
+                    "/sms_inbox",
+                    "/call",
+                    "/callshistory",
+                    "/ussd",
+                    "/notify",
+                    "/notify_send",
+                    "/fake_notify",
+                    "/answer",
+                    "/notify_clear",
+                    "/notify_rule",
+                )
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "Comm category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -168,7 +207,11 @@ class BaseCommandsHandlerTest {
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "GeoSec category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -180,14 +223,26 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_cat_files"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val required = listOf(
-                "/get_file", "/download", "/ls", "/ls_interactive",
-                "/apps", "/app_launch", "/install", "/taskmanager", "/kill",
-            )
+            val required =
+                listOf(
+                    "/get_file",
+                    "/download",
+                    "/ls",
+                    "/ls_interactive",
+                    "/apps",
+                    "/app_launch",
+                    "/install",
+                    "/taskmanager",
+                    "/kill",
+                )
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "Files category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -199,16 +254,40 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_cat_system"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val required = listOf(
-                "/toggles", "/system_info", "/uptime", "/battery", "/network",
-                "/wifi", "/bluetooth", "/flashlight", "/airplane", "/hotspot",
-                "/mobile_data", "/gps", "/powersave", "/auto_brightness", "/clipboard",
-                "/sync", "/adb", "/adb_wifi", "/shell", "/reboot", "/shutdown", "/recovery", "/fastboot",
-            )
+            val required =
+                listOf(
+                    "/toggles",
+                    "/system_info",
+                    "/uptime",
+                    "/battery",
+                    "/network",
+                    "/wifi",
+                    "/bluetooth",
+                    "/flashlight",
+                    "/airplane",
+                    "/hotspot",
+                    "/mobile_data",
+                    "/gps",
+                    "/powersave",
+                    "/auto_brightness",
+                    "/clipboard",
+                    "/sync",
+                    "/adb",
+                    "/adb_wifi",
+                    "/shell",
+                    "/reboot",
+                    "/shutdown",
+                    "/recovery",
+                    "/fastboot",
+                )
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "System category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -220,16 +299,39 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_cat_auto"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val required = listOf(
-                "/tasker", "/script", "/timers", "/proxy", "/active", "/stop_all",
-                "/log", "/backup", "/restore_backup", "/unsent_files", "/bot_status",
-                "/tg_bot", "/sms_bot", "/bot_toggle", "/add_user", "/add_phone",
-                "/add_forward", "/tg_forward", "/events", "/whitelist_user", "/whitelist_phone", "/sms_forward",
-            )
+            val required =
+                listOf(
+                    "/tasker",
+                    "/script",
+                    "/timers",
+                    "/proxy",
+                    "/active",
+                    "/stop_all",
+                    "/log",
+                    "/backup",
+                    "/restore_backup",
+                    "/unsent_files",
+                    "/bot_status",
+                    "/tg_bot",
+                    "/sms_bot",
+                    "/bot_toggle",
+                    "/add_user",
+                    "/add_phone",
+                    "/add_forward",
+                    "/tg_forward",
+                    "/events",
+                    "/whitelist_user",
+                    "/whitelist_phone",
+                    "/sms_forward",
+                )
             for (cmd in required) {
                 assertTrue(textResult.message.contains(cmd), "Auto category missing $cmd")
             }
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -241,7 +343,9 @@ class BaseCommandsHandlerTest {
             val result = handler.execute(createCommand("menu_all"))
             assertTrue(result is CommandResult.Text)
             val textResult = result as CommandResult.Text
-            val ru = com.remotebot.channels.telegram.strings.TelegramBotStrings.get(com.remotebot.domain.model.BotLanguage.RU)
+            val ru =
+                com.remotebot.channels.telegram.strings.TelegramBotStrings
+                    .get(com.remotebot.domain.model.BotLanguage.RU)
             assertTrue(textResult.message.contains(ru.categoryBase()), "Must contain base header")
             assertTrue(textResult.message.contains(ru.categoryMedia()), "Must contain media header")
             assertTrue(textResult.message.contains(ru.categoryComm()), "Must contain comm header")
@@ -250,7 +354,11 @@ class BaseCommandsHandlerTest {
             assertTrue(textResult.message.contains(ru.categorySystem()), "Must contain system header")
             assertTrue(textResult.message.contains(ru.categoryAuto()), "Must contain auto header")
 
-            val backBtn = textResult.keyboard?.inlineKeyboard?.flatten()?.find { it.callbackData == "/menu_main" }
+            val backBtn =
+                textResult.keyboard
+                    ?.inlineKeyboard
+                    ?.flatten()
+                    ?.find { it.callbackData == "/menu_main" }
             assertNotNull(backBtn, "Must contain Back to main menu button")
         }
     }
@@ -259,32 +367,116 @@ class BaseCommandsHandlerTest {
     fun testAll54CommandsCoveredInCategories() {
         runBlocking {
             val handler = createHandler()
-            val categoryCommands = listOf(
-                "menu_cat_base",
-                "menu_cat_media",
-                "menu_cat_comm",
-                "menu_cat_geo_sec",
-                "menu_cat_files",
-                "menu_cat_system",
-                "menu_cat_auto",
-            )
-            val combinedText = buildString {
-                for (cat in categoryCommands) {
-                    val res = handler.execute(createCommand(cat)) as CommandResult.Text
-                    appendLine(res.message)
+            val categoryCommands =
+                listOf(
+                    "menu_cat_base",
+                    "menu_cat_media",
+                    "menu_cat_comm",
+                    "menu_cat_geo_sec",
+                    "menu_cat_files",
+                    "menu_cat_system",
+                    "menu_cat_auto",
+                )
+            val combinedText =
+                buildString {
+                    for (cat in categoryCommands) {
+                        val res = handler.execute(createCommand(cat)) as CommandResult.Text
+                        appendLine(res.message)
+                    }
                 }
-            }
 
             // Complete list of 54 primary bot commands from FEATURES.md / REWRITE.md
-            val all54PrimaryCommands = listOf(
-                "/status", "/permissions", "/ping", "/echo", "/chat_id", "/about", "/uptime",
-                "/photo", "/videorec", "/gallery", "/rec", "/rec_file", "/tts", "/player", "/volume", "/ring_mode", "/device_search", "/screenshot", "/screen_rec",
-                "/sms", "/sms_inbox", "/call", "/callshistory", "/ussd", "/notify", "/notify_send", "/fake_notify", "/answer", "/notify_clear", "/notify_rule",
-                "/location", "/track", "/shake_detector", "/detectmotion", "/sound_detector",
-                "/get_file", "/download", "/ls", "/ls_interactive", "/apps", "/app_launch", "/install", "/taskmanager", "/kill",
-                "/toggles", "/system_info", "/battery", "/network", "/wifi", "/bluetooth", "/flashlight", "/airplane", "/hotspot", "/mobile_data", "/gps", "/powersave", "/auto_brightness", "/clipboard", "/sync", "/adb", "/adb_wifi", "/shell", "/reboot", "/shutdown", "/recovery", "/fastboot",
-                "/tasker", "/script", "/timers", "/proxy", "/active", "/stop_all", "/log", "/backup", "/restore_backup", "/unsent_files", "/bot_status", "/tg_bot", "/sms_bot", "/bot_toggle", "/add_user", "/add_phone", "/add_forward", "/tg_forward", "/events", "/whitelist_user", "/whitelist_phone", "/sms_forward"
-            )
+            val all54PrimaryCommands =
+                listOf(
+                    "/status",
+                    "/permissions",
+                    "/ping",
+                    "/echo",
+                    "/chat_id",
+                    "/about",
+                    "/uptime",
+                    "/photo",
+                    "/videorec",
+                    "/gallery",
+                    "/rec",
+                    "/rec_file",
+                    "/tts",
+                    "/player",
+                    "/volume",
+                    "/ring_mode",
+                    "/device_search",
+                    "/screenshot",
+                    "/screen_rec",
+                    "/sms",
+                    "/sms_inbox",
+                    "/call",
+                    "/callshistory",
+                    "/ussd",
+                    "/notify",
+                    "/notify_send",
+                    "/fake_notify",
+                    "/answer",
+                    "/notify_clear",
+                    "/notify_rule",
+                    "/location",
+                    "/track",
+                    "/shake_detector",
+                    "/detectmotion",
+                    "/sound_detector",
+                    "/get_file",
+                    "/download",
+                    "/ls",
+                    "/ls_interactive",
+                    "/apps",
+                    "/app_launch",
+                    "/install",
+                    "/taskmanager",
+                    "/kill",
+                    "/toggles",
+                    "/system_info",
+                    "/battery",
+                    "/network",
+                    "/wifi",
+                    "/bluetooth",
+                    "/flashlight",
+                    "/airplane",
+                    "/hotspot",
+                    "/mobile_data",
+                    "/gps",
+                    "/powersave",
+                    "/auto_brightness",
+                    "/clipboard",
+                    "/sync",
+                    "/adb",
+                    "/adb_wifi",
+                    "/shell",
+                    "/reboot",
+                    "/shutdown",
+                    "/recovery",
+                    "/fastboot",
+                    "/tasker",
+                    "/script",
+                    "/timers",
+                    "/proxy",
+                    "/active",
+                    "/stop_all",
+                    "/log",
+                    "/backup",
+                    "/restore_backup",
+                    "/unsent_files",
+                    "/bot_status",
+                    "/tg_bot",
+                    "/sms_bot",
+                    "/bot_toggle",
+                    "/add_user",
+                    "/add_phone",
+                    "/add_forward",
+                    "/tg_forward",
+                    "/events",
+                    "/whitelist_user",
+                    "/whitelist_phone",
+                    "/sms_forward",
+                )
 
             for (cmd in all54PrimaryCommands) {
                 assertTrue(combinedText.contains(cmd), "Command $cmd is missing from categorized menus!")

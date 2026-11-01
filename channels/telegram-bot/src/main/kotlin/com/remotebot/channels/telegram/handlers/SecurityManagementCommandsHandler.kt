@@ -234,7 +234,15 @@ class SecurityManagementCommandsHandler(
                 }
             val cfg = botConfigRepository.config.value
             return CommandResult.Text(
-                strings.secFwdListBody(listStr, strings.secOnOff(cfg.smsForwardSmsEnabled), strings.secOnOff(cfg.smsForwardMissedCallsEnabled), strings.secOnOff(cfg.smsForwardNotificationsEnabled), strings.secOnOff(cfg.smsForwardBatteryChargingEnabled), strings.secOnOff(cfg.smsForwardBatteryLowEnabled), strings.secOnOff(cfg.smsTransliterationEnabled)),
+                strings.secFwdListBody(
+                    listStr,
+                    strings.secOnOff(cfg.smsForwardSmsEnabled),
+                    strings.secOnOff(cfg.smsForwardMissedCallsEnabled),
+                    strings.secOnOff(cfg.smsForwardNotificationsEnabled),
+                    strings.secOnOff(cfg.smsForwardBatteryChargingEnabled),
+                    strings.secOnOff(cfg.smsForwardBatteryLowEnabled),
+                    strings.secOnOff(cfg.smsTransliterationEnabled),
+                ),
             )
         }
 
