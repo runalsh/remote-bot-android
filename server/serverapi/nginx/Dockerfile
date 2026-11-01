@@ -1,4 +1,4 @@
-FROM nginx:1.30.6-alpine-slim
+FROM nginx:1.31.8-alpine-slim
 
 RUN apk --no-cache add wget ca-certificates
 
