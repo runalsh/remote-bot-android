@@ -269,10 +269,11 @@ private fun DebugResourcesProfilerCard(
     LaunchedEffect(refreshKey) {
         memoryHistory = List(60) { pssMb.toFloat() }
     }
+    val coroutineScope = rememberCoroutineScope()
     DisposableEffect(refreshKey) {
-        val interval = 5000L // Обновление каждые 5 секунд
+        val interval = 5000L // Periodic update every 5 seconds
         val job =
-            kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+            coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
                     kotlinx.coroutines.delay(interval)
                     memoryHistory = (memoryHistory + (Debug.getPss() / 1024f)).takeLast(60)

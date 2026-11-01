@@ -72,6 +72,11 @@ help:
 check: check-compile lint test
 	@echo "🎉 Full quality check (compilation + linting + tests) completed successfully!"
 
+check-deps:
+	@echo "=== Checking for available dependency updates (ben-manes.versions) ==="
+	@$(call run_gradle,dependencyUpdates)
+	@echo "✅ Dependency update check completed!"
+
 check-compile:
 	@echo "=== Fast type and compilation check for all Kotlin modules (compileDebugKotlin) ==="
 	@$(call run_gradle,compileDebugKotlin)
