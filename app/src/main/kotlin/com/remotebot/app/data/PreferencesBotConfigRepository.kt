@@ -6,6 +6,8 @@ import com.remotebot.domain.model.BotConfig
 import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.ConnectionMode
 import com.remotebot.domain.model.EndpointSelectionStrategy
+import com.remotebot.domain.model.PushProvider
+import com.remotebot.domain.model.PushServerConfig
 import com.remotebot.domain.model.UserSubscription
 import com.remotebot.domain.repository.BotConfigRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -120,6 +122,40 @@ class PreferencesBotConfigRepository(
         val fcmApiKey = secureStorage?.decrypt(rawFcmApiKey) ?: rawFcmApiKey
         val fcmProjectId = prefs.getString("fcm_project_id", null)
         val fcmSenderId = prefs.getString("fcm_sender_id", null)
+        val pushProviderStr = prefs.getString("push_provider", PushProvider.FCM.name) ?: PushProvider.FCM.name
+        val pushProvider =
+            try {
+                PushProvider.valueOf(pushProviderStr)
+            } catch (_: Exception) {
+                PushProvider.FCM
+            }
+        val agconnectJson = prefs.getString("agconnect_services_json", null)
+        val hmsAppId = prefs.getString("hms_app_id", null)
+        val hmsClientId = prefs.getString("hms_client_id", null)
+        val rawHmsClientSecret = prefs.getString("hms_client_secret", null)
+        val hmsClientSecret = secureStorage?.decrypt(rawHmsClientSecret) ?: rawHmsClientSecret
+        val rawHmsApiKey = prefs.getString("hms_api_key", null)
+        val hmsApiKey = secureStorage?.decrypt(rawHmsApiKey) ?: rawHmsApiKey
+        val pushServersJson = prefs.getString("push_servers_json", null)
+        val pushServers: List<PushServerConfig> =
+            if (!pushServersJson.isNullOrBlank()) {
+                try {
+                    json.decodeFromString<List<PushServerConfig>>(pushServersJson)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+            } else {
+                emptyList()
+            }
+        val pushServerStrategyStr = prefs.getString("push_server_selection_strategy", EndpointSelectionStrategy.FAILOVER.name)
+        val pushServerStrategy =
+            try {
+                EndpointSelectionStrategy.valueOf(pushServerStrategyStr ?: EndpointSelectionStrategy.FAILOVER.name)
+            } catch (_: Exception) {
+                EndpointSelectionStrategy.FAILOVER
+            }
+        val pushRetryAttempts = prefs.getInt("push_retry_max_attempts", 3)
+        val pushRetryDelay = prefs.getInt("push_retry_delay_seconds", 5)
         val tgForwardSms = prefs.getBoolean("tg_forward_sms_enabled", true)
         val tgForwardCalls = prefs.getBoolean("tg_forward_calls_enabled", true)
         val tgForwardNotifs = prefs.getBoolean("tg_forward_notifications_enabled", true)
@@ -174,6 +210,10 @@ class PreferencesBotConfigRepository(
             endpointSelectionStrategy = strategy,
             pushGatewayUrl = pushUrl,
             pushSecretKey = pushSecret,
+            pushServers = pushServers,
+            pushServerSelectionStrategy = pushServerStrategy,
+            pushRetryMaxAttempts = pushRetryAttempts,
+            pushRetryDelaySeconds = pushRetryDelay,
             smsPin = pin,
             smsPinRequiredAlways = pinRequiredAlways,
             replyUnauthorizedResponseEnabled = replyUnauthorized,
@@ -188,6 +228,12 @@ class PreferencesBotConfigRepository(
             fcmApiKey = fcmApiKey,
             fcmProjectId = fcmProjectId,
             fcmSenderId = fcmSenderId,
+            pushProvider = pushProvider,
+            agconnectServicesJson = agconnectJson,
+            hmsAppId = hmsAppId,
+            hmsClientId = hmsClientId,
+            hmsClientSecret = hmsClientSecret,
+            hmsApiKey = hmsApiKey,
             tgForwardSmsEnabled = tgForwardSms,
             tgForwardCallsEnabled = tgForwardCalls,
             tgForwardNotificationsEnabled = tgForwardNotifs,
@@ -219,6 +265,13 @@ class PreferencesBotConfigRepository(
                 "{}"
             }
 
+        val pushServersJson =
+            try {
+                json.encodeToString(newConfig.pushServers)
+            } catch (_: Exception) {
+                "[]"
+            }
+
         prefs
             .edit()
             .putBoolean("telegram_bot_enabled", newConfig.telegramBotEnabled)
@@ -230,6 +283,10 @@ class PreferencesBotConfigRepository(
             .putString("endpoint_selection_strategy", newConfig.endpointSelectionStrategy.name)
             .putString("push_gateway_url", newConfig.pushGatewayUrl)
             .putString("push_secret_key", secureStorage?.encrypt(newConfig.pushSecretKey) ?: newConfig.pushSecretKey)
+            .putString("push_servers_json", pushServersJson)
+            .putString("push_server_selection_strategy", newConfig.pushServerSelectionStrategy.name)
+            .putInt("push_retry_max_attempts", newConfig.pushRetryMaxAttempts)
+            .putInt("push_retry_delay_seconds", newConfig.pushRetryDelaySeconds)
             .putString("sms_pin", newConfig.smsPin)
             .putBoolean("sms_pin_required_always", newConfig.smsPinRequiredAlways)
             .putBoolean("reply_unauthorized_response_enabled", newConfig.replyUnauthorizedResponseEnabled)
@@ -244,6 +301,12 @@ class PreferencesBotConfigRepository(
             .putString("fcm_api_key", secureStorage?.encrypt(newConfig.fcmApiKey) ?: newConfig.fcmApiKey)
             .putString("fcm_project_id", newConfig.fcmProjectId)
             .putString("fcm_sender_id", newConfig.fcmSenderId)
+            .putString("push_provider", newConfig.pushProvider.name)
+            .putString("agconnect_services_json", newConfig.agconnectServicesJson)
+            .putString("hms_app_id", newConfig.hmsAppId)
+            .putString("hms_client_id", newConfig.hmsClientId)
+            .putString("hms_client_secret", secureStorage?.encrypt(newConfig.hmsClientSecret) ?: newConfig.hmsClientSecret)
+            .putString("hms_api_key", secureStorage?.encrypt(newConfig.hmsApiKey) ?: newConfig.hmsApiKey)
             .putBoolean("tg_forward_sms_enabled", newConfig.tgForwardSmsEnabled)
             .putBoolean("tg_forward_calls_enabled", newConfig.tgForwardCallsEnabled)
             .putBoolean("tg_forward_notifications_enabled", newConfig.tgForwardNotificationsEnabled)

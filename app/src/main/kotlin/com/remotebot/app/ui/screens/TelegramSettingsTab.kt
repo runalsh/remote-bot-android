@@ -405,13 +405,38 @@ fun TelegramSettingsTab(
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
+                                val providerTitle =
+                                    when (config.pushProvider) {
+                                        com.remotebot.domain.model.PushProvider.FCM -> "🔥 Google FCM"
+                                        com.remotebot.domain.model.PushProvider.HMS -> "🦅 Huawei HMS"
+                                        com.remotebot.domain.model.PushProvider.HYBRID -> "🔀 Hybrid (FCM + HMS)"
+                                    }
                                 Text(
-                                    stringResource(
-                                        R.string.tg_set_firebase_project,
-                                        config.fcmProjectId ?: stringResource(R.string.tg_set_not_initialized),
-                                    ),
+                                    stringResource(R.string.tg_set_push_provider, providerTitle),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
+                                if (config.pushProvider == com.remotebot.domain.model.PushProvider.FCM ||
+                                    config.pushProvider == com.remotebot.domain.model.PushProvider.HYBRID
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.tg_set_firebase_project,
+                                            config.fcmProjectId ?: stringResource(R.string.tg_set_not_initialized),
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                                if (config.pushProvider == com.remotebot.domain.model.PushProvider.HMS ||
+                                    config.pushProvider == com.remotebot.domain.model.PushProvider.HYBRID
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.tg_set_hms_appid,
+                                            config.hmsAppId ?: stringResource(R.string.tg_set_not_initialized),
+                                        ),
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     stringResource(R.string.tg_push_hint),
