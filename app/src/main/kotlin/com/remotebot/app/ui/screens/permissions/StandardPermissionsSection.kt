@@ -20,9 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.provider.RootStatusProvider
 
@@ -54,8 +56,8 @@ fun StandardPermissionsSection(
     onRefreshRequest: () -> Unit,
 ) {
     com.remotebot.app.ui.components.AppSectionHeader(
-        title = "3. Мультимедиа и сенсоры (Камера, Звук, Локация, Сеть)",
-        subtitle = "Базовые права Android: камера, микрофон, GPS, контакты, Doze Mode",
+        title = stringResource(R.string.perm_standard_section_title),
+        subtitle = stringResource(R.string.perm_standard_section_subtitle),
         emojiIcon = "📱",
         containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -71,83 +73,83 @@ fun StandardPermissionsSection(
                 Text("🚀", fontSize = 20.sp)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Пакетный запрос стандартных прав",
+                    text = stringResource(R.string.perm_batch_title),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Запросить Камеру, Микрофон, GPS, Контакты и Уведомления в одном окне:",
+                text = stringResource(R.string.perm_standard_batch_prompt),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(modifier = Modifier.height(8.dp))
             Button(
                 onClick = {
-                    logger.i("Permissions", "Запуск пакетного запроса стандартных разрешений")
+                    logger.i("Permissions", "Starting the batch standard-permissions request")
                     onBatchRequest()
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Запросить все стандартные разрешения")
+                Text(stringResource(R.string.perm_batch_btn))
             }
         }
     }
 
     PermissionItemCard(
         icon = "📷",
-        title = "Камера (CAMERA)",
+        title = stringResource(R.string.perm_camera),
         isGranted = isCameraGranted,
-        description = "Скрытая фото- и видеосъемка через переднюю и заднюю камеры (CameraX)",
+        description = stringResource(R.string.perm_camera_desc),
         commandsHint = "/photo, /videorec, /detectmotion, /flashlight",
-        buttonText = "Запросить доступ к Камере",
+        buttonText = stringResource(R.string.perm_btn_camera),
     ) {
         onRequestCamera()
     }
 
     PermissionItemCard(
         icon = "🎙️",
-        title = "Микрофон (RECORD_AUDIO)",
+        title = stringResource(R.string.perm_microphone),
         isGranted = isMicGranted,
-        description = "Запись звука и голоса с микрофона устройства",
+        description = stringResource(R.string.perm_microphone_desc),
         commandsHint = "/rec, /rec_file, /sound_detector, /tts, /device_search",
-        buttonText = "Запросить доступ к Микрофону",
+        buttonText = stringResource(R.string.perm_btn_microphone),
     ) {
         onRequestMic()
     }
 
     PermissionItemCard(
         icon = "📍",
-        title = "Геолокация (GPS / LBS)",
+        title = stringResource(R.string.perm_location),
         isGranted = isLocationGranted,
-        description = "Определение точных спутниковых GPS координат и вычисление адреса",
-        commandsHint = "/location (алиас /trace), /track, /shake_detector, /gps",
-        buttonText = "Запросить доступ к Геолокации",
+        description = stringResource(R.string.perm_location_desc),
+        commandsHint = stringResource(R.string.perm_hint_location),
+        buttonText = stringResource(R.string.perm_btn_location),
     ) {
         onRequestLocation()
     }
 
     PermissionItemCard(
         icon = "👥",
-        title = "Контакты (Contacts)",
+        title = stringResource(R.string.perm_contacts),
         isGranted = isContactsGranted,
-        description = "Поиск контактов по телефонной книге устройства",
-        commandsHint = "Сопоставление имен абонентов в /call, /callshistory, SMS",
-        buttonText = "Запросить доступ к Контактам",
+        description = stringResource(R.string.perm_contacts_desc),
+        commandsHint = stringResource(R.string.perm_hint_contacts),
+        buttonText = stringResource(R.string.perm_btn_contacts),
     ) {
         onRequestContacts()
     }
 
     PermissionItemCard(
         icon = "🔋",
-        title = "Энергосбережение (Doze Mode)",
+        title = stringResource(R.string.perm_doze_mode),
         isGranted = isBatteryIgnored,
-        description = "Исключение из энергосбережения для работы 24/7 без засыпания службы",
-        commandsHint = "24/7 Long Polling, WSS /ws, Push Wakeup в фоне",
-        buttonText = "Исключить из энергосбережения",
+        description = stringResource(R.string.perm_doze_mode_desc),
+        commandsHint = "24/7 Long Polling, WSS /ws, Push Wakeup",
+        buttonText = stringResource(R.string.perm_btn_doze),
     ) {
-        logger.i("Permissions", "Запрос отключения Doze Mode")
+        logger.i("Permissions", "Requesting Doze Mode exemption")
         try {
             val intent =
                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
@@ -155,7 +157,7 @@ fun StandardPermissionsSection(
                 }
             context.startActivity(intent)
         } catch (e: Exception) {
-            logger.w("Permissions", "Сбой открытия прямого запроса Doze: ${e.localizedMessage}")
+            logger.w("Permissions", "Doze direct request open failure: ${e.localizedMessage}")
             try {
                 context.startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
             } catch (_: Exception) {
@@ -170,11 +172,11 @@ fun StandardPermissionsSection(
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         PermissionItemCard(
             icon = "📣",
-            title = "Уведомления службы (POST_NOTIFICATIONS)",
+            title = stringResource(R.string.perm_post_notifications),
             isGranted = isPostNotifGranted,
-            description = "Отображение статуса Foreground Service в шторке уведомлений",
-            commandsHint = "Постоянное Foreground Service уведомление в шторке",
-            buttonText = "Запросить показ уведомлений",
+            description = stringResource(R.string.perm_post_notifications_desc),
+            commandsHint = "Foreground Service",
+            buttonText = stringResource(R.string.perm_btn_post_notifications),
         ) {
             onRequestPostNotif()
         }
@@ -186,14 +188,14 @@ fun StandardPermissionsSection(
             if (Build.VERSION.SDK_INT >=
                 Build.VERSION_CODES.TIRAMISU
             ) {
-                "Фото и видео (READ_MEDIA_IMAGES)"
+                stringResource(R.string.perm_media_photos)
             } else {
-                "Хранилище медиа (READ_EXTERNAL_STORAGE)"
+                stringResource(R.string.perm_media_storage)
             },
         isGranted = isPhotosGranted,
-        description = "Доступ к фотографиям и видеозаписям галереи устройства",
+        description = stringResource(R.string.perm_media_photos_desc),
         commandsHint = "/gallery, /get_file",
-        buttonText = "Запросить доступ к Фото и видео",
+        buttonText = stringResource(R.string.perm_btn_media_photos),
     ) {
         onRequestPhotos()
     }
@@ -204,14 +206,14 @@ fun StandardPermissionsSection(
             if (Build.VERSION.SDK_INT >=
                 Build.VERSION_CODES.TIRAMISU
             ) {
-                "Музыка и аудио (READ_MEDIA_AUDIO)"
+                stringResource(R.string.perm_media_audio)
             } else {
-                "Хранилище аудио (READ_EXTERNAL_STORAGE)"
+                stringResource(R.string.perm_media_storage)
             },
         isGranted = isAudioMediaGranted,
-        description = "Доступ к музыкальным трекам и аудиофайлам в памяти устройства",
-        commandsHint = "/player (алиас /playback), /rec_file",
-        buttonText = "Запросить доступ к Аудио",
+        description = stringResource(R.string.perm_media_audio_desc),
+        commandsHint = stringResource(R.string.perm_hint_audio),
+        buttonText = stringResource(R.string.perm_btn_media_audio),
     ) {
         onRequestAudioMedia()
     }
@@ -222,14 +224,14 @@ fun StandardPermissionsSection(
             if (Build.VERSION.SDK_INT >=
                 Build.VERSION_CODES.S
             ) {
-                "Устройства рядом (BLUETOOTH_CONNECT)"
+                stringResource(R.string.perm_bluetooth_connect)
             } else {
-                "Bluetooth адаптер (BLUETOOTH)"
+                stringResource(R.string.perm_bluetooth_legacy)
             },
         isGranted = isBluetoothGranted,
-        description = "Управление Bluetooth-адаптером и сопряженными устройствами (Android 12+)",
+        description = stringResource(R.string.perm_bluetooth_desc),
         commandsHint = "/bluetooth [on|off|toggle]",
-        buttonText = "Запросить доступ к Bluetooth",
+        buttonText = stringResource(R.string.perm_btn_bluetooth),
     ) {
         onRequestBluetooth()
     }
@@ -237,16 +239,16 @@ fun StandardPermissionsSection(
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         PermissionItemCard(
             icon = "📶",
-            title = "Безлимитный мобильный трафик (Data Saver)",
+            title = stringResource(R.string.perm_unlimited_data),
             isGranted = isUnrestrictedDataGranted,
-            description = "Неограниченная передача мобильных данных в фоне при включенном режиме «Экономия трафика»",
-            commandsHint = "Связь с ботом 24/7 без разрывов сети при активном Data Saver",
-            buttonText = "Разрешить безлимитный трафик",
+            description = stringResource(R.string.perm_unlimited_data_desc),
+            commandsHint = "Data Saver 24/7",
+            buttonText = stringResource(R.string.perm_btn_unlimited_data),
         ) {
             val uid = context.applicationInfo.uid
             // If Root is granted, immediately add UID to network policy whitelist
             if (rootProvider.isRootGrantedSync()) {
-                logger.d("Permissions", "Запрос снятия ограничений Data Saver через Root (UID=$uid)")
+                logger.d("Permissions", "Requesting Data Saver restrictions removal via Root (UID=$uid)")
                 try {
                     val cmd = "cmd netpolicy add restrict-background-whitelist $uid"
                     logger.t("Permissions", "Root cmd (Data Saver): $cmd")
@@ -255,17 +257,17 @@ fun StandardPermissionsSection(
                             .cmd(cmd)
                             .exec()
                     if (res.isSuccess) {
-                        logger.i("Permissions", "Безлимитный трафик успешно выдан через Root (cmd netpolicy)")
+                        logger.i("Permissions", "Unlimited data granted successfully via Root (cmd netpolicy)")
                         onRefreshRequest()
                         return@PermissionItemCard
                     } else {
                         logger.t("Permissions", "Root cmd error (Data Saver): code=${res.code}, err=${res.err.joinToString(";")}")
                     }
                 } catch (e: Exception) {
-                    logger.w("Permissions", "Не удалось выдать через Root: ${e.message}")
+                    logger.w("Permissions", "Root grant failed: ${e.message}")
                 }
             } else {
-                logger.d("Permissions", "Открытие экрана настроек Data Saver (без Root)")
+                logger.d("Permissions", "Opening the Data Saver settings screen (without Root)")
             }
 
             try {
@@ -275,7 +277,7 @@ fun StandardPermissionsSection(
                     }
                 context.startActivity(intent)
             } catch (e: Exception) {
-                logger.w("Permissions", "Сбой прямого перехода Data Saver: ${e.localizedMessage}")
+                logger.w("Permissions", "Data Saver direct navigation failure: ${e.localizedMessage}")
                 try {
                     val intent =
                         Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {

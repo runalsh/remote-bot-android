@@ -1,10 +1,13 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CallType
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.NotificationRule
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.repository.NotificationRepository
 import com.remotebot.domain.repository.TelephonyRepository
 import java.text.SimpleDateFormat
@@ -15,7 +18,11 @@ import java.util.UUID
 class TelephonyAndNotificationCommandsHandler(
     private val telephonyRepository: TelephonyRepository,
     private val notificationRepository: NotificationRepository,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "sms",
@@ -58,14 +65,14 @@ class TelephonyAndNotificationCommandsHandler(
             "notify_act" -> handleNotifyAction(command.args)
             "notify_clear" -> handleClearNotification(command.args)
             "notify_rule" -> handleNotificationRule(command.args)
-            else -> CommandResult.Error("Неизвестная команда телефонии: $cmd")
+            else -> CommandResult.Error(strings.tnUnknownCmd(cmd))
         }
     }
 
     private suspend fun handleSendSms(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/sms [sim] &lt;номер&gt; &lt;текст&gt;</code>\nПример: <code>/sms +79991234567 Привет!</code>\nПример для SIM2: <code>/sms 2 +79991234567 Привет!</code>",
+                strings.tnSmsUsage(),
             )
         }
 
@@ -77,7 +84,7 @@ class TelephonyAndNotificationCommandsHandler(
         }
 
         if (args.size <= phoneIndex + 1) {
-            return CommandResult.Error("Укажите номер телефона и текст сообщения.\nПример: <code>/sms +79991234567 Привет!</code>")
+            return CommandResult.Error(strings.tnSmsNeedArgs())
         }
 
         val phoneNumber = args[phoneIndex]
@@ -86,10 +93,10 @@ class TelephonyAndNotificationCommandsHandler(
         return telephonyRepository.sendSms(phoneNumber, text, simSlot).fold(
             onSuccess = {
                 val simText = if (simSlot != null) " (SIM $simSlot)" else ""
-                CommandResult.Text("📨 <b>SMS успешно отправлено</b> на номер <code>$phoneNumber</code>$simText:\n«$text»")
+                CommandResult.Text(strings.tnSmsSent(phoneNumber, simText, text))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка отправки SMS: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnSmsError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -101,9 +108,9 @@ class TelephonyAndNotificationCommandsHandler(
         return telephonyRepository.getRecentSms(limit).fold(
             onSuccess = { list ->
                 if (list.isEmpty()) {
-                    CommandResult.Text("📭 Входящих SMS не найдено.")
+                    CommandResult.Text(strings.tnSmsInboxEmpty())
                 } else {
-                    val sb = StringBuilder("📬 <b>Последние SMS ($limit):</b>\n\n")
+                    val sb = StringBuilder(strings.tnSmsInboxHeader(limit))
                     list.forEachIndexed { index, sms ->
                         val icon = if (sms.isIncoming) "📥" else "📤"
                         val timeStr = dateFormat.format(Date(sms.dateMs))
@@ -123,14 +130,14 @@ class TelephonyAndNotificationCommandsHandler(
                 }
             },
             onFailure = {
-                CommandResult.Error("❌ Не удалось прочитать SMS: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnSmsReadError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
 
     private suspend fun handleMakeCall(args: List<String>): CommandResult {
         if (args.isEmpty()) {
-            return CommandResult.Error("Формат: <code>/call [sim] &lt;номер&gt;</code>\nПример: <code>/call +79991234567</code>")
+            return CommandResult.Error(strings.tnCallUsage())
         }
 
         var simSlot: Int? = null
@@ -141,17 +148,17 @@ class TelephonyAndNotificationCommandsHandler(
         }
 
         if (args.size <= phoneIndex) {
-            return CommandResult.Error("Укажите номер телефона для вызова.")
+            return CommandResult.Error(strings.tnCallNeedNumber())
         }
 
         val phoneNumber = args[phoneIndex]
         return telephonyRepository.makeCall(phoneNumber, simSlot).fold(
             onSuccess = {
                 val simText = if (simSlot != null) " (SIM $simSlot)" else ""
-                CommandResult.Text("📞 <b>Инициирован исходящий звонок</b> на номер <code>$phoneNumber</code>$simText...")
+                CommandResult.Text(strings.tnCallInitiated(phoneNumber, simText))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка при совершении звонка: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnCallError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -163,9 +170,9 @@ class TelephonyAndNotificationCommandsHandler(
         return telephonyRepository.getCallHistory(limit).fold(
             onSuccess = { list ->
                 if (list.isEmpty()) {
-                    CommandResult.Text("📞 Журнал вызовов пуст.")
+                    CommandResult.Text(strings.tnCallsEmpty())
                 } else {
-                    val sb = StringBuilder("📞 <b>Журнал звонков (последние $limit):</b>\n\n")
+                    val sb = StringBuilder(strings.tnCallsHeader(limit))
                     list.forEachIndexed { index, call ->
                         val icon =
                             when (call.type) {
@@ -178,23 +185,30 @@ class TelephonyAndNotificationCommandsHandler(
                             }
                         val nameStr = if (!call.name.isNullOrBlank()) " (${call.name})" else ""
                         val timeStr = dateFormat.format(Date(call.dateMs))
-                        val durationStr = if (call.durationSec > 0) " [${call.durationSec / 60}м ${call.durationSec % 60}с]" else ""
+                        val durationStr =
+                            if (call.durationSec >
+                                0
+                            ) {
+                                strings.tnCallDuration(call.durationSec / 60, call.durationSec % 60)
+                            } else {
+                                ""
+                            }
 
                         sb.append("$icon <b>#${index + 1} | ${call.number}</b>$nameStr$durationStr\n")
-                        sb.append("   <i>$timeStr | Тип: ${call.type.name}</i>\n\n")
+                        sb.append(strings.tnCallMeta(timeStr, call.type.name) + "\n\n")
                     }
                     CommandResult.Text(sb.toString().trimEnd())
                 }
             },
             onFailure = {
-                CommandResult.Error("❌ Не удалось получить журнал вызовов: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnCallsReadError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
 
     private suspend fun handleSendUssd(args: List<String>): CommandResult {
         if (args.isEmpty()) {
-            return CommandResult.Error("Формат: <code>/ussd [sim] &lt;код&gt;</code>\nПример: <code>/ussd *100#</code>")
+            return CommandResult.Error(strings.tnUssdUsage())
         }
 
         var simSlot: Int? = null
@@ -205,7 +219,7 @@ class TelephonyAndNotificationCommandsHandler(
         }
 
         if (args.size <= codeIndex) {
-            return CommandResult.Error("Укажите USSD-код, например <code>*100#</code>")
+            return CommandResult.Error(strings.tnUssdNeedCode())
         }
 
         val code = args[codeIndex]
@@ -213,10 +227,10 @@ class TelephonyAndNotificationCommandsHandler(
 
         return telephonyRepository.sendUssd(code, simSlot).fold(
             onSuccess = { response ->
-                CommandResult.Text("📟 <b>USSD Ответ$simText для <code>$code</code>:</b>\n\n<code>$response</code>")
+                CommandResult.Text(strings.tnUssdResponse(simText, code, response))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка выполнения USSD-запроса: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnUssdError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -228,14 +242,14 @@ class TelephonyAndNotificationCommandsHandler(
 
         if (list.isEmpty()) {
             return CommandResult.Text(
-                "🔔 Активных перехваченных уведомлений нет.\n<i>Убедитесь, что боту предоставлен доступ в Настройки -> Доступ к уведомлениям.</i>",
+                strings.tnNotifEmpty(),
             )
         }
 
-        val sb = StringBuilder("🔔 <b>Последние уведомления ($limit):</b>\n\n")
+        val sb = StringBuilder(strings.tnNotifHeader(limit))
         list.forEach { notif ->
             val timeStr = dateFormat.format(Date(notif.timestampMs))
-            val replyBadge = if (notif.hasReplyAction) " [💬 <i>Ответ: /answer ${notif.id} текст</i>]" else ""
+            val replyBadge = if (notif.hasReplyAction) strings.tnNotifReplyBadge(notif.id) else ""
             sb.append("🔹 <b>ID: ${notif.id} | ${notif.appName}</b> (<i>$timeStr</i>)$replyBadge\n")
             if (!notif.title.isNullOrBlank()) {
                 sb.append("   <b>${notif.title}</b>\n")
@@ -251,7 +265,7 @@ class TelephonyAndNotificationCommandsHandler(
     private suspend fun handlePostNotification(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/notify &lt;заголовок&gt; &lt;текст&gt;</code>\nПример: <code>/notify Внимание Важное сообщение</code>",
+                strings.tnNotifyUsage(),
             )
         }
 
@@ -260,10 +274,10 @@ class TelephonyAndNotificationCommandsHandler(
 
         return notificationRepository.postNotification(title, text).fold(
             onSuccess = {
-                CommandResult.Text("🔔 <b>Уведомление отправлено в статус-бар смартфона:</b>\nЗаголовок: <b>$title</b>\nТекст: $text")
+                CommandResult.Text(strings.tnNotifyPosted(title, text))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка отправки уведомления: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnNotifyError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -271,9 +285,7 @@ class TelephonyAndNotificationCommandsHandler(
     private suspend fun handleSimulateNotification(args: List<String>): CommandResult {
         if (args.size < 3) {
             return CommandResult.Error(
-                "Формат: <code>/fake_notify &lt;пакет&gt; &lt;заголовок&gt; &lt;текст&gt;</code>\n" +
-                    "Пример: <code>/fake_notify ru.sberbankmobile СберБанк Перевод +5000р от Диана</code>\n" +
-                    "Пример 2: <code>/fake_notify com.whatsapp Диана Привет, как дела?</code>",
+                strings.tnFakeNotifyUsage(),
             )
         }
 
@@ -282,21 +294,25 @@ class TelephonyAndNotificationCommandsHandler(
         val text = args.subList(2, args.size).joinToString(" ")
         val appName =
             when {
-                packageName.contains("sber", ignoreCase = true) -> "СберБанк"
+                packageName.contains("sber", ignoreCase = true) -> strings.tnAppSber()
                 packageName.contains("whatsapp", ignoreCase = true) -> "WhatsApp"
                 packageName.contains("telegram", ignoreCase = true) -> "Telegram"
                 packageName.contains("vk", ignoreCase = true) -> "VK"
                 packageName.contains("viber", ignoreCase = true) -> "Viber"
-                packageName.contains("tinkoff", ignoreCase = true) || packageName.contains("tbank", ignoreCase = true) -> "Т-Банк"
+                packageName.contains(
+                    "tinkoff",
+                    ignoreCase = true,
+                ) ||
+                    packageName.contains("tbank", ignoreCase = true) -> strings.tnAppTbank()
                 else -> packageName.substringAfterLast('.').replaceFirstChar { it.uppercase() }
             }
 
         return notificationRepository.simulateNotification(packageName, appName, title, text).fold(
             onSuccess = {
-                CommandResult.Text("🧪 <b>Сэмулировано входящее уведомление от [$appName]:</b>\nОт: <b>$title</b>\nТекст: $text")
+                CommandResult.Text(strings.tnFakeNotifySimulated(appName, title, text))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка эмуляции уведомления: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnFakeNotifyError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -304,7 +320,7 @@ class TelephonyAndNotificationCommandsHandler(
     private suspend fun handleAnswerNotification(args: List<String>): CommandResult {
         if (args.size < 2) {
             return CommandResult.Error(
-                "Формат: <code>/answer &lt;ID&gt; &lt;текст ответа&gt;</code>\nПример: <code>/answer 1 Привет, скоро буду!</code>",
+                strings.tnAnswerUsage(),
             )
         }
 
@@ -313,10 +329,10 @@ class TelephonyAndNotificationCommandsHandler(
 
         return notificationRepository.replyToNotification(id, replyText).fold(
             onSuccess = {
-                CommandResult.Text("💬 <b>Ответ успешно отправлен</b> в уведомление #$id:\n«$replyText»")
+                CommandResult.Text(strings.tnAnswerSent(id, replyText))
             },
             onFailure = {
-                CommandResult.Error("❌ Не удалось отправить ответ: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnAnswerError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -324,7 +340,7 @@ class TelephonyAndNotificationCommandsHandler(
     private suspend fun handleNotifyAction(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/notify_act &lt;ID&gt; [номер_действия]</code>\nПример: <code>/notify_act 1 0</code>",
+                strings.tnActUsage(),
             )
         }
 
@@ -333,26 +349,26 @@ class TelephonyAndNotificationCommandsHandler(
 
         return notificationRepository.executeNotificationAction(id, actionIndex).fold(
             onSuccess = {
-                CommandResult.Text("⚡ <b>Действие (индекс $actionIndex) успешно выполнено</b> для уведомления #$id!")
+                CommandResult.Text(strings.tnActDone(actionIndex, id))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка выполнения действия: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnActError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
 
     private suspend fun handleClearNotification(args: List<String>): CommandResult {
         if (args.isEmpty()) {
-            return CommandResult.Error("Формат: <code>/notify_clear &lt;ID/all&gt;</code>")
+            return CommandResult.Error(strings.tnClearUsage())
         }
 
         val id = args[0]
         return notificationRepository.cancelNotification(id).fold(
             onSuccess = {
-                CommandResult.Text("🗑️ Уведомление #$id удалено.")
+                CommandResult.Text(strings.tnCleared(id))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка удаления уведомления: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.tnClearError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -362,12 +378,12 @@ class TelephonyAndNotificationCommandsHandler(
             val rules = notificationRepository.rules.value
             if (rules.isEmpty()) {
                 return CommandResult.Text(
-                    "📋 <b>Правила фильтрации уведомлений пусты.</b>\nДобавить: <code>/notify_rule add &lt;pkg&gt; [pattern]</code>",
+                    strings.tnRulesEmpty(),
                 )
             }
-            val sb = StringBuilder("📋 <b>Правила фильтрации уведомлений:</b>\n\n")
+            val sb = StringBuilder(strings.tnRulesHeader())
             rules.forEach { rule ->
-                val type = if (rule.isExclude) "⛔ Исключать" else "✅ Разрешать"
+                val type = if (rule.isExclude) strings.tnRuleExclude() else strings.tnRuleAllow()
                 sb.append(
                     "• <b>${rule.id}</b>: $type pkg=<code>${rule.packageName ?: "*"}</code> pattern=<code>${rule.titlePattern ?: "*"}</code>\n",
                 )
@@ -388,17 +404,17 @@ class TelephonyAndNotificationCommandsHandler(
                     isExclude = true,
                 )
             notificationRepository.addRule(newRule)
-            return CommandResult.Text("✅ Добавлено правило фильтрации #${newRule.id}")
+            return CommandResult.Text(strings.tnRuleAdded(newRule.id))
         }
 
         if (args[0] == "del" && args.size >= 2) {
             val ruleId = args[1]
             notificationRepository.removeRule(ruleId)
-            return CommandResult.Text("🗑️ Правило #$ruleId удалено.")
+            return CommandResult.Text(strings.tnRuleDeleted(ruleId))
         }
 
         return CommandResult.Error(
-            "Формат: <code>/notify_rule list</code> или <code>/notify_rule add exclude &lt;pkg&gt;</code> или <code>/notify_rule del &lt;id&gt;</code>",
+            strings.tnRulesUsage(),
         )
     }
 

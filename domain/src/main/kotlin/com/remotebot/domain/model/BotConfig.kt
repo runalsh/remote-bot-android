@@ -9,10 +9,17 @@ enum class ConnectionMode {
 }
 
 @Serializable
+enum class BotLanguage {
+    AUTO, // System language
+    EN, // English
+    RU, // Russian
+}
+
+@Serializable
 enum class EndpointSelectionStrategy {
-    FAILOVER, // По порядку: первый упал -> пробуем второй и т.д.
-    ROUND_ROBIN, // Балансировка по кругу
-    LOWEST_LATENCY, // По минимальной задержке (пингу)
+    FAILOVER, // In order: if the first one fails -> try the second, etc.
+    ROUND_ROBIN, // Round-robin balancing
+    LOWEST_LATENCY, // By the lowest latency (ping)
 }
 
 @Serializable
@@ -28,28 +35,28 @@ data class PushServerConfig(
 
 @Serializable
 data class BotConfig(
-    val telegramBotEnabled: Boolean = true, // По умолчанию включен
+    val telegramBotEnabled: Boolean = true, // Enabled by default
     val botToken: String = "",
     val allowedUserIds: Set<Long> = emptySet(),
     val allowedPhoneNumbers: Set<String> = emptySet(),
     val connectionMode: ConnectionMode = ConnectionMode.LONG_POLLING,
     val customApiRoot: String? = null, // e.g. http://192.168.1.50:8081/bot for 2GB uploads
-    val apiEndpoints: List<String> = emptyList(), // Список альтернативных/зеркальных эндпоинтов API
+    val apiEndpoints: List<String> = emptyList(), // List of alternative/mirror API endpoints
     val endpointSelectionStrategy: EndpointSelectionStrategy = EndpointSelectionStrategy.FAILOVER,
     val pushGatewayUrl: String? = null,
     val pushSecretKey: String? = null,
-    val pushServers: List<PushServerConfig> = emptyList(), // Список независимых Push-серверов/шлюзов
+    val pushServers: List<PushServerConfig> = emptyList(), // List of independent push servers/gateways
     val pushServerSelectionStrategy: EndpointSelectionStrategy = EndpointSelectionStrategy.FAILOVER,
-    val pushRetryMaxAttempts: Int = 3, // Максимум попыток отправки/пробуждения через шлюз (1-10)
-    val pushRetryDelaySeconds: Int = 5, // Задержка между попытками в секундах (1-60)
+    val pushRetryMaxAttempts: Int = 3, // Max send/wakeup attempts via the gateway (1-10)
+    val pushRetryDelaySeconds: Int = 5, // Delay between attempts in seconds (1-60)
     val smsPin: String? = null,
     val smsPinRequiredAlways: Boolean = false, // If false, required only for destructive
-    val replyUnauthorizedResponseEnabled: Boolean = true, // Отвечать «Не авторизован», если выключено — игнорировать (молчать)
+    val replyUnauthorizedResponseEnabled: Boolean = true, // Reply "Not authorized"; if disabled — ignore silently
     val storageDirectory: String? = null,
     val notificationForwardingApps: Set<String> = emptySet(),
     val notificationStopWords: List<String> = emptyList(),
     val notificationDedupTimeoutSeconds: Int = 15,
-    val forwardRateLimitPerMinute: Int = 30, // Лимит пересылаемых входящих SMS в минуту от одного номера (0 = без ограничений)
+    val forwardRateLimitPerMinute: Int = 30, // Limit of forwarded incoming SMS per minute per number (0 = unlimited)
     val googleServicesJson: String? = null,
     val fcmAppId: String? = null,
     val fcmApiKey: String? = null,
@@ -62,25 +69,29 @@ data class BotConfig(
     val hmsClientSecret: String? = null,
     val hmsApiKey: String? = null,
     // Telegram forwarding channel settings
-    val tgForwardSmsEnabled: Boolean = true, // Пересылка входящих SMS в Telegram
-    val tgForwardCallsEnabled: Boolean = true, // Пересылка звонков/пропущенных в Telegram
-    val tgForwardNotificationsEnabled: Boolean = true, // Пересылка push-уведомлений в Telegram
-    val tgForwardBatteryChargingEnabled: Boolean = true, // Оповещение о статусе зарядки/разрядки в Telegram
-    val tgForwardBatteryLowEnabled: Boolean = true, // Оповещение о низком заряде (≤20% каждые 3%) в Telegram
+    val tgForwardSmsEnabled: Boolean = true, // Forward incoming SMS to Telegram
+    val tgForwardCallsEnabled: Boolean = true, // Forward calls/missed calls to Telegram
+    val tgForwardNotificationsEnabled: Boolean = true, // Forward push notifications to Telegram
+    val tgForwardBatteryChargingEnabled: Boolean = true, // Charging/discharging status alerts in Telegram
+    val tgForwardBatteryLowEnabled: Boolean = true, // Low battery alerts (<=20% every 3%) in Telegram
     // Independent SMS bot and forwarding settings
-    val smsBotEnabled: Boolean = false, // По умолчанию выключен
-    val smsForwardTargetNumbers: Set<String> = emptySet(), // Список номеров назначения для пересылки
-    val smsForwardSmsEnabled: Boolean = false, // Пересылка входящих SMS на целевые номера
-    val smsForwardMissedCallsEnabled: Boolean = false, // Пересылка пропущенных звонков по SMS
-    val smsForwardNotificationsEnabled: Boolean = false, // Пересылка push-уведомлений по SMS
-    val smsForwardBatteryChargingEnabled: Boolean = false, // Оповещение о статусе зарядки/разрядки по SMS
-    val smsForwardBatteryLowEnabled: Boolean = false, // Оповещение о низком заряде по SMS
-    val smsTransliterationEnabled: Boolean = false, // Транслитерация кириллицы в латиницу для экономии SMS
-    val isDebugModeEnabled: Boolean = false, // Скрытое инженерное меню отладки (Phase 13)
-    val enable2FaInterception: Boolean = false, // Экспериментальный перехват и подтверждение 2FA (Multifactor и др.)
-    val userSubscriptions: Map<Long, UserSubscription> = emptyMap(), // Индивидуальные подписки пользователей на типы событий
+    val smsBotEnabled: Boolean = false, // Disabled by default
+    val smsForwardTargetNumbers: Set<String> = emptySet(), // List of destination numbers for forwarding
+    val smsForwardSmsEnabled: Boolean = false, // Forward incoming SMS to the target numbers
+    val smsForwardMissedCallsEnabled: Boolean = false, // Forward missed calls via SMS
+    val smsForwardNotificationsEnabled: Boolean = false, // Forward push notifications via SMS
+    val smsForwardBatteryChargingEnabled: Boolean = false, // Charging/discharging status alerts via SMS
+    val smsForwardBatteryLowEnabled: Boolean = false, // Low battery alerts via SMS
+    val smsTransliterationEnabled: Boolean = false, // Cyrillic-to-Latin transliteration to save SMS length
+    val isDebugModeEnabled: Boolean = false, // Hidden developer engineering menu (Phase 13)
+    val enable2FaInterception: Boolean = false, // Experimental 2FA interception and confirmation (Multifactor etc.)
+    val userSubscriptions: Map<Long, UserSubscription> = emptyMap(), // Per-user subscriptions to event types
+    val botLanguage: BotLanguage = BotLanguage.AUTO, // Bot UI language (AUTO / EN / RU)
 ) {
-    fun isUserSubscribedTo(userId: Long, eventType: SubscriptionEventType): Boolean {
+    fun isUserSubscribedTo(
+        userId: Long,
+        eventType: SubscriptionEventType,
+    ): Boolean {
         if (allowedUserIds.isNotEmpty() && !allowedUserIds.contains(userId)) {
             return false
         }

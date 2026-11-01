@@ -1,5 +1,6 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.backup.BackupManager
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
@@ -18,6 +19,9 @@ class BackupCommandsHandler(
     private val backupManager: BackupManager,
     private val logger: AppLogger,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository.config.value.botLanguage)
+
     override val commandNames: List<String> = listOf("backup", "restore_backup")
 
     override val isDestructive: Boolean = false
@@ -27,7 +31,7 @@ class BackupCommandsHandler(
         return when (cmd) {
             "backup" -> handleBackup()
             "restore_backup" -> handleRestoreBackup(command.args)
-            else -> CommandResult.Error("Неизвестная команда бэкапа: $cmd")
+            else -> CommandResult.Error(strings.bkpUnknownCmd(cmd))
         }
     }
 
@@ -46,21 +50,12 @@ class BackupCommandsHandler(
                 filePath = tempFile.absolutePath,
                 caption = null,
                 autoDelete = true,
-                extraMessage = "💾 <b>Резервная копия конфигурации Remote Bot</b>\n\n<i>Для восстановления отправьте этот файл боту или выполните:</i>\n<code>/restore_backup &lt;json&gt;</code>",
+                extraMessage = strings.bkpFileCaption(),
             )
         } catch (e: Exception) {
-            logger.e("Backup", "Ошибка создания файла бэкапа: ${e.message}", e)
+            logger.e("Backup", "Failed to create backup file: ${e.message}", e)
             CommandResult.Text(
-                """
-                💾 <b>Резервная копия конфигурации:</b>
-                
-                <pre><code class="language-json">
-                $jsonStr
-                </code></pre>
-                
-                <i>Для восстановления отправьте команду:</i>
-                <code>/restore_backup &lt;json&gt;</code>
-                """.trimIndent(),
+                strings.bkpJsonBlock(jsonStr),
             )
         }
     }
@@ -69,14 +64,7 @@ class BackupCommandsHandler(
         val rawJson = args.joinToString(" ").trim()
         if (rawJson.isBlank()) {
             return CommandResult.Text(
-                """
-                📥 <b>Восстановление конфигурации Remote Bot</b>
-
-                Доступно два способа:
-                1. <b>Отправить файл</b>: просто отправьте файл <code>.json</code> с резервной копией в этот чат (можно с подписью <code>/restore_backup</code>).
-                2. <b>Вставить текст</b>: отправьте команду с содержимым JSON:
-                <code>/restore_backup &lt;json-текст&gt;</code>
-                """.trimIndent(),
+                strings.bkpRestoreHelp(),
             )
         }
 
@@ -87,12 +75,12 @@ class BackupCommandsHandler(
                 backup.botConfig
             }
             proxyConfigRepository.updateProxy(backup.proxyConfig)
-            logger.i("Backup", "Конфигурация успешно восстановлена из бэкапа (версия ${backup.version})")
-            CommandResult.Text("✅ <b>Конфигурация успешно восстановлена</b> из резервной копии (v${backup.version})!")
+            logger.i("Backup", "Configuration restored from backup successfully (version ${backup.version})")
+            CommandResult.Text(strings.bkpRestored(backup.version.toString()))
         } else {
-            val err = result.exceptionOrNull()?.localizedMessage ?: "Неизвестная ошибка"
-            logger.w("Backup", "Ошибка восстановления из бэкапа: $err")
-            CommandResult.Error("❌ Ошибка десериализации бэкапа: $err")
+            val err = result.exceptionOrNull()?.localizedMessage ?: strings.bkpUnknownError()
+            logger.w("Backup", "Backup restore error: $err")
+            CommandResult.Error(strings.bkpDeserializeError(err))
         }
     }
 }

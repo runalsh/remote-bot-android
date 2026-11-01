@@ -41,7 +41,7 @@ class WssTunnelManager(
     fun start(config: ProxyConfig): Int {
         if (isRunning.get()) return assignedLocalPort
 
-        val server = ServerSocket(0) // Случайный свободный порт
+        val server = ServerSocket(0) // Random free port
         serverSocket = server
         assignedLocalPort = server.localPort
         isRunning.set(true)

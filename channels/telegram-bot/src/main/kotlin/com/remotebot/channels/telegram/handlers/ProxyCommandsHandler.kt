@@ -1,17 +1,24 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.ProxyConfig
 import com.remotebot.domain.model.ProxyType
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.repository.ProxyConfigRepository
 
 class ProxyCommandsHandler(
     private val proxyConfigRepository: ProxyConfigRepository,
     private val logger: AppLogger,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> = listOf("proxy")
 
     override val isDestructive: Boolean = false
@@ -23,45 +30,20 @@ class ProxyCommandsHandler(
             val cfg = proxyConfigRepository.proxyConfig.value
             val currentStatus =
                 if (cfg.type == ProxyType.NONE) {
-                    "🌐 <b>Текущий статус:</b> Выключен (Прямое соединение без прокси)"
+                    strings.pxStatusOff()
                 } else {
-                    val authInfo = if (!cfg.username.isNullOrBlank()) "с авторизацией (<code>${cfg.username}</code>)" else "без авторизации"
-                    val extraPath = if (cfg.type == ProxyType.WEBSOCKET_WSS) "\n• WSS путь: <code>${cfg.wsPath}</code>" else ""
-                    """
-                    🌐 <b>Текущий статус:</b>
-                    • Тип: <b>${cfg.type.name}</b>
-                    • Адрес: <code>${cfg.host}:${cfg.port}</code>
-                    • Авторизация: $authInfo$extraPath
-                    """.trimIndent()
+                    val authInfo =
+                        if (!cfg.username.isNullOrBlank()) {
+                            strings.pxAuthWith(cfg.username ?: "")
+                        } else {
+                            strings.pxAuthNone()
+                        }
+                    val extraPath = if (cfg.type == ProxyType.WEBSOCKET_WSS) strings.pxWsPath(cfg.wsPath) else ""
+                    strings.pxStatusBlock(cfg.type.name, "${cfg.host}:${cfg.port}", authInfo, extraPath)
                 }
 
             val helpText =
-                """
-                $currentStatus
-
-                ━━━━━━━━━━━━━━━━━━━━━
-                📖 <b>Управление и примеры команд:</b>
-
-                1️⃣ <b>SOCKS5 прокси:</b>
-                <code>/proxy socks5 &lt;хост&gt; &lt;порт&gt; [логин] [пароль]</code>
-                <i>Пример без пароля:</i>
-                <code>/proxy socks5 192.168.1.100 1080</code>
-                <i>Пример с авторизацией:</i>
-                <code>/proxy socks5 1.2.3.4 10808 myuser mypass</code>
-
-                2️⃣ <b>HTTP прокси:</b>
-                <code>/proxy http &lt;хост&gt; &lt;порт&gt; [логин] [пароль]</code>
-                <i>Пример:</i>
-                <code>/proxy http 192.168.1.50 8080 admin secret</code>
-
-                3️⃣ <b>WSS WebSocket туннель:</b>
-                <code>/proxy wss &lt;хост&gt; &lt;порт&gt; [путь]</code>
-                <i>Пример:</i>
-                <code>/proxy wss myproxy.example.com 443 /telegram-ws</code>
-
-                4️⃣ <b>Отключение прокси:</b>
-                <code>/proxy off</code>
-                """.trimIndent()
+                strings.pxHelp(currentStatus)
 
             return CommandResult.Text(helpText)
         }
@@ -70,15 +52,15 @@ class ProxyCommandsHandler(
         return when (sub) {
             "off" -> {
                 proxyConfigRepository.updateProxy(ProxyConfig(type = ProxyType.NONE))
-                logger.i("Proxy", "Прокси отключен через Telegram команду")
-                CommandResult.Text("🌐 Прокси отключен. Используется прямое соединение.")
+                logger.i("Proxy", "Proxy disabled via Telegram command")
+                CommandResult.Text(strings.pxDisabled())
             }
             "socks5", "http" -> {
                 if (args.size < 3) {
-                    return CommandResult.Error("Формат: /proxy $sub &lt;host&gt; &lt;port&gt; [username] [password]")
+                    return CommandResult.Error(strings.pxFormat(sub, "[username] [password]"))
                 }
                 val host = args[1]
-                val port = args[2].toIntOrNull() ?: return CommandResult.Error("Некорректный порт: ${args[2]}")
+                val port = args[2].toIntOrNull() ?: return CommandResult.Error(strings.pxBadPort(args[2]))
                 val user = args.getOrNull(3)
                 val pass = args.getOrNull(4)
                 val type = if (sub == "socks5") ProxyType.SOCKS5 else ProxyType.HTTP
@@ -92,15 +74,15 @@ class ProxyCommandsHandler(
                         password = pass,
                     )
                 proxyConfigRepository.updateProxy(newCfg)
-                logger.i("Proxy", "Установлен прокси $type $host:$port")
-                CommandResult.Text("✅ Прокси переключен на <b>${type.name}</b> ($host:$port)")
+                logger.i("Proxy", "Proxy set: $type $host:$port")
+                CommandResult.Text(strings.pxSet(type.name, "$host:$port"))
             }
             "wss" -> {
                 if (args.size < 3) {
-                    return CommandResult.Error("Формат: /proxy wss &lt;host&gt; &lt;port&gt; [path]")
+                    return CommandResult.Error(strings.pxFormat("wss", "[path]"))
                 }
                 val host = args[1]
-                val port = args[2].toIntOrNull() ?: return CommandResult.Error("Некорректный порт: ${args[2]}")
+                val port = args[2].toIntOrNull() ?: return CommandResult.Error(strings.pxBadPort(args[2]))
                 val path = args.getOrNull(3) ?: "/ws"
 
                 val newCfg =
@@ -111,10 +93,10 @@ class ProxyCommandsHandler(
                         wsPath = path,
                     )
                 proxyConfigRepository.updateProxy(newCfg)
-                logger.i("Proxy", "Установлен WSS туннель wss://$host:$port$path")
-                CommandResult.Text("✅ Установлен <b>WSS-туннель</b> (wss://$host:$port$path)")
+                logger.i("Proxy", "WSS tunnel set: wss://$host:$port$path")
+                CommandResult.Text(strings.pxWssSet("wss://$host:$port$path"))
             }
-            else -> CommandResult.Error("Неизвестный параметр /proxy: $sub. Доступно: status, off, socks5, http, wss")
+            else -> CommandResult.Error(strings.pxUnknownParam(sub, "status, off, socks5, http, wss"))
         }
     }
 }

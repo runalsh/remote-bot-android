@@ -1,10 +1,13 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -14,7 +17,11 @@ import kotlinx.coroutines.withTimeout
 class ShellAndPowerCommandsHandler(
     private val logger: AppLogger,
     private val rootStatusProvider: RootStatusProvider,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "shell",
@@ -27,7 +34,7 @@ class ShellAndPowerCommandsHandler(
             "bootloader",
         )
 
-    override val isDestructive: Boolean = false // Проверка деструктивности индивидуально по команде
+    override val isDestructive: Boolean = false // Destructiveness is checked per command
 
     override suspend fun execute(command: IncomingCommand): CommandResult {
         val cmd = command.name.lowercase().removePrefix("/")
@@ -38,7 +45,7 @@ class ShellAndPowerCommandsHandler(
             "shutdown", "poweroff" -> handleShutdown()
             "recovery" -> handleRecovery()
             "fastboot", "bootloader" -> handleFastboot()
-            else -> CommandResult.Error("Неизвестная shell-команда: $cmd")
+            else -> CommandResult.Error(strings.shUnknownCmd(cmd))
         }
     }
 
@@ -47,22 +54,12 @@ class ShellAndPowerCommandsHandler(
             val rawCommand = args.joinToString(" ").trim()
             if (rawCommand.isBlank()) {
                 return@withContext CommandResult.Text(
-                    """
-                    💻 <b>Linux Shell Терминал</b>
-                    
-                    Использование: <code>/shell &lt;команда&gt;</code>
-                    Примеры:
-                    • <code>/shell uname -a</code>
-                    • <code>/shell df -h</code>
-                    • <code>/shell getprop ro.build.version.release</code>
-                    • <code>/shell ip addr show</code>
-                    • <code>/shell ls -la /sdcard</code>
-                    """.trimIndent(),
+                    strings.shHelp(),
                 )
             }
 
-            logger.i("Shell", "Выполнение команды: $rawCommand")
-            logger.t("Shell", "Запуск через libsu Shell.cmd(\"$rawCommand\")")
+            logger.i("Shell", "Executing command: $rawCommand")
+            logger.t("Shell", "Running via libsu Shell.cmd(\"$rawCommand\")")
 
             try {
                 val result =
@@ -93,35 +90,30 @@ class ShellAndPowerCommandsHandler(
                 }
 
                 if (combinedOutput.isEmpty()) {
-                    combinedOutput.append("(Команда завершилась без текстового вывода, код: $exitCode)")
+                    combinedOutput.append(strings.shNoOutput(exitCode))
                 }
 
                 val fullText = combinedOutput.toString()
                 val escapedText =
                     if (fullText.length > 3500) {
-                        fullText.take(3500) + "\n\n⚠️ [Вывод превысил лимит, показаны первые 3500 символов]"
+                        fullText.take(3500) + strings.shTruncated(3500)
                     } else {
                         fullText
                     }
 
                 val codeEmoji = if (exitCode == 0) "✅" else "⚠️"
 
-                logger.i("Shell", "Команда завершена (код $exitCode):\n$fullText")
+                logger.i("Shell", "Command completed (code $exitCode):\n$fullText")
 
                 CommandResult.Text(
-                    """
-                    $codeEmoji <b>[$mode] $rawCommand</b>
-                    <i>Код завершения: $exitCode</i>
-                    
-                    <pre>${escapeHtml(escapedText)}</pre>
-                    """.trimIndent(),
+                    strings.shResultBlock(codeEmoji, mode, rawCommand, exitCode, escapeHtml(escapedText)),
                 )
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
-                logger.w("Shell", "Таймаут выполнения команды (30 сек): $rawCommand")
-                CommandResult.Error("⏱ Таймаут: выполнение команды заняло более 30 секунд и было прервано.")
+                logger.w("Shell", "Command execution timeout (30s): $rawCommand")
+                CommandResult.Error(strings.shTimeout())
             } catch (e: Exception) {
-                logger.e("Shell", "Ошибка исполнения: ${e.localizedMessage}", e)
-                CommandResult.Error("❌ Ошибка выполнения: ${e.localizedMessage}")
+                logger.e("Shell", "Execution error: ${e.localizedMessage}", e)
+                CommandResult.Error(strings.shExecError(e.localizedMessage ?: ""))
             }
         }
 
@@ -130,29 +122,29 @@ class ShellAndPowerCommandsHandler(
         statusText: String,
         shellCmd: String,
     ): CommandResult {
-        logger.w("Power", "Запланировано выполнение power-команды ($actionName) через 10 секунд: $shellCmd")
+        logger.w("Power", "Power command scheduled ($actionName) in 10 seconds: $shellCmd")
         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
             try {
                 kotlinx.coroutines.delay(10_000L)
-                logger.i("Power", "Выполнение отложенной команды: $shellCmd")
+                logger.i("Power", "Executing deferred command: $shellCmd")
                 Shell.cmd(shellCmd).exec()
             } catch (e: Exception) {
-                logger.e("Power", "Ошибка отложенного выполнения $actionName: ${e.message}", e)
+                logger.e("Power", "Deferred execution error for $actionName: ${e.message}", e)
             }
         }
-        return CommandResult.Text("$statusText\n<i>⏳ Выполнение произойдет через 10 секунд...</i>")
+        return CommandResult.Text(strings.shDelayedFooter(statusText))
     }
 
     private suspend fun handleReboot(): CommandResult =
         withContext(Dispatchers.IO) {
             if (!rootStatusProvider.isRootGrantedSync() && !rootStatusProvider.checkRoot()) {
                 return@withContext CommandResult.Error(
-                    "❌ Для перезагрузки требуются права Superuser (Root). Предоставьте Root в Magisk/KernelSU/APatch.",
+                    strings.shRootRestart(),
                 )
             }
             scheduleDelayedPowerCommand(
                 actionName = "reboot",
-                statusText = "🔄 <b>Устройство будет перезагружено</b>",
+                statusText = strings.shStatusReboot(),
                 shellCmd = "svc power reboot || reboot",
             )
         }
@@ -161,12 +153,12 @@ class ShellAndPowerCommandsHandler(
         withContext(Dispatchers.IO) {
             if (!rootStatusProvider.isRootGrantedSync() && !rootStatusProvider.checkRoot()) {
                 return@withContext CommandResult.Error(
-                    "❌ Для выключения требуются права Superuser (Root). Предоставьте Root в Magisk/KernelSU/APatch.",
+                    strings.shRootShutdown(),
                 )
             }
             scheduleDelayedPowerCommand(
                 actionName = "shutdown",
-                statusText = "⏻ <b>Устройство будет выключено</b>",
+                statusText = strings.shStatusShutdown(),
                 shellCmd = "svc power shutdown || reboot -p || poweroff",
             )
         }
@@ -175,12 +167,12 @@ class ShellAndPowerCommandsHandler(
         withContext(Dispatchers.IO) {
             if (!rootStatusProvider.isRootGrantedSync() && !rootStatusProvider.checkRoot()) {
                 return@withContext CommandResult.Error(
-                    "❌ Для перехода в Recovery требуются права Superuser (Root). Предоставьте Root в Magisk/KernelSU/APatch.",
+                    strings.shRootRecovery(),
                 )
             }
             scheduleDelayedPowerCommand(
                 actionName = "recovery",
-                statusText = "🛠 <b>Устройство будет перезагружено в режим Recovery</b>",
+                statusText = strings.shStatusRecovery(),
                 shellCmd = "reboot recovery",
             )
         }
@@ -189,12 +181,12 @@ class ShellAndPowerCommandsHandler(
         withContext(Dispatchers.IO) {
             if (!rootStatusProvider.isRootGrantedSync() && !rootStatusProvider.checkRoot()) {
                 return@withContext CommandResult.Error(
-                    "❌ Для перехода в Bootloader требуются права Superuser (Root). Предоставьте Root в Magisk/KernelSU/APatch.",
+                    strings.shRootBootloader(),
                 )
             }
             scheduleDelayedPowerCommand(
                 actionName = "fastboot",
-                statusText = "⚡ <b>Устройство будет перезагружено в режим Bootloader (Fastboot)</b>",
+                statusText = strings.shStatusFastboot(),
                 shellCmd = "reboot bootloader",
             )
         }

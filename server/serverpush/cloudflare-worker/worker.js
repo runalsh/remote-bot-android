@@ -13,6 +13,17 @@ let tokenExpiresAt = 0;
 let cachedHuaweiToken = null;
 let huaweiTokenExpiresAt = 0;
 
+// In-memory stats for worker lifecycle
+const stats = {
+  bootTime: new Date().toISOString(),
+  requestsTotal: 0,
+  fcmSent: 0,
+  fcmErrors: 0,
+  hmsSent: 0,
+  hmsErrors: 0,
+  lastDelivery: null
+};
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -24,6 +35,39 @@ export default {
         fcm: !!(env.FIREBASE_SERVICE_ACCOUNT || env.FCM_LEGACY_SERVER_KEY),
         hms: !!(env.HUAWEI_APP_ID && env.HUAWEI_CLIENT_SECRET)
       }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // Stats endpoint: /stats/:secretKey
+    if (request.method === "GET" && url.pathname.startsWith("/stats")) {
+      const parts = url.pathname.replace(/^\/+|\/+$/g, "").split("/");
+      const providedSecret = parts[1] || url.searchParams.get("secret");
+
+      if (env.PUSH_GATEWAY_SECRET && providedSecret !== env.PUSH_GATEWAY_SECRET) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response(JSON.stringify({
+        status: "ok",
+        boot_time: stats.bootTime,
+        uptime_seconds: Math.floor((Date.now() - new Date(stats.bootTime).getTime()) / 1000),
+        capabilities: {
+          fcm: !!(env.FIREBASE_SERVICE_ACCOUNT || env.FCM_LEGACY_SERVER_KEY),
+          hms: !!(env.HUAWEI_APP_ID && env.HUAWEI_CLIENT_SECRET)
+        },
+        counters: {
+          requests_total: stats.requestsTotal,
+          fcm_sent: stats.fcmSent,
+          fcm_errors: stats.fcmErrors,
+          hms_sent: stats.hmsSent,
+          hms_errors: stats.hmsErrors
+        },
+        last_delivery: stats.lastDelivery
+      }, null, 2), {
         headers: { "Content-Type": "application/json" }
       });
     }
@@ -46,6 +90,8 @@ export default {
       let provider = "auto";
       let pushToken = "";
       let clientSecret = "";
+      let fcmToken = "";
+      let hmsToken = "";
 
       if (parts.length === 3) {
         // /tg/:token/:secretKey
@@ -56,17 +102,46 @@ export default {
           provider = provQuery.toLowerCase();
         }
       } else if (parts.length === 4) {
-        // /tg/:provider/:token/:secretKey (e.g. /tg/hms/... or /tg/fcm/...)
+        // /tg/:provider/:token/:secretKey (e.g. /tg/hms/... or /tg/fcm/... or /tg/hybrid/...)
         provider = parts[1].toLowerCase();
         pushToken = parts[2];
         clientSecret = parts[3];
       } else {
         return new Response(JSON.stringify({
-          error: "Invalid path. Expected /tg/:token/:secretKey or /tg/hms/:token/:secretKey"
+          error: "Invalid path. Expected /tg/:token/:secretKey or /tg/hms/:token/:secretKey or /tg/hybrid/:fcmToken+hmsToken/:secretKey"
         }), {
           status: 400,
           headers: { "Content-Type": "application/json" }
         });
+      }
+
+      // Check query params for dual-tokens if provided
+      const qFcm = url.searchParams.get("fcm_token");
+      const qHms = url.searchParams.get("hms_token");
+
+      if (provider === "hybrid") {
+        if (qFcm) fcmToken = qFcm;
+        if (qHms) hmsToken = qHms;
+        // Also support :fcmToken+hmsToken or :fcmToken:::hmsToken in URL path
+        if (!fcmToken || !hmsToken) {
+          if (pushToken.includes("+")) {
+            const split = pushToken.split("+");
+            if (!fcmToken) fcmToken = split[0];
+            if (!hmsToken) hmsToken = split[1];
+          } else if (pushToken.includes(":::")) {
+            const split = pushToken.split(":::");
+            if (!fcmToken) fcmToken = split[0];
+            if (!hmsToken) hmsToken = split[1];
+          }
+        }
+      } else if (provider === "hms") {
+        hmsToken = pushToken;
+      } else if (provider === "fcm") {
+        fcmToken = pushToken;
+      } else {
+        // auto
+        fcmToken = pushToken;
+        hmsToken = pushToken;
       }
 
       if (env.PUSH_GATEWAY_SECRET && clientSecret !== env.PUSH_GATEWAY_SECRET) {
@@ -93,13 +168,23 @@ export default {
       const hasHms = !!(env.HUAWEI_APP_ID && env.HUAWEI_CLIENT_SECRET);
       const hasFcm = !!(env.FIREBASE_SERVICE_ACCOUNT || env.FCM_LEGACY_SERVER_KEY);
 
-      const targetHms = provider === "hms" || (provider === "auto" && hasHms && !hasFcm);
-      const targetFcm = provider === "fcm" || (provider === "auto" && hasFcm);
+      const targetHms = (provider === "hms" || provider === "hybrid" || (provider === "auto" && hasHms && !hasFcm)) && !!hmsToken;
+      const targetFcm = (provider === "fcm" || provider === "hybrid" || (provider === "auto" && hasFcm)) && !!fcmToken;
+
+      // Update stats
+      stats.requestsTotal++;
+      stats.lastDelivery = {
+        update_id: updateId,
+        provider: provider,
+        has_fcm: targetFcm && hasFcm,
+        has_hms: targetHms && hasHms,
+        timestamp: new Date().toISOString()
+      };
 
       // Dispatch Huawei HMS Push in background
       if (targetHms && hasHms) {
         const clientId = env.HUAWEI_CLIENT_ID || env.HUAWEI_APP_ID;
-        const promise = sendHmsWakeup(pushToken, updateId, updateJson, env.HUAWEI_APP_ID, clientId, env.HUAWEI_CLIENT_SECRET);
+        const promise = sendHmsWakeup(hmsToken, updateId, updateJson, env.HUAWEI_APP_ID, clientId, env.HUAWEI_CLIENT_SECRET);
         if (ctx?.waitUntil) ctx.waitUntil(promise);
       }
 
@@ -107,9 +192,9 @@ export default {
       if (targetFcm && hasFcm) {
         let promise;
         if (env.FIREBASE_SERVICE_ACCOUNT) {
-          promise = sendFcmWakeupV1(pushToken, updateId, updateJson, env.FIREBASE_SERVICE_ACCOUNT);
+          promise = sendFcmWakeupV1(fcmToken, updateId, updateJson, env.FIREBASE_SERVICE_ACCOUNT);
         } else if (env.FCM_LEGACY_SERVER_KEY) {
-          promise = sendFcmWakeupLegacy(pushToken, updateId, updateJson, env.FCM_LEGACY_SERVER_KEY);
+          promise = sendFcmWakeupLegacy(fcmToken, updateId, updateJson, env.FCM_LEGACY_SERVER_KEY);
         }
         if (promise && ctx?.waitUntil) ctx.waitUntil(promise);
       }
@@ -164,8 +249,14 @@ async function sendHmsWakeup(hmsToken, updateId, updateJson, appId, clientId, cl
     });
 
     const respText = await res.text();
+    if (res.ok) {
+      stats.hmsSent++;
+    } else {
+      stats.hmsErrors++;
+    }
     console.log(`[HMS] Wakeup sent for update_id ${updateId}, status: ${res.status}, resp: ${respText}`);
   } catch (err) {
+    stats.hmsErrors++;
     console.error(`[HMS] Error: ${err.message || err}`);
   }
 }
@@ -237,8 +328,14 @@ async function sendFcmWakeupV1(fcmToken, updateId, updateJson, serviceAccountRaw
     });
 
     const respText = await res.text();
+    if (res.ok) {
+      stats.fcmSent++;
+    } else {
+      stats.fcmErrors++;
+    }
     console.log(`[FCM v1] Wakeup sent for update_id ${updateId}, status: ${res.status}, resp: ${respText}`);
   } catch (err) {
+    stats.fcmErrors++;
     console.error(`[FCM v1] Error: ${err.message || err}`);
   }
 }

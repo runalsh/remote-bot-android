@@ -82,14 +82,17 @@ class ShakeDetectorManager(
                             lastShakeTimestamp = now
                             AppLogger.i(
                                 "ShakeDetectorManager",
-                                "📳 Тряска зафиксирована! Значение: ${"%.2f".format(
+                                "📳 Shake detected! Value: ${"%.2f".format(
                                     accelerationScore,
-                                )} m/s² (порог: $threshold, таймаут: ${cooldownSeconds}с)",
+                                )} m/s² (threshold: $threshold, cooldown: ${cooldownSeconds}s)",
                             )
                             _shakeEvents.tryEmit(Unit)
                         }
                     } else if (accelerationScore > 0.8) {
-                        AppLogger.d("ShakeDetectorManager", "📈 Акселерометр: ${"%.2f".format(accelerationScore)} m/s² (порог: $threshold)")
+                        AppLogger.d(
+                            "ShakeDetectorManager",
+                            "📈 Accelerometer: ${"%.2f".format(accelerationScore)} m/s² (threshold: $threshold)",
+                        )
                     }
                 }
 
@@ -110,7 +113,7 @@ class ShakeDetectorManager(
     }
 
     fun emitSimulatedShake() {
-        AppLogger.i("ShakeDetectorManager", "🛠️ [Debug] Симуляция события встряхивания устройства")
+        AppLogger.i("ShakeDetectorManager", "🛠️ [Debug] Simulating device shake event")
         _shakeEvents.tryEmit(Unit)
     }
 }

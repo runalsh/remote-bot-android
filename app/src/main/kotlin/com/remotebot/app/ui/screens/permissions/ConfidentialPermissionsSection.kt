@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.CoroutineScope
@@ -33,8 +35,8 @@ fun ConfidentialPermissionsSection(
     onRequestCalls: () -> Unit,
 ) {
     com.remotebot.app.ui.components.AppSectionHeader(
-        title = "2. Связь и уведомления (Уведомления, SMS, USSD)",
-        subtitle = "Перехват уведомлений банков/мессенджеров, SMS-трафик, звонки и USSD",
+        title = stringResource(R.string.perm_confidential_section_title),
+        subtitle = stringResource(R.string.perm_confidential_section_subtitle),
         emojiIcon = "💬",
         containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
@@ -42,25 +44,32 @@ fun ConfidentialPermissionsSection(
 
     PermissionItemCard(
         icon = "🔔",
-        title = "Чтение уведомлений (Notification Listener)",
+        title = stringResource(R.string.perm_notification_listener),
         isGranted = isNotifListenerGranted,
         description =
-            "Пересылка входящих уведомлений сторонних мессенджеров и банков в Telegram" +
+            stringResource(R.string.perm_notification_listener_desc) +
                 if (!isNotifListenerGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    "\n⚠️ Если переключатель неактивен: Настройки -> Приложения -> Remote Bot -> Меню 3 точки -> Разрешить ограниченные настройки"
+                    stringResource(R.string.perm_accessibility_restricted_hint)
                 } else {
                     "" +
                         if (!isNotifListenerGranted && isRootGranted) {
-                            "\n👑 Доступна быстрая активация через Root в 1 клик!"
+                            stringResource(R.string.perm_root_quick_activation)
                         } else {
                             ""
                         }
                 },
         commandsHint = "/notify, /notifications, /notify_send, /answer, /resp, /notify_clear, /notify_rule",
-        buttonText = if (isRootGranted) "Включить через Root (1 клик)" else "Открыть настройки уведомлений",
+        buttonText =
+            if (isRootGranted) {
+                stringResource(
+                    R.string.perm_btn_notif_listener_root,
+                )
+            } else {
+                stringResource(R.string.perm_btn_notif_listener_settings)
+            },
     ) {
         if (isRootGranted) {
-            logger.d("Permissions", "Запрос включения Notification Listener через Root")
+            logger.d("Permissions", "Requesting Notification Listener enablement via Root")
             scope.launch(Dispatchers.IO) {
                 val serviceName = "${context.packageName}/${com.remotebot.app.service.RemoteBotNotificationListenerService::class.java.name}"
                 val cmd =
@@ -80,11 +89,11 @@ fun ConfidentialPermissionsSection(
                 }
                 withContext(Dispatchers.Main) {
                     if (res.isSuccess) {
-                        logger.i("Permissions", "Доступ к уведомлениям успешно выдан через Root")
-                        Toast.makeText(context, "Доступ к уведомлениям выдан через Root!", Toast.LENGTH_SHORT).show()
+                        logger.i("Permissions", "Notification access granted successfully via Root")
+                        Toast.makeText(context, context.getString(R.string.perm_notif_root_enabled_toast), Toast.LENGTH_SHORT).show()
                         onRefreshRequest()
                     } else {
-                        logger.w("Permissions", "Сбой выдачи через Root, открываем системные настройки уведомлений")
+                        logger.w("Permissions", "Root grant failed, opening the system notification settings")
                         try {
                             context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                         } catch (_: Exception) {
@@ -93,11 +102,11 @@ fun ConfidentialPermissionsSection(
                 }
             }
         } else {
-            logger.d("Permissions", "Открытие экрана настроек Notification Listener (без Root)")
+            logger.d("Permissions", "Opening the Notification Listener settings screen (without Root)")
             try {
                 context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
             } catch (e: Exception) {
-                logger.w("Permissions", "Сбой открытия настроек уведомлений: ${e.localizedMessage}")
+                logger.w("Permissions", "Notification settings open failure: ${e.localizedMessage}")
                 try {
                     context.startActivity(Intent(Settings.ACTION_SETTINGS))
                 } catch (_: Exception) {
@@ -108,39 +117,39 @@ fun ConfidentialPermissionsSection(
 
     PermissionItemCard(
         icon = "💬",
-        title = "SMS (Отправка и Чтение)",
+        title = stringResource(R.string.perm_sms_send_read),
         isGranted = isSmsGranted,
-        description = "Отправка SMS-сообщений, чтение входящих и пересылка в Telegram",
+        description = stringResource(R.string.perm_sms_send_read_desc),
         commandsHint = "/sms, /sms_inbox, /sms_bot, /sms_forward, /whitelist_phone",
-        buttonText = "Запросить доступ к SMS",
+        buttonText = stringResource(R.string.perm_btn_sms),
     ) {
         onRequestSms()
     }
 
     PermissionItemCard(
         icon = "📞",
-        title = "Звонки, USSD и Телефон (Calls & USSD)",
+        title = stringResource(R.string.perm_calls_ussd),
         isGranted = isCallsGranted,
-        description = "Совершение телефонных вызовов, USSD-запросы баланса и журнал звонков",
-        commandsHint = "/call, /callshistory, /ussd, пересылка звонков",
-        buttonText = "Запросить доступ к Звонкам и USSD",
+        description = stringResource(R.string.perm_calls_ussd_desc),
+        commandsHint = stringResource(R.string.perm_hint_phone),
+        buttonText = stringResource(R.string.perm_btn_calls),
     ) {
         onRequestCalls()
     }
 
     PermissionItemCard(
         icon = "🔕",
-        title = "Режим «Не беспокоить» (DND Policy Access)",
+        title = stringResource(R.string.perm_dnd_policy),
         isGranted = isDndGranted,
-        description = "Управление звуковыми профилями и отключением звука звонков",
+        description = stringResource(R.string.perm_dnd_policy_desc),
         commandsHint = "/ring_mode [normal|silent|vibrate], /volume",
-        buttonText = "Открыть доступ к DND",
+        buttonText = stringResource(R.string.perm_btn_dnd),
     ) {
-        logger.i("Permissions", "Открытие настроек DND Notification Policy")
+        logger.i("Permissions", "Opening the DND Notification Policy settings")
         try {
             context.startActivity(Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS))
         } catch (e: Exception) {
-            logger.w("Permissions", "Сбой открытия настроек DND: ${e.localizedMessage}")
+            logger.w("Permissions", "DND settings open failure: ${e.localizedMessage}")
             try {
                 context.startActivity(Intent(Settings.ACTION_SETTINGS))
             } catch (_: Exception) {

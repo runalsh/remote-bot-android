@@ -28,15 +28,15 @@ class BackupManager {
 
     fun parseBackup(jsonString: String): Result<AppBackupData> =
         runCatching {
-            require(jsonString.isNotBlank()) { "JSON бэкапа не может быть пустым" }
+            require(jsonString.isNotBlank()) { "Backup JSON must not be empty" }
             val data = json.decodeFromString<AppBackupData>(jsonString)
-            require(data.version.isNotBlank()) { "Некорректная структура бэкапа: отсутствует поле version" }
+            require(data.version.isNotBlank()) { "Invalid backup structure: missing the version field" }
             val majorVersion =
                 data.version
                     .split(".")
                     .firstOrNull()
                     ?.toIntOrNull() ?: 0
-            require(majorVersion in 1..2) { "Неподдерживаемая версия схемы бэкапа: ${data.version}" }
+            require(majorVersion in 1..2) { "Unsupported backup schema version: ${data.version}" }
             data
         }
 }

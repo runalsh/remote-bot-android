@@ -6,13 +6,16 @@ import android.content.ContentResolver
 import android.content.Context
 import android.os.Build
 import android.provider.Settings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,7 +25,11 @@ class SystemSettingsCommandsHandler(
     private val logger: AppLogger,
     private val rootStatusProvider: RootStatusProvider,
     private val radioHandler: DeviceRadioCommandsHandler? = null,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "toggles",
@@ -43,7 +50,7 @@ class SystemSettingsCommandsHandler(
     override val isDestructive: Boolean = false
 
     private val effectiveRadioHandler by lazy {
-        radioHandler ?: DeviceRadioCommandsHandler(context, logger, rootStatusProvider)
+        radioHandler ?: DeviceRadioCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)
     }
 
     override suspend fun execute(command: IncomingCommand): CommandResult {
@@ -56,17 +63,31 @@ class SystemSettingsCommandsHandler(
             "sync" -> handleSync(command.args)
             "adb", "usb_debugging" -> handleAdb(command.args)
             "adb_wifi", "adbwifi", "wireless_adb" -> handleAdbWifi(command.args)
-            else -> CommandResult.Error("Неизвестная команда системных настроек: $cmd")
+            else -> CommandResult.Error(strings.qsUnknownCmd(cmd))
         }
     }
 
     private fun isRootGranted(): Boolean = SystemControlUtils.isRootGranted(rootStatusProvider)
+
+    private fun isEnglish(): Boolean {
+        val lang = botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO
+        return when (lang) {
+            BotLanguage.EN -> true
+            BotLanguage.RU -> false
+            BotLanguage.AUTO ->
+                !java.util.Locale
+                    .getDefault()
+                    .language
+                    .equals("ru", ignoreCase = true)
+        }
+    }
 
     // ==========================================
     // 1. INTERACTIVE TOGGLE SWITCHES PANEL
     // ==========================================
     private suspend fun handleTogglesPanel(): CommandResult =
         withContext(Dispatchers.IO) {
+            val isEn = isEnglish()
             val hasRoot = isRootGranted()
             val wifiOn = effectiveRadioHandler.isWifiEnabled()
             val btOn = effectiveRadioHandler.isBluetoothEnabled()
@@ -74,29 +95,30 @@ class SystemSettingsCommandsHandler(
             val syncOn = isSyncEnabled()
             val autoBrightnessOn = isAutoBrightnessEnabled()
 
-            val textBuilder = StringBuilder()
-            textBuilder.append("🎛 <b>Панель быстрых переключателей (Quick Settings)</b>\n")
-            textBuilder.append("<i>Статус Superuser: ${if (hasRoot) "🟢 Предоставлен (UID 0)" else "⚪ Обычный режим (без Root)"}</i>\n\n")
+            val onLabel = strings.qsOnWord()
+            val offLabel = strings.qsOffWord()
 
-            textBuilder.append("• Wi-Fi: ${if (wifiOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Bluetooth: ${if (btOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Фонарик: ${if (flashOn) "🟢 ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Автояркость: ${if (autoBrightnessOn) "☀️ ВКЛ" else "⚪ ВЫКЛ"}\n")
-            textBuilder.append("• Синхронизация: ${if (syncOn) "🔄 ВКЛ" else "⚪ ВЫКЛ"}\n")
+            val textBuilder = StringBuilder()
+            textBuilder.append(strings.qsPanelBase(hasRoot, wifiOn, btOn, flashOn, autoBrightnessOn, syncOn))
 
             val buttonRows = mutableListOf<List<InlineKeyboardButton>>()
 
             // Basic switches (always available)
+            val wifiBtn = if (wifiOn) "📶 Wi-Fi [$onLabel]" else "📶 Wi-Fi [$offLabel]"
+            val btBtn = if (btOn) "🦷 BT [$onLabel]" else "🦷 BT [$offLabel]"
+            val flashBtn = strings.qsBtnTorch(flashOn)
+            val syncBtn = strings.qsBtnSync(syncOn)
+
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton(if (wifiOn) "📶 Wi-Fi [ВКЛ]" else "📶 Wi-Fi [ВЫКЛ]", "/wifi toggle"),
-                    InlineKeyboardButton(if (btOn) "🦷 BT [ВКЛ]" else "🦷 BT [ВЫКЛ]", "/bluetooth toggle"),
+                    InlineKeyboardButton(wifiBtn, "/wifi toggle"),
+                    InlineKeyboardButton(btBtn, "/bluetooth toggle"),
                 ),
             )
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton(if (flashOn) "🔦 Фонарик [ВКЛ]" else "🔦 Фонарик [ВЫКЛ]", "/flashlight toggle"),
-                    InlineKeyboardButton(if (syncOn) "🔄 Синхр [ВКЛ]" else "🔄 Синхр [ВЫКЛ]", "/sync toggle"),
+                    InlineKeyboardButton(flashBtn, "/flashlight toggle"),
+                    InlineKeyboardButton(syncBtn, "/sync toggle"),
                 ),
             )
 
@@ -109,54 +131,60 @@ class SystemSettingsCommandsHandler(
                 val adbOn = isAdbEnabled()
                 val adbWifiOn = isAdbWifiEnabled()
                 val adbWifiPort = if (adbWifiOn) getAdbWifiPort().takeIf { it > 0 } ?: 5555 else 5555
-                val localIp = SystemControlUtils.getLocalIpAddress() ?: "IP_НЕ_ОПРЕДЕЛЕН"
+                val localIp = SystemControlUtils.getLocalIpAddress() ?: strings.ipNotFound()
 
-                textBuilder.append("• Режим полета: ${if (airplaneOn) "✈️ ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Точка доступа: ${if (hotspotOn) "📡 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Моб. данные: ${if (mobileDataOn) "📶 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Геолокация (GPS): ${if (gpsOn) "📍 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Энергосбережение: ${if (powerSaveOn) "🔋 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Отладка по USB (ADB): ${if (adbOn) "🔌 ВКЛ" else "⚪ ВЫКЛ"} ⚡\n")
-                textBuilder.append("• Отладка по Wi-Fi: ${if (adbWifiOn) "📶 ВКЛ (<code>$localIp:$adbWifiPort</code>)" else "⚪ ВЫКЛ"} ⚡\n")
+                textBuilder.append(
+                    strings.qsPanelRoot(airplaneOn, hotspotOn, mobileDataOn, gpsOn, powerSaveOn, adbOn, adbWifiOn, localIp, adbWifiPort),
+                )
+
+                val airplaneBtn = strings.qsBtnAirplane(airplaneOn)
+                val hotspotBtn = if (hotspotOn) "📡 Hotspot [$onLabel] ⚡" else "📡 Hotspot [$offLabel] ⚡"
+                val dataBtn = strings.qsBtnData(mobileDataOn)
+                val gpsBtn = if (gpsOn) "📍 GPS [$onLabel] ⚡" else "📍 GPS [$offLabel] ⚡"
+                val powerBtn = strings.qsBtnSaver(powerSaveOn)
+                val brightBtn = strings.qsBtnBright(autoBrightnessOn)
 
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (airplaneOn) "✈️ Самолёт [ВКЛ] ⚡" else "✈️ Самолёт [ВЫКЛ] ⚡", "/airplane toggle"),
-                        InlineKeyboardButton(if (hotspotOn) "📡 Hotspot [ВКЛ] ⚡" else "📡 Hotspot [ВЫКЛ] ⚡", "/hotspot toggle"),
+                        InlineKeyboardButton(airplaneBtn, "/airplane toggle"),
+                        InlineKeyboardButton(hotspotBtn, "/hotspot toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (mobileDataOn) "📱 Данные [ВКЛ] ⚡" else "📱 Данные [ВЫКЛ] ⚡", "/mobile_data toggle"),
-                        InlineKeyboardButton(if (gpsOn) "📍 GPS [ВКЛ] ⚡" else "📍 GPS [ВЫКЛ] ⚡", "/gps toggle"),
+                        InlineKeyboardButton(dataBtn, "/mobile_data toggle"),
+                        InlineKeyboardButton(gpsBtn, "/gps toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (powerSaveOn) "🔋 Энерго [ВКЛ] ⚡" else "🔋 Энерго [ВЫКЛ] ⚡", "/powersave toggle"),
-                        InlineKeyboardButton(if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]", "/auto_brightness toggle"),
+                        InlineKeyboardButton(powerBtn, "/powersave toggle"),
+                        InlineKeyboardButton(brightBtn, "/auto_brightness toggle"),
                     ),
                 )
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (adbOn) "🔌 USB ADB [ВКЛ] ⚡" else "🔌 USB ADB [ВЫКЛ] ⚡", "/adb toggle"),
-                        InlineKeyboardButton(if (adbWifiOn) "📶 ADB-WiFi [ВКЛ] ⚡" else "📶 ADB-WiFi [ВЫКЛ] ⚡", "/adb_wifi toggle"),
+                        InlineKeyboardButton(if (adbOn) "🔌 USB ADB [$onLabel] ⚡" else "🔌 USB ADB [$offLabel] ⚡", "/adb toggle"),
+                        InlineKeyboardButton(
+                            if (adbWifiOn) "📶 ADB-WiFi [$onLabel] ⚡" else "📶 ADB-WiFi [$offLabel] ⚡",
+                            "/adb_wifi toggle",
+                        ),
                     ),
                 )
             } else {
-                textBuilder.append(
-                    "\n<i>💡 Предоставьте Root в приложении (вкладка Диагностика), чтобы разблокировать тумблеры: Самолёт, Hotspot, Моб. данные, GPS, Энергосбережение, USB/Wi-Fi Debugging.</i>\n",
-                )
+                val tip = strings.qsRootTip()
+                textBuilder.append(tip)
+                val brightBtn = strings.qsBtnBright(autoBrightnessOn)
                 buttonRows.add(
                     listOf(
-                        InlineKeyboardButton(if (autoBrightnessOn) "☀️ Автоярк [ВКЛ]" else "☀️ Автоярк [ВЫКЛ]", "/auto_brightness toggle"),
+                        InlineKeyboardButton(brightBtn, "/auto_brightness toggle"),
                     ),
                 )
             }
 
             buttonRows.add(
                 listOf(
-                    InlineKeyboardButton("🔄 Обновить панель", "/toggles"),
+                    InlineKeyboardButton(strings.qsBtnRefresh(), "/toggles"),
                 ),
             )
 
@@ -175,65 +203,89 @@ class SystemSettingsCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isPowerSaveModeOn()
-                    val statusEmoji = if (isEnabled) "🔋 Включен" else "⚪ Выключен"
-                    val rootNote = if (hasRoot) "🟢 Root активен" else "🔒 Требуются Root-права для изменения"
+                    val statusEmoji = if (isEnabled) strings.psStateOn() else strings.radioStateOffW()
+                    val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
-                        "🔋 <b>Режим энергосбережения:</b> $statusEmoji\n<i>$rootNote</i>",
-                        SystemControlUtils.makeSingleToggleKeyboard("/powersave", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        strings.psStatus(statusEmoji, rootNote),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/powersave",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления энергосбережением требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.psNeedRoot(),
                         )
                     }
                     val success = setPowerSave(true)
                     if (success) {
                         CommandResult.Text(
-                            "🔋 <b>Режим энергосбережения включен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", true, requiresRoot = true, hasRoot = hasRoot),
+                            strings.psOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка включения энергосбережения.")
+                        CommandResult.Error(strings.psOnFail())
                     }
                 }
                 "off", "0" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления энергосбережением требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.psNeedRoot(),
                         )
                     }
                     val success = setPowerSave(false)
                     if (success) {
                         CommandResult.Text(
-                            "⚪ <b>Режим энергосбережения выключен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", false, requiresRoot = true, hasRoot = hasRoot),
+                            strings.psOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка выключения энергосбережения.")
+                        CommandResult.Error(strings.psOffFail())
                     }
                 }
                 "toggle" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления энергосбережением требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.psNeedRoot(),
                         )
                     }
                     val current = isPowerSaveModeOn()
                     val target = !current
                     val success = setPowerSave(target)
                     if (success) {
-                        val label = if (target) "включен 🔋" else "выключен ⚪"
+                        val label = if (target) strings.radioWordOn() + " 🔋" else strings.radioWordOff() + " ⚪"
                         CommandResult.Text(
-                            "🔄 <b>Режим энергосбережения $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/powersave", target, requiresRoot = true, hasRoot = hasRoot),
+                            strings.psToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/powersave",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения энергосбережения.")
+                        CommandResult.Error(strings.psToggleFail())
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/powersave [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/powersave [on|off|toggle|status]"))
             }
         }
 
@@ -244,10 +296,10 @@ class SystemSettingsCommandsHandler(
         val cmd = "cmd power set-mode $mode || settings put global low_power $mode"
         return try {
             val res = Shell.cmd(cmd).exec()
-            logger.i("SystemControl", "PowerSave изменен: enable=$enable, success=${res.isSuccess}")
+            logger.i("SystemControl", "PowerSave changed: enable=$enable, success=${res.isSuccess}")
             res.isSuccess
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setPowerSave: ${e.localizedMessage}")
+            logger.w("SystemControl", "setPowerSave failed: ${e.localizedMessage}")
             false
         }
     }
@@ -262,32 +314,47 @@ class SystemSettingsCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isAutoBrightnessEnabled()
-                    val statusEmoji = if (isEnabled) "☀️ Включена" else "⚪ Выключена (Ручная)"
+                    val statusEmoji = if (isEnabled) strings.abStateOn() else strings.abStateOff()
                     CommandResult.Text(
-                        "☀️ <b>Автояркость экрана:</b> $statusEmoji",
-                        SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", isEnabled, hasRoot = isRootGranted()),
+                        strings.abStatus(statusEmoji),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/auto_brightness",
+                            isEnabled,
+                            hasRoot = isRootGranted(),
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     val success = setAutoBrightness(true)
                     if (success) {
                         CommandResult.Text(
-                            "☀️ <b>Автояркость включена!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", true, hasRoot = isRootGranted()),
+                            strings.abOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                true,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("⚠️ Не удалось включить автояркость.\nТребуются права изменения системных настроек или Root.")
+                        CommandResult.Error(strings.abOnFail())
                     }
                 }
                 "off", "0" -> {
                     val success = setAutoBrightness(false)
                     if (success) {
                         CommandResult.Text(
-                            "⚪ <b>Автояркость выключена (ручной режим)!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", false, hasRoot = isRootGranted()),
+                            strings.abOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                false,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("⚠️ Не удалось выключить автояркость.\nТребуются права изменения системных настроек или Root.")
+                        CommandResult.Error(strings.abOffFail())
                     }
                 }
                 "toggle" -> {
@@ -295,18 +362,23 @@ class SystemSettingsCommandsHandler(
                     val target = !current
                     val success = setAutoBrightness(target)
                     if (success) {
-                        val label = if (target) "включена ☀️" else "выключена ⚪"
+                        val label = if (target) strings.radioWordOnF() + " ☀️" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
-                            "🔄 <b>Автояркость $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/auto_brightness", target, hasRoot = isRootGranted()),
+                            strings.abToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/auto_brightness",
+                                target,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     } else {
                         CommandResult.Error(
-                            "⚠️ Не удалось переключить автояркость.\nТребуются права изменения системных настроек или Root.",
+                            strings.abToggleFail(),
                         )
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/auto_brightness [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/auto_brightness [on|off|toggle|status]"))
             }
         }
 
@@ -323,7 +395,7 @@ class SystemSettingsCommandsHandler(
         try {
             val res = Shell.cmd(cmd).exec()
             if (res.isSuccess) {
-                logger.i("SystemControl", "Автояркость изменена через shell: enable=$enable")
+                logger.i("SystemControl", "Auto-brightness changed via shell: enable=$enable")
                 return true
             }
         } catch (_: Exception) {
@@ -341,7 +413,7 @@ class SystemSettingsCommandsHandler(
                 false
             }
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setAutoBrightness: ${e.localizedMessage}")
+            logger.w("SystemControl", "setAutoBrightness failed: ${e.localizedMessage}")
             false
         }
     }
@@ -355,40 +427,40 @@ class SystemSettingsCommandsHandler(
         return when (action) {
             "status" -> {
                 val isSync = isSyncEnabled()
-                val status = if (isSync) "🟢 Включена" else "🔴 Выключена"
+                val status = if (isSync) strings.radioStateDataOn() else strings.radioStateDataOff()
                 CommandResult.Text(
-                    "🔄 <b>Автосинхронизация аккаунтов:</b> $status",
-                    SystemControlUtils.makeSingleToggleKeyboard("/sync", isSync, hasRoot = isRootGranted()),
+                    strings.syncStatus(status),
+                    SystemControlUtils.makeSingleToggleKeyboard("/sync", isSync, hasRoot = isRootGranted(), strings = strings),
                 )
             }
             "on", "1" -> {
                 ContentResolver.setMasterSyncAutomatically(true)
-                logger.i("SystemControl", "Автосинхронизация включена")
+                logger.i("SystemControl", "Auto-sync enabled")
                 CommandResult.Text(
-                    "✅ <b>Автосинхронизация аккаунтов включена!</b>",
-                    SystemControlUtils.makeSingleToggleKeyboard("/sync", true, hasRoot = isRootGranted()),
+                    strings.syncOnOk(),
+                    SystemControlUtils.makeSingleToggleKeyboard("/sync", true, hasRoot = isRootGranted(), strings = strings),
                 )
             }
             "off", "0" -> {
                 ContentResolver.setMasterSyncAutomatically(false)
-                logger.i("SystemControl", "Автосинхронизация выключена")
+                logger.i("SystemControl", "Auto-sync disabled")
                 CommandResult.Text(
-                    "🔴 <b>Автосинхронизация аккаунтов выключена!</b>",
-                    SystemControlUtils.makeSingleToggleKeyboard("/sync", false, hasRoot = isRootGranted()),
+                    strings.syncOffOk(),
+                    SystemControlUtils.makeSingleToggleKeyboard("/sync", false, hasRoot = isRootGranted(), strings = strings),
                 )
             }
             "toggle" -> {
                 val current = isSyncEnabled()
                 val target = !current
                 ContentResolver.setMasterSyncAutomatically(target)
-                val label = if (target) "включена" else "выключена"
-                logger.i("SystemControl", "Автосинхронизация переключена: $label")
+                val label = if (target) strings.radioWordOnF() else strings.radioWordOffF()
+                logger.i("SystemControl", "Auto-sync toggled: $label")
                 CommandResult.Text(
-                    "🔄 <b>Автосинхронизация аккаунтов $label!</b>",
-                    SystemControlUtils.makeSingleToggleKeyboard("/sync", target, hasRoot = isRootGranted()),
+                    strings.syncToggled(label),
+                    SystemControlUtils.makeSingleToggleKeyboard("/sync", target, hasRoot = isRootGranted(), strings = strings),
                 )
             }
-            else -> CommandResult.Error("Используйте: <code>/sync [on|off|toggle|status]</code>")
+            else -> CommandResult.Error(strings.radioUsage("/sync [on|off|toggle|status]"))
         }
     }
 
@@ -401,7 +473,7 @@ class SystemSettingsCommandsHandler(
         withContext(Dispatchers.Main) {
             val clipboardManager =
                 context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-                    ?: return@withContext CommandResult.Error("Буфер обмена недоступен.")
+                    ?: return@withContext CommandResult.Error(strings.cbUnavailable())
 
             val textArg = args.joinToString(" ").trim()
 
@@ -415,13 +487,13 @@ class SystemSettingsCommandsHandler(
                     }
 
                 if (text.isNullOrBlank()) {
-                    CommandResult.Text("📋 <b>Буфер обмена пуст.</b>")
+                    CommandResult.Text(strings.cbEmpty())
                 } else {
                     val keyboard =
                         InlineKeyboardMarkup(
-                            listOf(listOf(InlineKeyboardButton("🗑 Очистить буфер", "/clipboard clear"))),
+                            listOf(listOf(InlineKeyboardButton(strings.cbClearBtn(), "/clipboard clear"))),
                         )
-                    CommandResult.Text("📋 <b>Содержимое буфера обмена:</b>\n<code>$text</code>", keyboard)
+                    CommandResult.Text(strings.cbContent(text), keyboard)
                 }
             } else if (textArg.equals("clear", ignoreCase = true)) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -429,17 +501,17 @@ class SystemSettingsCommandsHandler(
                 } else {
                     clipboardManager.setPrimaryClip(ClipData.newPlainText("", ""))
                 }
-                logger.i("SystemControl", "Буфер обмена очищен")
-                CommandResult.Text("🗑 <b>Буфер обмена очищен!</b>")
+                logger.i("SystemControl", "Clipboard cleared")
+                CommandResult.Text("🗑 <b>Clipboard cleared!</b>")
             } else {
                 val toSet = if (textArg.startsWith("set ", ignoreCase = true)) textArg.substring(4).trim() else textArg
                 clipboardManager.setPrimaryClip(ClipData.newPlainText("RemoteBot", toSet))
-                logger.i("SystemControl", "В буфер обмена скопирован текст (${toSet.length} симв)")
+                logger.i("SystemControl", "Text copied to clipboard (${toSet.length} chars)")
                 val keyboard =
                     InlineKeyboardMarkup(
-                        listOf(listOf(InlineKeyboardButton("🗑 Очистить буфер", "/clipboard clear"))),
+                        listOf(listOf(InlineKeyboardButton(strings.cbClearBtn(), "/clipboard clear"))),
                     )
-                CommandResult.Text("📋 <b>Текст успешно скопирован в буфер устройства:</b>\n<code>$toSet</code>", keyboard)
+                CommandResult.Text(strings.cbSet(toSet), keyboard)
             }
         }
 
@@ -475,9 +547,7 @@ class SystemSettingsCommandsHandler(
             val hasRoot = isRootGranted()
             if (!hasRoot) {
                 return@withContext CommandResult.Error(
-                    "❌ <b>Требуются права Superuser (Root)!</b>\n" +
-                        "Управление режимом отладки USB (ADB) невозможно без прав root.\n" +
-                        "Предоставьте доступ в приложении на вкладке «Диагностика».",
+                    strings.adbNeedRoot(),
                 )
             }
 
@@ -485,46 +555,66 @@ class SystemSettingsCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isAdbEnabled()
-                    val statusEmoji = if (isEnabled) "🟢 Включен" else "🔴 Выключен"
+                    val statusEmoji = if (isEnabled) strings.radioStateOnG() else strings.radioStateOffR()
                     val text =
-                        """
-                        🔌 <b>Режим отладки по USB (ADB):</b> $statusEmoji
-                        • Доступ: <code>Root (Superuser)</code>
-                        • Глобальная настройка: <code>adb_enabled = ${if (isEnabled) 1 else 0}</code>
-                        """.trimIndent()
+                        strings.adbStatus(statusEmoji, if (isEnabled) 1 else 0)
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "enable", "1" -> {
                     setAdbState(true)
-                    logger.i("SystemControl", "Режим отладки по USB (ADB) включен через Root")
+                    logger.i("SystemControl", "USB debugging (ADB) enabled via Root")
                     CommandResult.Text(
-                        "✅ <b>Режим отладки по USB (ADB) включен!</b> ⚡",
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", true, requiresRoot = true, hasRoot = hasRoot),
+                        strings.adbOnOk(),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            true,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "off", "disable", "0" -> {
                     setAdbState(false)
-                    logger.i("SystemControl", "Режим отладки по USB (ADB) выключен через Root")
+                    logger.i("SystemControl", "USB debugging (ADB) disabled via Root")
                     CommandResult.Text(
-                        "🔴 <b>Режим отладки по USB (ADB) выключен.</b> ⚡",
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", false, requiresRoot = true, hasRoot = hasRoot),
+                        strings.adbOffOk(),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            false,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "toggle" -> {
                     val currentlyOn = isAdbEnabled()
                     val newState = !currentlyOn
                     setAdbState(newState)
-                    val msg = if (newState) "✅ <b>Режим отладки по USB (ADB) включен!</b> ⚡" else "🔴 <b>Режим отладки по USB (ADB) выключен.</b> ⚡"
-                    logger.i("SystemControl", "Переключен режим ADB: $newState")
+                    val msg = if (newState) strings.adbOnOk() else strings.adbOffOk()
+                    logger.i("SystemControl", "ADB mode toggled: $newState")
                     CommandResult.Text(
                         msg,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb", newState, requiresRoot = true, hasRoot = hasRoot),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb",
+                            newState,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
-                else -> CommandResult.Error("Использование: <code>/adb [status|on|off|toggle]</code>")
+                else -> CommandResult.Error(strings.adbUsage())
             }
         }
 
@@ -583,9 +673,7 @@ class SystemSettingsCommandsHandler(
             val hasRoot = isRootGranted()
             if (!hasRoot) {
                 return@withContext CommandResult.Error(
-                    "❌ <b>Требуются права Superuser (Root)!</b>\n" +
-                        "Включение отладки по Wi-Fi на системном уровне требует прав root.\n" +
-                        "Предоставьте доступ в приложении на вкладке «Диагностика».",
+                    strings.awifiNeedRoot(),
                 )
             }
 
@@ -596,88 +684,83 @@ class SystemSettingsCommandsHandler(
                 firstArg == "status" -> {
                     val isEnabled = isAdbWifiEnabled()
                     val port = if (isEnabled) (getAdbWifiPort().takeIf { it > 0 } ?: 5555) else 5555
-                    val ip = SystemControlUtils.getLocalIpAddress() ?: "IP_НЕ_ОПРЕДЕЛЕН"
-                    val statusEmoji = if (isEnabled) "🟢 Включена (порт $port)" else "🔴 Выключена"
+                    val ip = SystemControlUtils.getLocalIpAddress() ?: strings.ipNotFound()
+                    val statusEmoji = if (isEnabled) strings.awifiStateOn(port) else strings.radioStateDataOff()
 
                     val text =
                         if (isEnabled) {
-                            """
-                            📶 <b>Режим отладки по Wi-Fi (Wireless ADB):</b> $statusEmoji
-                            • Локальный IP: <code>$ip</code>
-                            • Порт: <code>$port</code>
-                            
-                            💡 <b>Команда подключения с ПК:</b>
-                            <code>adb connect $ip:$port</code>
-                            
-                            💡 <b>Команда отключения:</b>
-                            <code>adb disconnect $ip:$port</code>
-                            """.trimIndent()
+                            strings.awifiStatusOn(statusEmoji, ip, port)
                         } else {
-                            """
-                            📶 <b>Режим отладки по Wi-Fi (Wireless ADB):</b> $statusEmoji
-                            • Порт по умолчанию: <code>5555</code>
-                            • Текущий IP: <code>$ip</code>
-                            
-                            Используйте кнопку ниже или команду <code>/adb_wifi on</code> для запуска ADB через TCP/IP.
-                            """.trimIndent()
+                            strings.awifiStatusOff(statusEmoji, ip)
                         }
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg in listOf("on", "enable", "1") || firstArg.toIntOrNull() != null -> {
                     setAdbWifiState(true, customPort)
-                    val ip = SystemControlUtils.getLocalIpAddress() ?: "IP_НЕ_ОПРЕДЕЛЕН"
-                    logger.i("SystemControl", "Отладка по Wi-Fi включена на порту $customPort")
+                    val ip = SystemControlUtils.getLocalIpAddress() ?: strings.ipNotFound()
+                    logger.i("SystemControl", "Wi-Fi debugging enabled on port $customPort")
                     val text =
-                        """
-                        ✅ <b>Отладка по Wi-Fi успешно включена!</b> ⚡
-                        • Порт: <code>$customPort</code>
-                        • IP-адрес устройства: <code>$ip</code>
-                        
-                        💡 <b>Для подключения с компьютера выполните:</b>
-                        <code>adb connect $ip:$customPort</code>
-                        """.trimIndent()
+                        strings.awifiOnOkA(customPort, ip)
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", true, requiresRoot = true, hasRoot = hasRoot),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            true,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg in listOf("off", "disable", "0") -> {
                     setAdbWifiState(false)
-                    logger.i("SystemControl", "Отладка по Wi-Fi выключена")
+                    logger.i("SystemControl", "Wi-Fi debugging disabled")
                     CommandResult.Text(
-                        "🔴 <b>Отладка по Wi-Fi выключена.</b> ⚡",
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", false, requiresRoot = true, hasRoot = hasRoot),
+                        "🔴 <b>Wi-Fi debugging disabled.</b> ⚡",
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            false,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 firstArg == "toggle" -> {
                     val currentlyOn = isAdbWifiEnabled()
                     val newState = !currentlyOn
                     setAdbWifiState(newState, customPort)
-                    val ip = SystemControlUtils.getLocalIpAddress() ?: "IP_НЕ_ОПРЕДЕЛЕН"
+                    val ip = SystemControlUtils.getLocalIpAddress() ?: strings.ipNotFound()
                     val msg =
                         if (newState) {
-                            """
-                            ✅ <b>Отладка по Wi-Fi успешно включена!</b> ⚡
-                            • Порт: <code>$customPort</code>
-                            • IP-адрес: <code>$ip</code>
-                            
-                            💡 <b>Подключение:</b> <code>adb connect $ip:$customPort</code>
-                            """.trimIndent()
+                            strings.awifiOnOkB(customPort, ip)
                         } else {
-                            "🔴 <b>Отладка по Wi-Fi выключена.</b> ⚡"
+                            "🔴 <b>Wi-Fi debugging disabled.</b> ⚡"
                         }
-                    logger.i("SystemControl", "Переключена отладка Wi-Fi: $newState")
+                    logger.i("SystemControl", "Wi-Fi debugging toggled: $newState")
                     CommandResult.Text(
                         msg,
-                        SystemControlUtils.makeSingleToggleKeyboard("/adb_wifi", newState, requiresRoot = true, hasRoot = hasRoot),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/adb_wifi",
+                            newState,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 else ->
                     CommandResult.Error(
-                        "Использование: <code>/adb_wifi [status|on|off|toggle|порт]</code>\nПример: <code>/adb_wifi on 5555</code>",
+                        strings.awifiUsage(),
                     )
             }
         }

@@ -3,6 +3,7 @@ package com.remotebot.app
 import android.app.Application
 import com.google.firebase.FirebaseApp
 import com.remotebot.app.di.appModule
+import com.remotebot.app.util.AppLocaleManager
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.domain.model.ParsedFirebaseConfig
 import com.remotebot.domain.provider.RootStatusProvider
@@ -23,6 +24,13 @@ class RemoteBotApplication : Application() {
             androidLogger()
             androidContext(this@RemoteBotApplication)
             modules(appModule)
+        }
+
+        // Apply saved application locale
+        try {
+            val configRepo: BotConfigRepository = get()
+            AppLocaleManager.applyLocale(this, configRepo.config.value.botLanguage)
+        } catch (_: Exception) {
         }
 
         // Attempt dynamic Firebase initialization from saved configuration

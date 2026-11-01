@@ -79,7 +79,7 @@ class TelegramEventForwarder(
                             keyword.isNotBlank() && combinedText.contains(keyword.trim(), ignoreCase = true)
                         }
                     if (matchesStopWord) {
-                        logger?.d("TelegramEngine", "Уведомление содержит стоп-слово, пропуск (${notif.appName})")
+                        logger?.d("TelegramEngine", "Notification contains a stop word, skipped (${notif.appName})")
                         return@collect
                     }
 
@@ -89,7 +89,7 @@ class TelegramEventForwarder(
                             sentText.isNotBlank() && (combinedText.contains(sentText) || sentText.contains(combinedText))
                         }
                     if (isOwnEcho) {
-                        logger?.d("TelegramEngine", "Эхо-защита: пропуск собственного отправленного сообщения в шторке")
+                        logger?.d("TelegramEngine", "Echo protection: skipping our own posted status-bar message")
                         return@collect
                     }
 
@@ -102,7 +102,7 @@ class TelegramEventForwarder(
                         if (lastSeen != null && (now - lastSeen) < dedupTimeoutMs) {
                             logger?.d(
                                 "TelegramEngine",
-                                "Дедупликация: пропуск повторного уведомления от ${notif.appName} (таймаут ${config.notificationDedupTimeoutSeconds}с)",
+                                "Deduplication: skipping a repeated notification from ${notif.appName} (timeout ${config.notificationDedupTimeoutSeconds}s)",
                             )
                             return@collect
                         }
@@ -162,7 +162,7 @@ class TelegramEventForwarder(
                     if (notif.hasReplyAction) {
                         keyboardRows.add(
                             listOf(
-                                InlineKeyboardButton("💬 Ответить", callbackData = "notif_reply:${notif.id}"),
+                                InlineKeyboardButton(strings.efBtnReply(), callbackData = "notif_reply:${notif.id}"),
                             ),
                         )
                     }
@@ -190,9 +190,9 @@ class TelegramEventForwarder(
                         for (targetNumber in config.smsForwardTargetNumbers) {
                             try {
                                 telephonyRepository?.sendSms(targetNumber, finalSmsText)
-                                logger?.i("TelegramEngine", "📤 Уведомление [${notif.appName}] продублировано по SMS на $targetNumber")
+                                logger?.i("TelegramEngine", "📤 Notification [${notif.appName}] duplicated via SMS to $targetNumber")
                             } catch (e: Exception) {
-                                logger?.w("TelegramEngine", "Ошибка дублирования уведомления по SMS на $targetNumber: ${e.message}")
+                                logger?.w("TelegramEngine", "Notification duplication via SMS error to $targetNumber: ${e.message}")
                             }
                         }
                     }
@@ -212,8 +212,8 @@ class TelegramEventForwarder(
                         return@collect
                     }
                     lastShakeAlertTime = now
-                    val alert = "🚨 <b>ВНИМАНИЕ: Сработал датчик тряски!</b>\nУстройство подверглось резкому ускорению/встряхиванию."
-                    logger?.i("TelegramEngine", "📳 Получено событие тряски, рассылка в чаты...")
+                    val alert = strings.efShakeAlert()
+                    logger?.i("TelegramEngine", "📳 Shake event received, broadcasting to chats...")
                     broadcastMessage(alert, eventType = SubscriptionEventType.SYSTEM)
                 }
             }
@@ -224,7 +224,7 @@ class TelegramEventForwarder(
                     if (!isRunning()) return@collect
                     val report = LocationCommandsHandler.formatLocationReport(loc, isLive = true)
                     val keyboard = LocationCommandsHandler.buildLocationKeyboard(isTrackingActive = true)
-                    logger?.i("TelegramEngine", "🛰️ Отправка точки периодического трекинга #${loc.trackingSequenceNumber}...")
+                    logger?.i("TelegramEngine", "🛰️ Sending periodic tracking point #${loc.trackingSequenceNumber}...")
                     broadcastMessage(report, replyMarkup = keyboard, eventType = SubscriptionEventType.SYSTEM)
                 }
             }
@@ -241,8 +241,8 @@ class TelegramEventForwarder(
                     lastSoundAlertTime = now
                     val cfg = audioRepository.soundDetectorConfig.value
                     val thresholdDb = 90 - (cfg.sensitivity.coerceIn(1, 10) * 5)
-                    val alert = "🚨 <b>ВНИМАНИЕ: Сработал детектор звука!</b>\nЗафиксирован шум громкостью <b>${event.decibels} dB</b> (порог: <b>$thresholdDb dB</b>, уровень ${cfg.sensitivity}/10)."
-                    logger?.i("TelegramEngine", "🔊 Получено событие детектора звука (${event.decibels} dB), рассылка в чаты...")
+                    val alert = strings.efSoundAlert(event.decibels, thresholdDb, cfg.sensitivity)
+                    logger?.i("TelegramEngine", "🔊 Sound detector event received (${event.decibels} dB), broadcasting to chats...")
                     broadcastMessage(alert, eventType = SubscriptionEventType.SYSTEM)
                 }
             }
@@ -251,7 +251,7 @@ class TelegramEventForwarder(
             launch {
                 cameraRepository?.motionEvents?.collect { event ->
                     if (!isRunning()) return@collect
-                    val alert = "🚨 <b>ВНИМАНИЕ: Детектор движения зафиксировал активность!</b>"
+                    val alert = strings.efMotionAlert()
                     val config = configRepository.config.value
                     val photo = event.photoFile
                     val targets = getTargetUserIds(SubscriptionEventType.SYSTEM)
@@ -263,7 +263,7 @@ class TelegramEventForwarder(
                                 apiClient.sendMessage(userId, alert)
                             }
                         } catch (e: Exception) {
-                            logger?.w("TelegramEngine", "Ошибка отправки тревоги движения в $userId: ${e.message}")
+                            logger?.w("TelegramEngine", "Motion alert sending error to $userId: ${e.message}")
                         }
                     }
                     if (photo != null && photo.exists()) {
@@ -279,7 +279,7 @@ class TelegramEventForwarder(
             launch {
                 automationRepository?.timerTriggers?.collect { timer ->
                     if (!isRunning()) return@collect
-                    logger?.i("TelegramEngine", "⏱ Выполнение отложенной команды таймера: ${timer.commandText}")
+                    logger?.i("TelegramEngine", "⏱ Executing the deferred timer command: ${timer.commandText}")
                     val config = configRepository.config.value
                     val primaryUserId = config.allowedUserIds.firstOrNull() ?: getActiveChatIds().firstOrNull() ?: 0L
 
@@ -334,7 +334,7 @@ class TelegramEventForwarder(
     ) {
         val targets = getTargetUserIds(eventType)
         if (targets.isEmpty()) {
-            logger?.d("TelegramEngine", "Нет активных подписчиков для broadcast [$eventType]")
+            logger?.d("TelegramEngine", "No active subscribers for broadcast [$eventType]")
             return
         }
         val plainText = text.replace("<[^>]*>".toRegex(), "").trim()
@@ -353,10 +353,16 @@ class TelegramEventForwarder(
                     disableWebPagePreview = disableWebPagePreview,
                 )
             } catch (e: Exception) {
-                logger?.w("TelegramEngine", "Ошибка отправки push в $userId: ${e.message}")
+                logger?.w("TelegramEngine", "Push sending error to $userId: ${e.message}")
             }
         }
     }
+
+    private val strings
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository.config.value.botLanguage,
+            )
 
     private fun escapeHtml(text: String): String =
         text
@@ -371,29 +377,29 @@ class TelegramEventForwarder(
                 val emoji = if (event.isCharging) "⚡" else "🔌"
                 val title =
                     if (event.isCharging) {
-                        "<b>Подключено к зарядному устройству</b>"
+                        strings.efChargingOn()
                     } else {
-                        "<b>Отключено от зарядного устройства</b>"
+                        strings.efChargingOff()
                     }
                 val details =
                     buildString {
                         appendLine("$emoji $title")
-                        appendLine("• Уровень заряда: <b>${event.level}%</b>")
+                        appendLine(strings.efLevel(event.level))
                         if (event.isCharging) {
-                            appendLine("• Источник: <b>${event.plugType}</b>")
-                            if (event.voltageMv > 0) appendLine("• Напряжение: ${event.voltageMv} mV")
+                            appendLine(strings.efSource(strings.efPlugLabel(event.plugType)))
+                            if (event.voltageMv > 0) appendLine(strings.efVoltage(event.voltageMv))
                         } else {
-                            appendLine("• Режим: <b>Работа от аккумулятора (разрядка)</b>")
+                            appendLine(strings.efOnBattery())
                         }
                         if (event.temperatureC > 0) {
-                            appendLine("• Температура: ${String.format(Locale.US, "%.1f", event.temperatureC)}°C")
+                            appendLine(strings.efTemperature(String.format(Locale.US, "%.1f", event.temperatureC)))
                         }
                     }.trimEnd()
 
                 if (config.telegramBotEnabled && config.tgForwardBatteryChargingEnabled) {
                     logger?.i(
                         "TelegramEngine",
-                        "🔋 Отправка уведомления о статусе зарядки (${event.level}%, isCharging=${event.isCharging}) в Telegram",
+                        "🔋 Sending a charging status notification (${event.level}%, isCharging=${event.isCharging}) to Telegram",
                     )
                     broadcastMessage(details, eventType = SubscriptionEventType.SYSTEM)
                 }
@@ -411,16 +417,10 @@ class TelegramEventForwarder(
 
             is com.remotebot.core.common.battery.BatteryEvent.LowBattery -> {
                 val alert =
-                    """
-                    🪫 <b>ВНИМАНИЕ: Низкий заряд аккумулятора!</b>
-                    
-                    • Текущий уровень: <b>${event.level}%</b>
-                    • Статус: <b>Разряжается</b>
-                    • Рекомендация: <i>Подключите устройство к зарядному устройству!</i>
-                    """.trimIndent()
+                    strings.efLowAlert(event.level)
 
                 if (config.telegramBotEnabled && config.tgForwardBatteryLowEnabled) {
-                    logger?.i("TelegramEngine", "🪫 Отправка тревоги низкого заряда (${event.level}%) в Telegram")
+                    logger?.i("TelegramEngine", "🪫 Sending a low battery alert (${event.level}%) to Telegram")
                     broadcastMessage(alert, eventType = SubscriptionEventType.SYSTEM)
                 }
 
@@ -443,9 +443,9 @@ class TelegramEventForwarder(
         for (targetNumber in config.smsForwardTargetNumbers) {
             try {
                 telephonyRepository?.sendSms(targetNumber, finalSmsText)
-                logger?.i("TelegramEngine", "📤 SMS о статусе батареи отправлено на $targetNumber")
+                logger?.i("TelegramEngine", "📤 Battery status SMS sent to $targetNumber")
             } catch (e: Exception) {
-                logger?.w("TelegramEngine", "Ошибка отправки SMS о батарее на $targetNumber: ${e.message}")
+                logger?.w("TelegramEngine", "Battery SMS sending error to $targetNumber: ${e.message}")
             }
         }
     }

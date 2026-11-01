@@ -49,7 +49,7 @@ class DynamicHmsManagerTest {
     @Test
     fun `parseAgconnectJson extracts all fields correctly`() {
         val result = DynamicHmsManager.parseAgconnectJson(validAgconnectJson)
-        assertTrue(result.isSuccess, "Парсинг валидного JSON должен быть успешным")
+        assertTrue(result.isSuccess, "Parsing of valid JSON must succeed")
 
         val config = result.getOrThrow()
         assertEquals("105589999", config.appId)
@@ -75,13 +75,13 @@ class DynamicHmsManagerTest {
     @Test
     fun `parseAgconnectJson handles malformed json gracefully`() {
         val result = DynamicHmsManager.parseAgconnectJson("{not a valid json}")
-        assertTrue(result.isFailure, "Невалидный JSON должен приводить к ошибке")
+        assertTrue(result.isFailure, "Invalid JSON must produce an error")
     }
 
     @Test
     fun `parseAgconnectJson handles empty json object`() {
         val result = DynamicHmsManager.parseAgconnectJson("{}")
-        assertTrue(result.isFailure, "Пустой JSON объект должен приводить к ошибке отсутствия секции client")
+        assertTrue(result.isFailure, "Empty JSON object must produce a missing-client-section error")
     }
 
     @Test
@@ -96,13 +96,13 @@ class DynamicHmsManagerTest {
             }
             """.trimIndent()
         val result = DynamicHmsManager.parseAgconnectJson(jsonWithoutAppId)
-        assertTrue(result.isFailure, "Отсутствие app_id должно приводить к ошибке")
+        assertTrue(result.isFailure, "Missing app_id must produce an error")
     }
 
     @Test
     fun `isInitialized returns false when AGConnectInstance is not configured`() {
         // In uninitialized JUnit JVM environment, call returns false without crashing
         val initialized = DynamicHmsManager.isInitialized()
-        assertFalse(initialized, "Без предварительной инициализации должен возвращаться false")
+        assertFalse(initialized, "Without prior initialization it must return false")
     }
 }

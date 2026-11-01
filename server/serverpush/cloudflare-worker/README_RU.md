@@ -21,9 +21,9 @@
 * **`FIREBASE_SERVICE_ACCOUNT`**: содержимое файла `serviceAccount.json` из Firebase Console (*Project Settings $\to$ Service accounts $\to$ Generate new private key*).
 
 ### Для работы Huawei HMS Push:
-* **`HUAWEI_APP_ID`**: идентификатор приложения (поле `app_id` из `agconnect-services.json`).
-* **`HUAWEI_CLIENT_ID`**: идентификатор клиента (обычно совпадает с `HUAWEI_APP_ID`).
-* **`HUAWEI_CLIENT_SECRET`**: секретный ключ (поле `client_secret` из `agconnect-services.json`).
+* **`HUAWEI_APP_ID`**: идентификатор приложения (поле `app_id` из `agconnect-services.json` или AppGallery Connect, например `119367373`).
+* **`HUAWEI_CLIENT_ID`**: идентификатор клиента OAuth2 для сервера Push Kit. Укажите то же значение, что и **`HUAWEI_APP_ID`** (например `119367373`).
+* **`HUAWEI_CLIENT_SECRET`**: серверный ключ **App Secret** (он же Push Secret) из консоли AppGallery Connect (*Мои проекты $\to$ Выбрать проект $\to$ Настройки проекта / Push Kit $\to$ Сведения о приложении $\to$ ID клиента OAuth 2.0 $\to$ Секрет приложения / App Secret*). **Важно:** это НЕ поле `client_secret` из файла `agconnect-services.json` (в json указан клиентский ключ SDK, а для вызова Push API серверу требуется именно **App Secret**).
 
 ---
 
@@ -46,6 +46,7 @@
 | `https://<worker>/tg/:token/:secretKey` | Автоматически | Если настроен только FCM $\to$ шлет FCM. Если только HMS $\to$ шлет HMS. |
 | `https://<worker>/tg/fcm/:fcmToken/:secretKey` | Google FCM | Явная отправка через Firebase FCM. |
 | `https://<worker>/tg/hms/:hmsToken/:secretKey` | Huawei HMS | Явная отправка через Huawei Push Kit. |
+| `https://<worker>/tg/hybrid/:fcmToken+hmsToken/:secretKey` | Гибридный (FCM + HMS) | Одновременная отправка пуша и в Google FCM, и в Huawei HMS (Dual-Push). |
 
 ---
 

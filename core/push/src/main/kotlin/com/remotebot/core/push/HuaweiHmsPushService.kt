@@ -20,17 +20,17 @@ class HuaweiHmsPushService : HmsMessageService() {
     override fun onNewToken(token: String?) {
         super.onNewToken(token)
         if (!token.isNullOrBlank()) {
-            logger.i("HMS", "Получен новый HMS push token: ${token.take(8)}...${token.takeLast(4)}")
-            logger.t("HMS", "Полный обновленный HMS токен (len=${token.length}): $token")
+            logger.i("HMS", "New HMS push token received: ${token.take(8)}...${token.takeLast(4)}")
+            logger.t("HMS", "Full refreshed HMS token (len=${token.length}): $token")
         } else {
-            logger.w("HMS", "Получен пустой токен в обратном вызове onNewToken()")
+            logger.w("HMS", "Empty token received in onNewToken() callback")
         }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage?) {
         super.onMessageReceived(remoteMessage)
         if (remoteMessage == null) {
-            logger.w("HMS", "Получено пустое сообщение remoteMessage в onMessageReceived()")
+            logger.w("HMS", "Empty remoteMessage received in onMessageReceived()")
             return
         }
 
@@ -39,11 +39,11 @@ class HuaweiHmsPushService : HmsMessageService() {
         val updateIdStr = data["update_id"]
         val updateJson = data["update_json"]
 
-        logger.i("HMS", "📥 Входящий Huawei HMS Data Push: action=$action, update_id=$updateIdStr, ключи: ${data.keys.joinToString(", ")}")
+        logger.i("HMS", "📥 Incoming Huawei HMS Data Push: action=$action, update_id=$updateIdStr, keys: ${data.keys.joinToString(", ")}")
         logger.d("HMS", "Payload data: $data")
         logger.t(
             "HMS",
-            "Детали HMS Push: collapseKey=${remoteMessage.collapseKey}, messageId=${remoteMessage.messageId}, sendTime=${remoteMessage.sentTime}, ttl=${remoteMessage.ttl}",
+            "HMS Push details: collapseKey=${remoteMessage.collapseKey}, messageId=${remoteMessage.messageId}, sendTime=${remoteMessage.sentTime}, ttl=${remoteMessage.ttl}",
         )
         PushStatsTracker.recordDelivery()
         com.remotebot.core.common.diagnostics.AppDiagnosticsTracker.recordWakeup(
@@ -52,32 +52,32 @@ class HuaweiHmsPushService : HmsMessageService() {
 
         if (action == "wakeup" || action == "update") {
             if (!updateJson.isNullOrBlank()) {
-                logger.d("HMS", "Обработка update_json через PushWakeupHandler (длина=${updateJson.length})...")
-                logger.t("HMS", "Сырой payload update_json: $updateJson")
+                logger.d("HMS", "Processing update_json via PushWakeupHandler (length=${updateJson.length})...")
+                logger.t("HMS", "Raw update_json payload: $updateJson")
                 scope.launch {
                     try {
                         val update = json.decodeFromString<TgUpdate>(updateJson)
-                        logger.i("HMS", "TgUpdate успешно декодирован: update_id=${update.updateId}, передача в PushWakeupHandler")
+                        logger.i("HMS", "TgUpdate decoded successfully: update_id=${update.updateId}, handing off to PushWakeupHandler")
                         wakeupHandler.processPushUpdate(update)
                     } catch (e: Exception) {
-                        logger.e("HMS", "Сбой парсинга TgUpdate из HMS push: ${e.localizedMessage}", e)
+                        logger.e("HMS", "Failed to parse TgUpdate from HMS push: ${e.localizedMessage}", e)
                     }
                 }
             } else if (updateIdStr != null) {
                 val updateId = updateIdStr.toLongOrNull() ?: 0L
                 if (updateId > 0) {
-                    logger.i("HMS", "Wakeup сигнал: update_id=$updateId, пробуждение службы...")
+                    logger.i("HMS", "Wakeup signal: update_id=$updateId, waking service...")
                     scope.launch {
                         wakeupHandler.handlePushWakeup(updateId)
                     }
                 } else {
-                    logger.w("HMS", "Некорректный update_id в пакете wakeup: $updateIdStr")
+                    logger.w("HMS", "Invalid update_id in wakeup packet: $updateIdStr")
                 }
             } else {
-                logger.w("HMS", "Получен HMS push c action=$action, но без update_json и update_id")
+                logger.w("HMS", "HMS push received with action=$action but without update_json and update_id")
             }
         } else {
-            logger.w("HMS", "Неизвестное действие HMS push action: '$action', пропуск")
+            logger.w("HMS", "Unknown HMS push action: '$action', skipping")
         }
     }
 }

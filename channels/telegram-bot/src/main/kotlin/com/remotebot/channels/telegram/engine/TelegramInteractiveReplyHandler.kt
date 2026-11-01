@@ -34,6 +34,12 @@ class TelegramInteractiveReplyHandler(
         val timestampMs: Long = System.currentTimeMillis(),
     )
 
+    private val strings
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                configRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+            )
+
     private val pendingSmsReplies = ConcurrentHashMap<Long, PendingSmsReply>()
     private val pendingNotifReplies = ConcurrentHashMap<Long, PendingNotificationReply>()
 
@@ -57,7 +63,7 @@ class TelegramInteractiveReplyHandler(
             pendingSmsReplies[chatId] = PendingSmsReply(targetPhone, simSlot)
 
             try {
-                apiClient.answerCallbackQuery(query.id, text = "Введите текст SMS в поле ввода")
+                apiClient.answerCallbackQuery(query.id, text = strings.irEnterSmsText())
             } catch (_: Exception) {
             }
 
@@ -65,7 +71,7 @@ class TelegramInteractiveReplyHandler(
                 InlineKeyboardMarkup(
                     listOf(
                         listOf(
-                            InlineKeyboardButton(text = "❌ Отмена", callbackData = "cancel_sms_reply"),
+                            InlineKeyboardButton(text = strings.irBtnCancel(), callbackData = "cancel_sms_reply"),
                         ),
                     ),
                 )
@@ -73,8 +79,7 @@ class TelegramInteractiveReplyHandler(
             apiClient.sendMessage(
                 chatId = chatId,
                 text =
-                    "✍️ <b>Введите текст сообщения для</b> <code>$targetPhone</code>$simText:\n" +
-                        "<i>(Просто напишите текст в чат или нажмите «Отмена»)</i>",
+                    strings.irSmsReplyPrompt(targetPhone, simText),
                 replyMarkup = cancelKeyboard,
             )
             return true
@@ -83,10 +88,10 @@ class TelegramInteractiveReplyHandler(
         if (data == "cancel_sms_reply") {
             pendingSmsReplies.remove(chatId)
             try {
-                apiClient.answerCallbackQuery(query.id, text = "Отменено")
+                apiClient.answerCallbackQuery(query.id, text = strings.irCancelled())
             } catch (_: Exception) {
             }
-            apiClient.sendMessage(chatId, "❌ Отправка SMS отменена.")
+            apiClient.sendMessage(chatId, strings.irSmsCancelled())
             return true
         }
 
@@ -95,7 +100,7 @@ class TelegramInteractiveReplyHandler(
             pendingNotifReplies[chatId] = PendingNotificationReply(notifId)
 
             try {
-                apiClient.answerCallbackQuery(query.id, text = "Введите текст ответа")
+                apiClient.answerCallbackQuery(query.id, text = strings.irEnterReplyText())
             } catch (_: Exception) {
             }
 
@@ -103,7 +108,7 @@ class TelegramInteractiveReplyHandler(
                 InlineKeyboardMarkup(
                     listOf(
                         listOf(
-                            InlineKeyboardButton(text = "❌ Отмена", callbackData = "cancel_notif_reply"),
+                            InlineKeyboardButton(text = strings.irBtnCancel(), callbackData = "cancel_notif_reply"),
                         ),
                     ),
                 )
@@ -111,8 +116,7 @@ class TelegramInteractiveReplyHandler(
             apiClient.sendMessage(
                 chatId = chatId,
                 text =
-                    "💬 <b>Ответ на уведомление #$notifId:</b>\n" +
-                        "<i>(Напишите текст ответа в чат или нажмите «Отмена»)</i>",
+                    strings.irNotifReplyPrompt(notifId),
                 replyMarkup = cancelKeyboard,
             )
             return true
@@ -129,7 +133,7 @@ class TelegramInteractiveReplyHandler(
                 try {
                     apiClient.answerCallbackQuery(
                         query.id,
-                        text = "❌ Экспериментальный перехват 2FA выключен в настройках бота",
+                        text = strings.ir2faDisabled(),
                         showAlert = true,
                     )
                 } catch (_: Exception) {
@@ -137,7 +141,7 @@ class TelegramInteractiveReplyHandler(
                 return true
             }
 
-            logger?.i("TelegramReplyHandler", "⚡ Нажата кнопка действия уведомления #$notifId (индекс $actionIndex)")
+            logger?.i("TelegramReplyHandler", "⚡ Notification action button pressed #$notifId (index $actionIndex)")
 
             val result = notificationRepository?.executeNotificationAction(notifId, actionIndex)
             val success = result?.isSuccess == true
@@ -145,9 +149,13 @@ class TelegramInteractiveReplyHandler(
 
             try {
                 if (success) {
-                    apiClient.answerCallbackQuery(query.id, text = "✅ Действие выполнено!")
+                    apiClient.answerCallbackQuery(query.id, text = strings.irActionDone())
                 } else {
-                    apiClient.answerCallbackQuery(query.id, text = "❌ Ошибка: ${errorMsg ?: "Не удалось выполнить"}", showAlert = true)
+                    apiClient.answerCallbackQuery(
+                        query.id,
+                        text = strings.irActionError(errorMsg ?: strings.irActionFailed()),
+                        showAlert = true,
+                    )
                 }
             } catch (_: Exception) {
             }
@@ -157,12 +165,19 @@ class TelegramInteractiveReplyHandler(
             val origText = query.message?.text ?: ""
             if (msgId != null && origText.isNotEmpty()) {
                 val timeFormat = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
-                val statusText = if (success) "\n\n<i>✅ Действие выполнено в $timeFormat</i>" else "\n\n<i>❌ Ошибка действия: ${errorMsg ?: "Таймаут"}</i>"
+                val statusText =
+                    if (success) {
+                        strings.irActionStatusOk(timeFormat)
+                    } else {
+                        strings.irActionStatusErr(
+                            errorMsg ?: strings.irTimeout(),
+                        )
+                    }
                 val updatedMessage = origText + statusText
                 try {
                     apiClient.editMessageText(chatId, msgId, updatedMessage, replyMarkup = null)
                 } catch (e: Exception) {
-                    logger?.w("TelegramReplyHandler", "Не удалось обновить сообщение уведомления: ${e.message}")
+                    logger?.w("TelegramReplyHandler", "Failed to update the notification message: ${e.message}")
                 }
             }
 
@@ -177,7 +192,9 @@ class TelegramInteractiveReplyHandler(
                 val action = parts[1]
                 val config = configRepository?.config?.value
                 if (config != null) {
-                    val currentSub = config.userSubscriptions[targetUserId] ?: com.remotebot.domain.model.UserSubscription(userId = targetUserId)
+                    val currentSub =
+                        config.userSubscriptions[targetUserId] ?: com.remotebot.domain.model
+                            .UserSubscription(userId = targetUserId)
                     val updatedSub =
                         when (action) {
                             "notif" -> currentSub.copy(receiveNotifications = !currentSub.receiveNotifications)
@@ -207,7 +224,7 @@ class TelegramInteractiveReplyHandler(
                         }
                     }
                     try {
-                        apiClient.answerCallbackQuery(query.id, text = "Настройки обновлены")
+                        apiClient.answerCallbackQuery(query.id, text = strings.irSettingsUpdated())
                     } catch (_: Exception) {
                     }
 
@@ -216,13 +233,18 @@ class TelegramInteractiveReplyHandler(
                             targetUserId,
                             updatedSub,
                             callerId = chatId,
+                            strings =
+                                com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                                    configRepository?.config?.value?.botLanguage
+                                        ?: com.remotebot.domain.model.BotLanguage.AUTO,
+                                ),
                         )
                     val msgId = query.message?.messageId
                     if (msgId != null) {
                         try {
                             apiClient.editMessageText(chatId, msgId, newText, replyMarkup = markup)
                         } catch (e: Exception) {
-                            logger?.w("TelegramReplyHandler", "Не удалось обновить меню подписок: ${e.message}")
+                            logger?.w("TelegramReplyHandler", "Failed to update the subscriptions menu: ${e.message}")
                         }
                     }
                 }
@@ -254,7 +276,7 @@ class TelegramInteractiveReplyHandler(
 
         if (text.equals("/cancel", ignoreCase = true) || text.equals("отмена", ignoreCase = true)) {
             pendingSmsReplies.remove(chatId)
-            apiClient.sendMessage(chatId, "❌ Отправка SMS отменена.")
+            apiClient.sendMessage(chatId, strings.irSmsCancelled())
             return true
         }
 
@@ -265,13 +287,13 @@ class TelegramInteractiveReplyHandler(
             if (result != null && result.isSuccess) {
                 apiClient.sendMessage(
                     chatId,
-                    "✅ <b>SMS успешно отправлено</b> на номер <code>${pending.targetPhone}</code>$simText:\n«$text»",
+                    strings.irSmsSent(pending.targetPhone, simText, text),
                 )
             } else {
-                val error = result?.exceptionOrNull()?.localizedMessage ?: "Не удалось отправить SMS"
+                val error = result?.exceptionOrNull()?.localizedMessage ?: strings.irSmsSendFailed()
                 apiClient.sendMessage(
                     chatId,
-                    "❌ <b>Ошибка отправки SMS</b> на номер <code>${pending.targetPhone}</code>:\n$error",
+                    strings.irSmsSendError(pending.targetPhone, error),
                 )
             }
             return true
@@ -293,24 +315,24 @@ class TelegramInteractiveReplyHandler(
 
         if (text.equals("/cancel", ignoreCase = true) || text.equals("отмена", ignoreCase = true)) {
             pendingNotifReplies.remove(chatId)
-            apiClient.sendMessage(chatId, "❌ Ответ на уведомление отменен.")
+            apiClient.sendMessage(chatId, strings.irNotifReplyCancelled())
             return true
         }
 
         if (!text.startsWith("/")) {
             pendingNotifReplies.remove(chatId)
-            logger?.i("TelegramEngine", "💬 Ответ на уведомление #${pending.notificationId} из активного ожидания: $text")
+            logger?.i("TelegramEngine", "💬 Reply to notification #${pending.notificationId} from the active wait: $text")
             val result = notificationRepository?.replyToNotification(pending.notificationId, text)
             if (result != null && result.isSuccess) {
                 apiClient.sendMessage(
                     chatId,
-                    "✅ <b>Ответ успешно отправлен в приложение:</b>\n«$text»",
+                    strings.irReplyToAppSent(text),
                 )
             } else {
-                val error = result?.exceptionOrNull()?.localizedMessage ?: "Не удалось отправить ответ"
+                val error = result?.exceptionOrNull()?.localizedMessage ?: strings.irReplySendFailed()
                 apiClient.sendMessage(
                     chatId,
-                    "❌ <b>Ошибка ответа на уведомление #${pending.notificationId}:</b>\n$error",
+                    strings.irNotifReplyError(pending.notificationId, error),
                 )
             }
             return true
@@ -329,11 +351,13 @@ class TelegramInteractiveReplyHandler(
         val replyText = replyTo.text ?: ""
 
         // Incoming SMS matching pattern (e.g. prompt or incoming SMS header with target phone, with optional contact name)
-        val smsRegex = """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)""".toRegex()
+        val smsRegex =
+            """(?:Входящее SMS от\s*(?:<code>)?(?=[+0-9A-Za-z])|Входящее SMS от[^(:\n]*?\((?:<code>)?(?=[+0-9A-Za-z])|Введите текст ответа для\s*(?:<code>)?)([\+0-9A-Za-z_-]+)"""
+                .toRegex()
         val smsMatch = smsRegex.find(replyText)
         if (smsMatch != null) {
             if (text.equals("/cancel", ignoreCase = true) || text.equals("отмена", ignoreCase = true)) {
-                apiClient.sendMessage(chatId, "❌ Отправка SMS отменена.")
+                apiClient.sendMessage(chatId, strings.irSmsCancelled())
                 return true
             }
 
@@ -350,19 +374,19 @@ class TelegramInteractiveReplyHandler(
                 }
 
             if (smsBody.isNotBlank()) {
-                logger?.i("TelegramEngine", "📤 Отправка SMS ответа на $targetPhone: $smsBody")
+                logger?.i("TelegramEngine", "📤 Sending SMS reply to $targetPhone: $smsBody")
                 val result = telephonyRepository?.sendSms(targetPhone, smsBody, simSlot)
                 val simText = if (simSlot != null) " (SIM $simSlot)" else ""
                 if (result != null && result.isSuccess) {
                     apiClient.sendMessage(
                         chatId,
-                        "✅ <b>SMS успешно отправлено</b> на номер <code>$targetPhone</code>$simText:\n«$smsBody»",
+                        strings.irSmsSent(targetPhone, simText, smsBody),
                     )
                 } else {
-                    val error = result?.exceptionOrNull()?.localizedMessage ?: "Не удалось отправить SMS"
+                    val error = result?.exceptionOrNull()?.localizedMessage ?: strings.irSmsSendFailed()
                     apiClient.sendMessage(
                         chatId,
-                        "❌ <b>Ошибка отправки SMS</b> на номер <code>$targetPhone</code>:\n$error",
+                        strings.irSmsSendError(targetPhone, error),
                     )
                 }
                 return true
@@ -382,13 +406,13 @@ class TelegramInteractiveReplyHandler(
                 }
 
             if (replyBody.isNotBlank()) {
-                logger?.i("TelegramEngine", "💬 Быстрый ответ на уведомление [$notifId]: $replyBody")
+                logger?.i("TelegramEngine", "💬 Quick reply to notification [$notifId]: $replyBody")
                 val result = notificationRepository?.replyToNotification(notifId, replyBody)
                 if (result != null && result.isSuccess) {
-                    apiClient.sendMessage(chatId, "✅ <b>Ответ отправлен в приложение:</b>\n«$replyBody»")
+                    apiClient.sendMessage(chatId, strings.irQuickReplySent(replyBody))
                 } else {
-                    val error = result?.exceptionOrNull()?.localizedMessage ?: "Не удалось ответить"
-                    apiClient.sendMessage(chatId, "❌ <b>Ошибка ответа на уведомление:</b> $error")
+                    val error = result?.exceptionOrNull()?.localizedMessage ?: strings.irQuickReplyFailed()
+                    apiClient.sendMessage(chatId, strings.irQuickReplyError(error))
                 }
                 return true
             }

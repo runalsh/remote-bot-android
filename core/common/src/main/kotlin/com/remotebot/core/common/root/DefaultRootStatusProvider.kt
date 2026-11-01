@@ -26,10 +26,10 @@ class DefaultRootStatusProvider(
         _isRootSimulatedAbsent.value = simulatedAbsent
         if (simulatedAbsent) {
             _isRootGranted.value = false
-            logger.w("RootStatusProvider", "🛠️ [Debug] Включена эмуляция отсутствия Root-прав")
+            logger.w("RootStatusProvider", "🛠️ [Debug] Root-absent emulation enabled")
         } else {
-            _isRootGranted.value = null // Сброс для перепроверки
-            logger.i("RootStatusProvider", "🛠️ [Debug] Выключена эмуляция отсутствия Root-прав")
+            _isRootGranted.value = null // Reset for re-check
+            logger.i("RootStatusProvider", "🛠️ [Debug] Root-absent emulation disabled")
         }
     }
 
@@ -45,7 +45,7 @@ class DefaultRootStatusProvider(
                     return@withContext _isRootGranted.value == true
                 }
 
-                logger.d("RootStatusProvider", "Запуск фоновой проверки Root-прав...")
+                logger.d("RootStatusProvider", "Starting background Root check...")
                 val granted =
                     try {
                         if (Shell.isAppGrantedRoot() == true) {
@@ -55,14 +55,14 @@ class DefaultRootStatusProvider(
                             result.isSuccess && (result.out.any { it.contains("uid=0") } || Shell.isAppGrantedRoot() == true)
                         }
                     } catch (e: Exception) {
-                        logger.w("RootStatusProvider", "Ошибка при определении Root: ${e.localizedMessage}")
+                        logger.w("RootStatusProvider", "Error determining Root: ${e.localizedMessage}")
                         false
                     }
 
                 _isRootGranted.value = granted
                 logger.i(
                     "RootStatusProvider",
-                    "Root статус: ${if (granted) "✅ ВЫДАН (UID 0 / Superuser активен)" else "❌ ОТСУТСТВУЕТ / НЕ ПРЕДОСТАВЛЕН"}",
+                    "Root status: ${if (granted) "✅ GRANTED (UID 0 / Superuser active)" else "❌ MISSING / NOT GRANTED"}",
                 )
                 granted
             }

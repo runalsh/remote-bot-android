@@ -1,10 +1,13 @@
 package com.remotebot.channels.telegram.handlers
 
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.model.TaskerTask
 import com.remotebot.domain.repository.AutomationRepository
+import com.remotebot.domain.repository.BotConfigRepository
 import com.remotebot.domain.repository.TaskerRepository
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -13,7 +16,11 @@ import java.util.Locale
 class AutomationCommandsHandler(
     private val taskerRepository: TaskerRepository,
     private val automationRepository: AutomationRepository,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "tasker",
@@ -29,16 +36,16 @@ class AutomationCommandsHandler(
             "tasker" -> handleTasker(command.args)
             "script" -> handleScript(command.args)
             "timers" -> handleTimers(command.args)
-            else -> CommandResult.Error("Неизвестная команда автоматизации: $cmd")
+            else -> CommandResult.Error(strings.autUnknownCmd(cmd))
         }
     }
 
     private suspend fun handleTasker(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             val installed = taskerRepository.isTaskerInstalled()
-            val instText = if (installed) "✅ Установлен" else "⚠️ Не обнаружен (установите Tasker)"
+            val instText = if (installed) strings.autTaskerInstalled() else strings.autTaskerMissing()
             return CommandResult.Text(
-                "🤖 <b>Интеграция с Tasker:</b> $instText\n\nИспользование: <code>/tasker &lt;TaskName&gt; [par1] [par2]</code>\nПример: <code>/tasker NightMode 1 on</code>",
+                strings.autTaskerHelp(instText),
             )
         }
 
@@ -56,11 +63,11 @@ class AutomationCommandsHandler(
         return taskerRepository.executeTask(task).fold(
             onSuccess = {
                 val paramsStr = listOfNotNull(par1, par2).joinToString(", ")
-                val extraStr = if (paramsStr.isNotBlank()) " (Параметры: $paramsStr)" else ""
-                CommandResult.Text("✅ <b>Tasker задача отправлена на исполнение:</b> <code>$taskName</code>$extraStr")
+                val extraStr = if (paramsStr.isNotBlank()) strings.autParams(paramsStr) else ""
+                CommandResult.Text(strings.autTaskerSent(taskName, extraStr))
             },
             onFailure = {
-                CommandResult.Error("❌ Ошибка отправки задачи в Tasker: ${it.localizedMessage ?: it.message}")
+                CommandResult.Error(strings.autTaskerError(it.localizedMessage ?: it.message ?: ""))
             },
         )
     }
@@ -68,7 +75,7 @@ class AutomationCommandsHandler(
     private suspend fun handleScript(args: List<String>): CommandResult {
         if (args.isEmpty()) {
             return CommandResult.Error(
-                "Формат: <code>/script &lt;код_скрипта&gt;</code>\nПример: <code>/script date +%Y-%m-%d</code>\nПример: <code>/script echo 'Hello world'</code>",
+                strings.autScriptUsage(),
             )
         }
 
@@ -76,10 +83,10 @@ class AutomationCommandsHandler(
         val result = automationRepository.executeScript(code)
 
         return if (result.isSuccess) {
-            CommandResult.Text("⚡ <b>Результат выполнения скрипта (${result.executionTimeMs} ms):</b>\n\n<code>${result.output}</code>")
+            CommandResult.Text(strings.autScriptOk(result.executionTimeMs, result.output ?: ""))
         } else {
             CommandResult.Error(
-                "❌ <b>Ошибка выполнения (${result.executionTimeMs} ms):</b>\n${result.error}\n\nВывод:\n<code>${result.output}</code>",
+                strings.autScriptErr(result.executionTimeMs, result.error ?: "", result.output ?: ""),
             )
         }
     }
@@ -89,19 +96,19 @@ class AutomationCommandsHandler(
             val timers = automationRepository.timers.value
             if (timers.isEmpty()) {
                 return CommandResult.Text(
-                    "⏱ <b>Активных таймеров нет.</b>\nСоздать: <code>/timers add 60s /photo</code> или <code>/timers add 10m /location</code>",
+                    strings.autNoTimers(),
                 )
             }
 
             val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-            val sb = StringBuilder("⏱ <b>Запланированные таймеры (${timers.size}):</b>\n\n")
+            val sb = StringBuilder(strings.autTimersHeader(timers.size))
             timers.forEach { t ->
                 val timeStr = dateFormat.format(Date(t.triggerAtMs))
                 val interval = t.intervalMs
-                val intervalStr = if (interval != null) " [повтор каждые ${interval / 1000}с]" else " [однократно]"
-                sb.append("• <b>ID: ${t.id}</b> | <code>${t.commandText}</code>\n   <i>Сработает в $timeStr$intervalStr</i>\n\n")
+                val intervalStr = if (interval != null) strings.autIntervalRepeat(interval / 1000) else strings.autIntervalOnce()
+                sb.append(strings.autTimerLine(t.id, t.commandText, timeStr, intervalStr))
             }
-            sb.append("<i>Удалить таймер: /timers del &lt;ID&gt;</i>")
+            sb.append(strings.autTimerDelHint())
             return CommandResult.Text(sb.toString().trimEnd())
         }
 
@@ -111,22 +118,22 @@ class AutomationCommandsHandler(
 
             val delayMs =
                 parseDurationMs(delayStr)
-                    ?: return CommandResult.Error("Неверный формат времени задержки: <code>$delayStr</code> (примеры: 30s, 5m, 2h)")
+                    ?: return CommandResult.Error(strings.autBadDelay(delayStr))
 
             val timer = automationRepository.addTimer(commandToRun, delayMs)
             return CommandResult.Text(
-                "✅ <b>Таймер #${timer.id} создан!</b>\nКоманда <code>${timer.commandText}</code> выполнится через $delayStr.",
+                strings.autTimerCreated(timer.id, timer.commandText, delayStr),
             )
         }
 
         if (args[0] == "del" && args.size >= 2) {
             val timerId = args[1]
             automationRepository.removeTimer(timerId)
-            return CommandResult.Text("🗑️ Таймер #$timerId удален.")
+            return CommandResult.Text(strings.autTimerDeleted(timerId))
         }
 
         return CommandResult.Error(
-            "Формат: <code>/timers list</code> или <code>/timers add &lt;время&gt; &lt;команда&gt;</code> или <code>/timers del &lt;ID&gt;</code>",
+            strings.autTimersUsage(),
         )
     }
 

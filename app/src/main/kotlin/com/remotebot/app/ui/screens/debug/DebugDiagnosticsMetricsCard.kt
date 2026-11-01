@@ -10,10 +10,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.core.common.diagnostics.AppDiagnosticsTracker
 import com.remotebot.domain.model.ServerConnectionStats
 import com.remotebot.domain.model.ServerType
@@ -26,14 +28,14 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
     var refreshTick by remember { mutableStateOf(0L) }
     LaunchedEffect(Unit) {
         while (true) {
-            delay(1500L) // обновление каждые 1.5 сек
+            delay(1500L) // refresh every 1.5s
             AppDiagnosticsTracker.updateSnapshot()
             refreshTick = System.currentTimeMillis()
         }
     }
 
     val snapshot by AppDiagnosticsTracker.metricsSnapshot.collectAsState()
-    var selectedWindowIndex by remember { mutableStateOf(0) } // 0: 5м, 1: 15м, 2: 30м, 3: 1ч, 4: с запуска
+    var selectedWindowIndex by remember { mutableStateOf(0) } // 0: 5m, 1: 15m, 2: 30m, 3: 1h, 4: since start
 
     val currentWindow =
         when (selectedWindowIndex) {
@@ -42,6 +44,14 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             2 -> snapshot.last30Min
             3 -> snapshot.last1Hour
             else -> snapshot.sinceStart
+        }
+    val currentWindowLabel =
+        when (currentWindow.windowName) {
+            "5m" -> stringResource(R.string.dbg_win_5m)
+            "15m" -> stringResource(R.string.dbg_win_15m)
+            "30m" -> stringResource(R.string.dbg_win_30m)
+            "1h" -> stringResource(R.string.dbg_win_1h)
+            else -> stringResource(R.string.dbg_win_since_start)
         }
 
     Surface(
@@ -71,16 +81,16 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                     Text("📊", fontSize = 20.sp)
                     Column {
                         Text(
-                            text = "Метрики работы и сетевые подключения",
+                            text = stringResource(R.string.dbg_diag_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
                             text =
                                 if (snapshot.isTrackingEnabled) {
-                                    "Сбор метрик активен (фоновый трекер)"
+                                    stringResource(R.string.dbg_metrics_active)
                                 } else {
-                                    "Сбор метрик приостановлен (Debug выключен)"
+                                    stringResource(R.string.dbg_metrics_paused)
                                 },
                             style = MaterialTheme.typography.bodySmall,
                             color =
@@ -100,12 +110,19 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                     shape = RoundedCornerShape(8.dp),
                 ) {
-                    Text("Сброс ↺", fontSize = 11.sp)
+                    Text(stringResource(R.string.dbg_btn_reset2), fontSize = 11.sp)
                 }
             }
 
             // Time window selector (5 min, 15 min, 30 min, 1 hour, since startup)
-            val windowLabels = listOf("5 мин", "15 мин", "30 мин", "1 час", "С запуска")
+            val windowLabels =
+                listOf(
+                    stringResource(R.string.dbg_w5),
+                    stringResource(R.string.dbg_w15),
+                    stringResource(R.string.dbg_w30),
+                    stringResource(R.string.dbg_w60),
+                    stringResource(R.string.dbg_wstart),
+                )
             Row(
                 modifier =
                     Modifier
@@ -130,13 +147,13 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             // 1. Application wakeup events section
-            SectionHeader(title = "⏰ Просыпания приложения (${currentWindow.windowName})")
+            SectionHeader(title = stringResource(R.string.dbg_wakeups, currentWindowLabel))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 MetricMiniCard(
-                    title = "Всего",
+                    title = stringResource(R.string.dbg_total),
                     value = "${currentWindow.wakeupsTotal}",
                     modifier = Modifier.weight(1f),
                     color = MaterialTheme.colorScheme.primary,
@@ -165,12 +182,12 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     MetricMiniCard(
-                        title = "Звонки",
+                        title = stringResource(R.string.dbg_calls),
                         value = "${currentWindow.wakeupsBySource[WakeupSource.PHONE_CALL] ?: 0}",
                         modifier = Modifier.weight(1f),
                     )
                     MetricMiniCard(
-                        title = "Питание/АКБ",
+                        title = stringResource(R.string.dbg_power),
                         value = "${currentWindow.wakeupsBySource[WakeupSource.BATTERY_EVENT] ?: 0}",
                         modifier = Modifier.weight(1f),
                     )
@@ -180,19 +197,19 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             // 2. Failed authentication attempts section
-            SectionHeader(title = "🔒 Ошибки аутентификации (${currentWindow.windowName})")
+            SectionHeader(title = stringResource(R.string.dbg_auth_err, currentWindowLabel))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 MetricMiniCard(
-                    title = "Telegram (не из whitelist)",
+                    title = stringResource(R.string.dbg_auth_tg),
                     value = "${currentWindow.tgAuthFailures}",
                     modifier = Modifier.weight(1f),
                     color = if (currentWindow.tgAuthFailures > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                 )
                 MetricMiniCard(
-                    title = "SMS (неверный PIN / номер)",
+                    title = stringResource(R.string.dbg_auth_sms),
                     value = "${currentWindow.smsAuthFailures}",
                     modifier = Modifier.weight(1f),
                     color = if (currentWindow.smsAuthFailures > 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
@@ -202,7 +219,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
             // 3. Network connections by server section (Push Gateway & Telegram API)
-            SectionHeader(title = "🌐 Статистика серверов (Удачно / Ошибка / Таймаут)")
+            SectionHeader(title = stringResource(R.string.dbg_srv_stats))
 
             val pushServers = currentWindow.serverStats.filter { it.serverType == ServerType.PUSH_GATEWAY }
             val tgServers = currentWindow.serverStats.filter { it.serverType == ServerType.TELEGRAM_API }
@@ -214,7 +231,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        text = "За выбранный интервал (${currentWindow.windowName}) сетевых обращений не зафиксировано.",
+                        text = stringResource(R.string.dbg_no_net, currentWindowLabel),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(12.dp),
@@ -223,7 +240,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
             } else {
                 if (pushServers.isNotEmpty()) {
                     Text(
-                        text = "🔥 Push Gateway Серверы:",
+                        text = stringResource(R.string.dbg_push_srv),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -236,7 +253,7 @@ fun DebugDiagnosticsMetricsCard(onResetStats: () -> Unit = { AppDiagnosticsTrack
                 if (tgServers.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "✈️ Telegram API Серверы / Зеркала:",
+                        text = stringResource(R.string.dbg_tg_srv),
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -320,7 +337,7 @@ private fun ServerStatRow(stats: ServerConnectionStats) {
                     maxLines = 1,
                 )
                 Text(
-                    text = "Всего: ${stats.totalCount}",
+                    text = stringResource(R.string.dbg_total_fmt, stats.totalCount),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -339,9 +356,24 @@ private fun ServerStatRow(stats: ServerConnectionStats) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                BadgeChip(label = "Успех", count = stats.successCount, color = Color(0xFF2E7D32), modifier = Modifier.weight(1f))
-                BadgeChip(label = "Сбой", count = stats.failureCount, color = Color(0xFFC62828), modifier = Modifier.weight(1f))
-                BadgeChip(label = "Таймаут", count = stats.timeoutCount, color = Color(0xFFE65100), modifier = Modifier.weight(1f))
+                BadgeChip(
+                    label = stringResource(R.string.dbg_success),
+                    count = stats.successCount,
+                    color = Color(0xFF2E7D32),
+                    modifier = Modifier.weight(1f),
+                )
+                BadgeChip(
+                    label = stringResource(R.string.dbg_failure),
+                    count = stats.failureCount,
+                    color = Color(0xFFC62828),
+                    modifier = Modifier.weight(1f),
+                )
+                BadgeChip(
+                    label = stringResource(R.string.dbg_timeout),
+                    count = stats.timeoutCount,
+                    color = Color(0xFFE65100),
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -371,4 +403,3 @@ private fun BadgeChip(
         }
     }
 }
-

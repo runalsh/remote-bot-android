@@ -299,7 +299,7 @@ class DefaultLocationRepository(
                                                 val cType =
                                                     when (status.getConstellationType(i)) {
                                                         GnssStatus.CONSTELLATION_GPS -> "GPS"
-                                                        GnssStatus.CONSTELLATION_GLONASS -> "ГЛОНАСС"
+                                                        GnssStatus.CONSTELLATION_GLONASS -> "GLONASS"
                                                         GnssStatus.CONSTELLATION_GALILEO -> "Galileo"
                                                         GnssStatus.CONSTELLATION_BEIDOU -> "BeiDou"
                                                         else -> "GNSS"
@@ -500,10 +500,10 @@ class DefaultLocationRepository(
                     freshLoc ?: candidateLoc ?: bestRecentLocation ?: IpLocationProvider.fetchLocation()?.also {
                         AppLogger.i(
                             "DefaultLocationRepository",
-                            "🌐 Резервная геолокация по IP (${it.extras?.getString("city")}, ${it.latitude}, ${it.longitude})",
+                            "🌐 IP-based fallback geolocation (${it.extras?.getString("city")}, ${it.latitude}, ${it.longitude})",
                         )
                     } ?: throw IllegalStateException(
-                        "Не удалось определить координаты: нет сигнала спутников GPS и недоступна сеть/Wi-Fi.",
+                        "Failed to determine coordinates: no GPS satellite signal and network/Wi-Fi is unavailable.",
                     )
                 cachedLastLocation = resultLoc
                 buildLocationData(resultLoc, latestGnssSnapshot)
@@ -553,36 +553,36 @@ class DefaultLocationRepository(
                 if (!gnss?.constellations.isNullOrEmpty()) {
                     gnss!!.constellations.joinToString("/")
                 } else {
-                    "GPS/ГЛОНАСС"
+                    "GPS/GLONASS"
                 }
-            determinationMethod = "🛰️ Спутниковая навигация ($constStr)"
+            determinationMethod = "🛰️ Satellite navigation ($constStr)"
             satellitesUsed = gnss?.usedInFix ?: location.extras?.getInt("satellites")?.takeIf { it > 0 }
             satellitesVisible = gnss?.visibleSatellites?.takeIf { it > 0 } ?: satellitesUsed
             cn0 = gnss?.avgCn0?.takeIf { it > 0f }
 
             signalStrengthLevel =
                 when {
-                    cn0 != null && cn0 >= 35f -> "Отличный (уверенный прием)"
-                    cn0 != null && cn0 >= 28f -> "Хороший"
-                    cn0 != null && cn0 >= 20f -> "Удовлетворительный (застройка / помехи)"
-                    cn0 != null && cn0 > 0f -> "Слабый (приём на границе срыва)"
-                    satellitesUsed != null && satellitesUsed > 0 -> "Спутниковый фикс получен"
-                    else -> "Прямой сигнал спутников зафиксирован"
+                    cn0 != null && cn0 >= 35f -> "Excellent (solid reception)"
+                    cn0 != null && cn0 >= 28f -> "Good"
+                    cn0 != null && cn0 >= 20f -> "Fair (urban canyon / interference)"
+                    cn0 != null && cn0 > 0f -> "Weak (marginal reception)"
+                    satellitesUsed != null && satellitesUsed > 0 -> "Satellite fix acquired"
+                    else -> "Direct satellite signal detected"
                 }
         } else if (location.extras?.getString("fused_engine") == "huawei") {
-            determinationMethod = "🤖 Huawei HMS Fused Location (Синтез GPS, Wi-Fi и вышек HMS)"
+            determinationMethod = "🤖 Huawei HMS Fused Location (GPS + Wi-Fi + HMS cell towers)"
             satellitesUsed = gnss?.usedInFix
             satellitesVisible = gnss?.visibleSatellites
             cn0 = gnss?.maxCn0
-            signalStrengthLevel = "Высокая точность (Huawei HMS Location Kit)"
+            signalStrengthLevel = "High accuracy (Huawei HMS Location Kit)"
         } else if (rawProvider == "fused" || location.extras?.getString("fused_engine") == "google") {
-            determinationMethod = "🤖 Google Fused Location (Синтез GPS, Wi-Fi и сотовых вышек)"
+            determinationMethod = "🤖 Google Fused Location (GPS + Wi-Fi + cell towers)"
             satellitesUsed = gnss?.usedInFix
             satellitesVisible = gnss?.visibleSatellites
             cn0 = gnss?.maxCn0
-            signalStrengthLevel = "Высокая точность (Google Fused Provider)"
+            signalStrengthLevel = "High accuracy (Google Fused Provider)"
         } else if (rawProvider == LocationManager.NETWORK_PROVIDER.lowercase()) {
-            determinationMethod = "📡 Косвенные признаки (Вышки связи Cell-ID, точки Wi-Fi)"
+            determinationMethod = "📡 Indirect evidence (Cell-ID towers, Wi-Fi access points)"
             satellitesUsed = 0
             satellitesVisible = gnss?.visibleSatellites
             cn0 = gnss?.maxCn0
@@ -590,10 +590,10 @@ class DefaultLocationRepository(
             val gpsAvailable = isGpsEnabled()
             signalStrengthLevel =
                 when {
-                    !gpsAvailable -> "GPS модуль выключен"
+                    !gpsAvailable -> "GPS module is off"
                     gnss != null && gnss.visibleSatellites > 0 ->
-                        "Слабый (спутников: ${gnss.visibleSatellites}, C/N0: ${"%.1f".format(gnss.maxCn0)} dB-Hz, фикс не пойман)"
-                    else -> "Спутниковый сигнал отсутствует (внутри здания / под землей)"
+                        "Weak (satellites: ${gnss.visibleSatellites}, C/N0: ${"%.1f".format(gnss.maxCn0)} dB-Hz, no fix)"
+                    else -> "No satellite signal (indoors / underground)"
                 }
         } else if (rawProvider == "ip") {
             val ipStr = location.extras?.getString("ip")
@@ -603,7 +603,7 @@ class DefaultLocationRepository(
                     if (!ipStr.isNullOrBlank()) "IP: $ipStr" else null,
                     if (!ispStr.isNullOrBlank()) ispStr else null,
                 ).joinToString(", ")
-            determinationMethod = "🌐 Сетевая геолокация (IP" + (if (details.isNotBlank()) ": $details" else "") + ")"
+            determinationMethod = "🌐 Network geolocation (IP" + (if (details.isNotBlank()) ": $details" else "") + ")"
             satellitesUsed = null
             satellitesVisible = null
             cn0 = null
@@ -611,20 +611,20 @@ class DefaultLocationRepository(
             val gpsAvailable = isGpsEnabled()
             signalStrengthLevel =
                 if (gpsAvailable) {
-                    "GPS включен, но спутники недоступны (в помещении). Использован внешний IP."
+                    "GPS is on, but satellites are unavailable (indoors). External IP was used."
                 } else {
-                    "GPS модуль выключен. Координаты определены по сетевому IP-адресу."
+                    "GPS module is off. Coordinates determined from the network IP address."
                 }
         } else {
-            determinationMethod = "🔄 Косвенный источник (${rawProvider.uppercase()})"
+            determinationMethod = "🔄 Indirect source (${rawProvider.uppercase()})"
             satellitesUsed = null
             satellitesVisible = null
             cn0 = null
-            signalStrengthLevel = "Координаты получены из системного кэша"
+            signalStrengthLevel = "Coordinates taken from the system cache"
         }
 
         if (System.currentTimeMillis() - location.time > 60_000L) {
-            determinationMethod += " [Кэш]"
+            determinationMethod += " [Cache]"
         }
 
         return LocationData(
@@ -648,7 +648,7 @@ class DefaultLocationRepository(
     override fun startLiveTracking(intervalSeconds: Long): Result<Unit> {
         val interval = intervalSeconds.coerceIn(10L, 86400L)
         stopLiveTracking()
-        AppLogger.i("DefaultLocationRepository", "📍 Запущен Live Tracking геопозиции (интервал: ${interval}с)...")
+        AppLogger.i("DefaultLocationRepository", "📍 Live location tracking started (interval: ${interval}s)...")
         _liveTrackingStatus.value =
             LiveTrackingStatus(
                 isActive = true,
@@ -675,7 +675,7 @@ class DefaultLocationRepository(
                         }
                         AppLogger.d(
                             "DefaultLocationRepository",
-                            "Live Tracking точка #$sequence: lat=${point.latitude}, lng=${point.longitude}, точность=${point.accuracyMeters}м",
+                            "Live Tracking point #$sequence: lat=${point.latitude}, lng=${point.longitude}, accuracy=${point.accuracyMeters}m",
                         )
                         _liveLocationUpdates.emit(point)
                     }
@@ -689,7 +689,7 @@ class DefaultLocationRepository(
         if (_liveTrackingStatus.value.isActive) {
             AppLogger.i(
                 "DefaultLocationRepository",
-                "⏹️ Live Tracking геопозиции остановлен (отправлено точек: ${_liveTrackingStatus.value.pointsSent})",
+                "⏹️ Live location tracking stopped (points sent: ${_liveTrackingStatus.value.pointsSent})",
             )
         }
         liveTrackingJob?.cancel()
@@ -703,9 +703,9 @@ class DefaultLocationRepository(
     override suspend fun setGpsEnabled(enabled: Boolean): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                AppLogger.w("DefaultLocationRepository", "🛰️ Запрос переключения GPS (enabled=$enabled)...")
+                AppLogger.w("DefaultLocationRepository", "🛰️ Requesting GPS toggle (enabled=$enabled)...")
                 if (!rootStatusProvider.isRootGrantedSync()) {
-                    throw IllegalStateException("Для переключения GPS требуются Root-права.")
+                    throw IllegalStateException("Root privileges are required to toggle GPS.")
                 }
                 val cmd =
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -716,10 +716,10 @@ class DefaultLocationRepository(
                     }
                 val result = Shell.cmd(cmd).exec()
                 if (!result.isSuccess) {
-                    AppLogger.e("DefaultLocationRepository", "❌ Не удалось переключить GPS через Root: ${result.err.joinToString("\n")}")
+                    AppLogger.e("DefaultLocationRepository", "❌ Failed to toggle GPS via Root: ${result.err.joinToString("\n")}")
                     throw IllegalStateException("Shell error: ${result.err.joinToString("\n")}")
                 }
-                AppLogger.i("DefaultLocationRepository", "✅ Статус GPS успешно изменен (enabled=$enabled)")
+                AppLogger.i("DefaultLocationRepository", "✅ GPS status changed successfully (enabled=$enabled)")
             }
         }
 

@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.provider.RootStatusProvider
 import com.topjohnwu.superuser.Shell
@@ -36,8 +38,8 @@ fun CriticalPermissionsSection(
     onRequestStorageLegacy: () -> Unit,
 ) {
     com.remotebot.app.ui.components.AppSectionHeader(
-        title = "1. Системный доступ (Root и Установка)",
-        subtitle = "Полный системный контроль, установка приложений, память, настройки",
+        title = stringResource(R.string.perm_critical_system_access),
+        subtitle = stringResource(R.string.perm_critical_system_access_subtitle),
         emojiIcon = "🛡️",
         containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -45,19 +47,19 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "👑",
-        title = "Root доступ (Superuser / libsu)",
+        title = stringResource(R.string.perm_root_access),
         isGranted = isRootGranted,
-        description = "Прямой доступ к ядру Linux, системным демонам и скрытым командам",
+        description = stringResource(R.string.perm_root_desc),
         commandsHint = "/shell, /reboot, /shutdown, /recovery, /fastboot, /screenshot, /screen_rec, /airplane, /hotspot, /mobile_data, /gps, /adb, /adb_wifi, /kill, /script",
-        buttonText = "Запросить Root доступ",
+        buttonText = stringResource(R.string.perm_btn_root),
     ) {
-        logger.i("Permissions", "Запрос Root доступа через RootStatusProvider")
+        logger.i("Permissions", "Requesting Root access via RootStatusProvider")
         scope.launch {
             val granted = rootProvider.checkRoot(forceRefresh = true)
             if (granted) {
-                Toast.makeText(context, "Root получен!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.perm_root_granted_toast), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(context, "Root отклонён или недоступен", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(R.string.perm_root_denied_toast), Toast.LENGTH_SHORT).show()
             }
             onRefreshRequest()
         }
@@ -65,13 +67,13 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "📦",
-        title = "Установка приложений (Install Unknown Apps)",
+        title = stringResource(R.string.perm_install_unknown_apps),
         isGranted = isInstallAppsGranted,
-        description = "Разрешение на установку и тихое обновление APK пакетов из внешних источников",
-        commandsHint = "/install <файл.apk> (тихая установка и обновление бота)",
-        buttonText = "Разрешить установку приложений",
+        description = stringResource(R.string.perm_install_unknown_apps_desc),
+        commandsHint = stringResource(R.string.perm_hint_install),
+        buttonText = stringResource(R.string.perm_btn_install_apps),
     ) {
-        logger.i("Permissions", "Запрос разрешения установки неизвестных приложений")
+        logger.i("Permissions", "Requesting install-unknown-apps permission")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             try {
                 val intent =
@@ -80,7 +82,7 @@ fun CriticalPermissionsSection(
                     }
                 context.startActivity(intent)
             } catch (e: Exception) {
-                logger.w("Permissions", "Сбой прямого экрана Install Apps: ${e.localizedMessage}")
+                logger.w("Permissions", "Install Apps direct screen failure: ${e.localizedMessage}")
                 try {
                     context.startActivity(Intent(Settings.ACTION_SETTINGS))
                 } catch (_: Exception) {
@@ -91,13 +93,13 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "📁",
-        title = "Доступ ко всем файлам (MANAGE_EXTERNAL_STORAGE)",
+        title = stringResource(R.string.perm_all_files_access),
         isGranted = isManageStorageGranted,
-        description = "Полный доступ к внутренней памяти и SD-карте без ограничений Scoped Storage",
+        description = stringResource(R.string.perm_all_files_access_desc),
         commandsHint = "/get_file, /download, /ls, /dir, /ls_interactive, /unsent_files",
-        buttonText = "Открыть доступ ко всем файлам",
+        buttonText = stringResource(R.string.perm_btn_all_files),
     ) {
-        logger.i("Permissions", "Запрос доступа ко всем файлам (MANAGE_EXTERNAL_STORAGE)")
+        logger.i("Permissions", "Requesting all-files access (MANAGE_EXTERNAL_STORAGE)")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
                 val intent =
@@ -106,7 +108,7 @@ fun CriticalPermissionsSection(
                     }
                 context.startActivity(intent)
             } catch (e: Exception) {
-                logger.w("Permissions", "Сбой прямого экрана All Files: ${e.localizedMessage}")
+                logger.w("Permissions", "All Files direct screen failure: ${e.localizedMessage}")
                 try {
                     context.startActivity(Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION))
                 } catch (_: Exception) {
@@ -123,25 +125,32 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "♿",
-        title = "Специальные возможности (Accessibility Service)",
+        title = stringResource(R.string.perm_accessibility_service),
         isGranted = isAccessibilityGranted,
         description =
-            "Автоматизация интерфейса, чтение экрана, клики и обработка USSD-диалогов" +
+            stringResource(R.string.perm_accessibility_desc) +
                 if (!isAccessibilityGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    "\n⚠️ Если переключатель неактивен: Настройки -> Приложения -> Remote Bot -> Меню 3 точки -> Разрешить ограниченные настройки"
+                    stringResource(R.string.perm_accessibility_restricted_hint)
                 } else {
                     "" +
                         if (!isAccessibilityGranted && isRootGranted) {
-                            "\n👑 Доступна быстрая активация через Root в 1 клик!"
+                            stringResource(R.string.perm_root_quick_activation)
                         } else {
                             ""
                         }
                 },
-        commandsHint = "/ussd, перехват USSD-диалогов, автоматизация UI, обход окон",
-        buttonText = if (isRootGranted) "Включить через Root (1 клик)" else "Открыть спец. возможности",
+        commandsHint = stringResource(R.string.perm_hint_accessibility),
+        buttonText =
+            if (isRootGranted) {
+                stringResource(
+                    R.string.perm_btn_accessibility_root,
+                )
+            } else {
+                stringResource(R.string.perm_btn_accessibility_settings)
+            },
     ) {
         if (isRootGranted) {
-            logger.d("Permissions", "Запрос включения Accessibility Service через Root")
+            logger.d("Permissions", "Requesting Accessibility Service enablement via Root")
             scope.launch(Dispatchers.IO) {
                 val serviceName = "${context.packageName}/${com.remotebot.app.service.RemoteBotAccessibilityService::class.java.name}"
                 val cmd =
@@ -161,11 +170,16 @@ fun CriticalPermissionsSection(
                 }
                 withContext(Dispatchers.Main) {
                     if (res.isSuccess) {
-                        logger.i("Permissions", "Спец. возможности успешно включены через Root")
-                        Toast.makeText(context, "Спец. возможности включены через Root!", Toast.LENGTH_SHORT).show()
+                        logger.i("Permissions", "Accessibility enabled successfully via Root")
+                        Toast
+                            .makeText(
+                                context,
+                                context.getString(R.string.perm_accessibility_root_enabled_toast),
+                                Toast.LENGTH_SHORT,
+                            ).show()
                         onRefreshRequest()
                     } else {
-                        logger.w("Permissions", "Сбой включения через Root, открываем системные настройки Accessibility")
+                        logger.w("Permissions", "Root enablement failed, opening the system Accessibility settings")
                         try {
                             context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                         } catch (_: Exception) {
@@ -174,11 +188,11 @@ fun CriticalPermissionsSection(
                 }
             }
         } else {
-            logger.d("Permissions", "Открытие экрана настроек Accessibility (без Root)")
+            logger.d("Permissions", "Opening the Accessibility settings screen (without Root)")
             try {
                 context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             } catch (e: Exception) {
-                logger.w("Permissions", "Сбой открытия Accessibility: ${e.localizedMessage}")
+                logger.w("Permissions", "Accessibility open failure: ${e.localizedMessage}")
                 try {
                     context.startActivity(Intent(Settings.ACTION_SETTINGS))
                 } catch (_: Exception) {
@@ -189,13 +203,13 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "⚙️",
-        title = "Изменение системных настроек (Write Settings)",
+        title = stringResource(R.string.perm_write_settings),
         isGranted = isWriteSettingsGranted,
-        description = "Прямая модификация параметров яркости, тайм-аутов и системных флагов",
+        description = stringResource(R.string.perm_write_settings_desc),
         commandsHint = "/auto_brightness, /toggles",
-        buttonText = "Разрешить запись настроек",
+        buttonText = stringResource(R.string.perm_btn_write_settings),
     ) {
-        logger.i("Permissions", "Открытие настроек Write Settings")
+        logger.i("Permissions", "Opening Write Settings")
         try {
             val intent =
                 Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS).apply {
@@ -203,7 +217,7 @@ fun CriticalPermissionsSection(
                 }
             context.startActivity(intent)
         } catch (e: Exception) {
-            logger.w("Permissions", "Сбой открытия настроек Write Settings: ${e.localizedMessage}")
+            logger.w("Permissions", "Write Settings open failure: ${e.localizedMessage}")
             try {
                 context.startActivity(Intent(Settings.ACTION_SETTINGS))
             } catch (_: Exception) {
@@ -213,13 +227,13 @@ fun CriticalPermissionsSection(
 
     PermissionItemCard(
         icon = "🪟",
-        title = "Показ поверх других окон (Overlays / Alert Window)",
+        title = stringResource(R.string.perm_overlay_windows),
         isGranted = isOverlayGranted,
-        description = "Отображение всплывающих диалогов, плавающих окон и уведомлений на экране",
-        commandsHint = "/toggles, системные всплывающие диалоги и окна",
-        buttonText = "Разрешить показ поверх окон",
+        description = stringResource(R.string.perm_overlay_windows_desc),
+        commandsHint = stringResource(R.string.perm_hint_overlay),
+        buttonText = stringResource(R.string.perm_btn_overlay_windows),
     ) {
-        logger.i("Permissions", "Открытие настроек наложения поверх окон (Overlay)")
+        logger.i("Permissions", "Opening the overlay (draw over apps) settings")
         try {
             val intent =
                 Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
@@ -227,7 +241,7 @@ fun CriticalPermissionsSection(
                 }
             context.startActivity(intent)
         } catch (e: Exception) {
-            logger.w("Permissions", "Сбой открытия настроек Overlay: ${e.localizedMessage}")
+            logger.w("Permissions", "Overlay settings open failure: ${e.localizedMessage}")
             try {
                 context.startActivity(Intent(Settings.ACTION_SETTINGS))
             } catch (_: Exception) {

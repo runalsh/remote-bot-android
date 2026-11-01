@@ -21,9 +21,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -44,6 +43,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -52,6 +52,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.remotebot.app.R
 import com.remotebot.app.ui.screens.permissions.ConfidentialPermissionsSection
 import com.remotebot.app.ui.screens.permissions.CriticalPermissionsSection
 import com.remotebot.app.ui.screens.permissions.StandardPermissionsSection
@@ -71,7 +72,6 @@ fun PermissionsTab(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
 
     var refreshTrigger by remember { mutableStateOf(0) }
     var showManualPermissionsDialog by remember { mutableStateOf(false) }
@@ -156,13 +156,13 @@ fun PermissionsTab(
             contract = ActivityResultContracts.RequestMultiplePermissions(),
         ) { results ->
             val grantedCount = results.values.count { it }
-            logger.i("Permissions", "Результат общего запроса всех прав: выдано $grantedCount из ${results.size}")
+            logger.i("Permissions", "Result of the batch request for all permissions: granted $grantedCount of ${results.size}")
             refreshTrigger++
             showManualPermissionsDialog = true
             Toast
                 .makeText(
                     context,
-                    "Из-за ограничений Android остальные разрешения необходимо выдать по одному",
+                    context.getString(R.string.perm_android_limits_hint),
                     Toast.LENGTH_LONG,
                 ).show()
         }
@@ -172,13 +172,13 @@ fun PermissionsTab(
             contract = ActivityResultContracts.RequestMultiplePermissions(),
         ) { results ->
             val grantedCount = results.values.count { it }
-            logger.i("Permissions", "Результат пакетного запроса стандартных прав: выдано $grantedCount из ${results.size}")
+            logger.i("Permissions", "Result of the batch standard-permissions request: granted $grantedCount of ${results.size}")
             refreshTrigger++
             showManualPermissionsDialog = true
             Toast
                 .makeText(
                     context,
-                    "Из-за ограничений Android остальные разрешения необходимо выдать по одному",
+                    context.getString(R.string.perm_android_limits_hint),
                     Toast.LENGTH_LONG,
                 ).show()
         }
@@ -196,7 +196,7 @@ fun PermissionsTab(
 
     // 1. System access (Root and installation)
     val rootStatusState by rootProvider.isRootGranted.collectAsState()
-    val isRootGranted = rootStatusState == true || Shell.isAppGrantedRoot() == true
+    val isRootGranted = rootStatusState == true
 
     LaunchedEffect(refreshTrigger) {
         rootProvider.checkRoot(forceRefresh = true)
@@ -452,8 +452,8 @@ fun PermissionsTab(
 
             if (hasRoot) {
                 withContext(Dispatchers.Main) {
-                    logger.d("Permissions", "Запрос пакета всех прав через Root (Superuser)")
-                    Toast.makeText(context, "Выдача всех прав через Root...", Toast.LENGTH_SHORT).show()
+                    logger.d("Permissions", "Requesting the full permission set via Root (Superuser)")
+                    Toast.makeText(context, context.getString(R.string.perm_granting_all_root_toast), Toast.LENGTH_SHORT).show()
                 }
                 val pkg = context.packageName
                 val commands =
@@ -496,13 +496,13 @@ fun PermissionsTab(
                 }
                 withContext(Dispatchers.Main) {
                     refreshTrigger++
-                    logger.i("Permissions", "Все права успешно выданы через Root (${commands.size} команд)")
-                    Toast.makeText(context, "Все права успешно выданы через Root!", Toast.LENGTH_LONG).show()
+                    logger.i("Permissions", "All permissions granted successfully via Root (${commands.size} commands)")
+                    Toast.makeText(context, context.getString(R.string.perm_all_granted_root_toast), Toast.LENGTH_LONG).show()
                 }
             } else {
                 withContext(Dispatchers.Main) {
-                    logger.d("Permissions", "Запрос пакета Runtime-разрешений вручную (${allRuntimePermissions.size} разрешений)")
-                    logger.t("Permissions", "Разрешения: ${allRuntimePermissions.joinToString(", ")}")
+                    logger.d("Permissions", "Manual request of the runtime permission set (${allRuntimePermissions.size} permissions)")
+                    logger.t("Permissions", "Permissions: ${allRuntimePermissions.joinToString(", ")}")
                     masterAllLauncher.launch(allRuntimePermissions)
 
                     if (!isBatteryIgnored) {
@@ -525,181 +525,191 @@ fun PermissionsTab(
     LaunchedEffect(isRootGranted, grantedCount, totalCount) {
         if (isRootGranted && grantedCount < totalCount && !autoRootGrantAttempted) {
             autoRootGrantAttempted = true
-            logger.i("Permissions", "Обнаружен активный Root и недостающие права ($grantedCount/$totalCount). Автовыдача...")
+            logger.i("Permissions", "Active Root and missing permissions detected ($grantedCount/$totalCount). Auto-granting...")
             requestAllPermissions()
         }
     }
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding =
+            androidx.compose.foundation.layout
+                .PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        // Unified wizard card for requesting all permissions at top of screen
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors =
-                CardDefaults.cardColors(
-                    containerColor =
-                        if (grantedCount == totalCount) {
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
-                        },
-                ),
-            shape = RoundedCornerShape(16.dp),
-        ) {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+        item {
+            // Unified wizard card for requesting all permissions at top of screen
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (grantedCount == totalCount) {
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
+                            },
+                    ),
+                shape = RoundedCornerShape(16.dp),
             ) {
-                Text(
-                    text = "Разрешения приложения",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-
-                Text(
-                    text =
-                        if (grantedCount == totalCount) {
-                            "✅ Все разрешения выданы ($grantedCount из $totalCount)"
-                        } else {
-                            "Предоставлено $grantedCount из $totalCount разрешений"
-                        },
-                    style = MaterialTheme.typography.bodySmall,
-                    color =
-                        if (grantedCount == totalCount) {
-                            AppColors.success
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                )
-
-                LinearProgressIndicator(
-                    progress = { if (totalCount > 0) grantedCount.toFloat() / totalCount.toFloat() else 0f },
+                Column(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(MaterialTheme.shapes.extraSmall),
-                    color = if (grantedCount == totalCount) AppColors.successLight else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
-                )
+                            .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(
+                        text = stringResource(R.string.perms_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                    )
 
-                if (grantedCount < totalCount) {
-                    Button(
-                        onClick = { requestAllPermissions() },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small,
-                    ) {
-                        Text(
-                            text =
-                                if (isRootGranted) {
-                                    "⚡ Выдать все права через Root"
-                                } else {
-                                    "⚡ Запросить все разрешения вручную"
-                                },
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
+                    Text(
+                        text =
+                            if (grantedCount == totalCount) {
+                                stringResource(R.string.perms_all_granted, grantedCount, totalCount)
+                            } else {
+                                stringResource(R.string.perms_count_granted, grantedCount, totalCount)
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color =
+                            if (grantedCount == totalCount) {
+                                AppColors.success
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                    )
+
+                    LinearProgressIndicator(
+                        progress = { if (totalCount > 0) grantedCount.toFloat() / totalCount.toFloat() else 0f },
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(MaterialTheme.shapes.extraSmall),
+                        color = if (grantedCount == totalCount) AppColors.successLight else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceColorAtElevation(3.dp),
+                    )
+
+                    if (grantedCount < totalCount) {
+                        Button(
+                            onClick = { requestAllPermissions() },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.small,
+                        ) {
+                            Text(
+                                text =
+                                    if (isRootGranted) {
+                                        stringResource(R.string.perms_btn_grant_root)
+                                    } else {
+                                        stringResource(R.string.perms_btn_request_all)
+                                    },
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
                     }
                 }
             }
         }
 
-        CriticalPermissionsSection(
-            context = context,
-            logger = logger,
-            scope = scope,
-            rootProvider = rootProvider,
-            isRootGranted = isRootGranted,
-            isInstallAppsGranted = isInstallAppsGranted,
-            isManageStorageGranted = isManageStorageGranted,
-            isAccessibilityGranted = isAccessibilityGranted,
-            isWriteSettingsGranted = isWriteSettingsGranted,
-            isOverlayGranted = isOverlayGranted,
-            onRefreshRequest = { refreshTrigger++ },
-            onRequestStorageLegacy = {
-                batchLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
-            },
-        )
+        item {
+            CriticalPermissionsSection(
+                context = context,
+                logger = logger,
+                scope = scope,
+                rootProvider = rootProvider,
+                isRootGranted = isRootGranted,
+                isInstallAppsGranted = isInstallAppsGranted,
+                isManageStorageGranted = isManageStorageGranted,
+                isAccessibilityGranted = isAccessibilityGranted,
+                isWriteSettingsGranted = isWriteSettingsGranted,
+                isOverlayGranted = isOverlayGranted,
+                onRefreshRequest = { refreshTrigger++ },
+                onRequestStorageLegacy = {
+                    batchLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                },
+            )
+        }
 
-        ConfidentialPermissionsSection(
-            context = context,
-            logger = logger,
-            scope = scope,
-            isRootGranted = isRootGranted,
-            isNotifListenerGranted = isNotifListenerGranted,
-            isSmsGranted = isSmsGranted,
-            isCallsGranted = isCallsGranted,
-            isDndGranted = isDndGranted,
-            onRefreshRequest = { refreshTrigger++ },
-            onRequestSms = {
-                smsLauncher.launch(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS))
-            },
-            onRequestCalls = {
-                callsLauncher.launch(
-                    arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_PHONE_STATE),
-                )
-            },
-        )
+        item {
+            ConfidentialPermissionsSection(
+                context = context,
+                logger = logger,
+                scope = scope,
+                isRootGranted = isRootGranted,
+                isNotifListenerGranted = isNotifListenerGranted,
+                isSmsGranted = isSmsGranted,
+                isCallsGranted = isCallsGranted,
+                isDndGranted = isDndGranted,
+                onRefreshRequest = { refreshTrigger++ },
+                onRequestSms = {
+                    smsLauncher.launch(arrayOf(Manifest.permission.SEND_SMS, Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS))
+                },
+                onRequestCalls = {
+                    callsLauncher.launch(
+                        arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_CALL_LOG, Manifest.permission.READ_PHONE_STATE),
+                    )
+                },
+            )
+        }
 
-        StandardPermissionsSection(
-            context = context,
-            logger = logger,
-            rootProvider = rootProvider,
-            allStandardPermissions = allStandardPermissions,
-            isCameraGranted = isCameraGranted,
-            isMicGranted = isMicGranted,
-            isLocationGranted = isLocationGranted,
-            isContactsGranted = isContactsGranted,
-            isBatteryIgnored = isBatteryIgnored,
-            isPostNotifGranted = isPostNotifGranted,
-            isPhotosGranted = isPhotosGranted,
-            isAudioMediaGranted = isAudioMediaGranted,
-            isBluetoothGranted = isBluetoothGranted,
-            isUnrestrictedDataGranted = isUnrestrictedDataGranted,
-            onBatchRequest = { batchLauncher.launch(allStandardPermissions) },
-            onRequestCamera = { cameraLauncher.launch(Manifest.permission.CAMERA) },
-            onRequestMic = { micLauncher.launch(Manifest.permission.RECORD_AUDIO) },
-            onRequestLocation = {
-                locationLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-            },
-            onRequestContacts = { contactsLauncher.launch(Manifest.permission.READ_CONTACTS) },
-            onRequestPostNotif = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-            },
-            onRequestPhotos = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    photosLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO))
-                } else {
-                    photosLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-                }
-            },
-            onRequestAudioMedia = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    audioMediaLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_AUDIO))
-                } else {
-                    audioMediaLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
-                }
-            },
-            onRequestBluetooth = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    bluetoothLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
-                } else {
-                    bluetoothLauncher.launch(Manifest.permission.BLUETOOTH)
-                }
-            },
-            onRefreshRequest = { refreshTrigger++ },
-        )
+        item {
+            StandardPermissionsSection(
+                context = context,
+                logger = logger,
+                rootProvider = rootProvider,
+                allStandardPermissions = allStandardPermissions,
+                isCameraGranted = isCameraGranted,
+                isMicGranted = isMicGranted,
+                isLocationGranted = isLocationGranted,
+                isContactsGranted = isContactsGranted,
+                isBatteryIgnored = isBatteryIgnored,
+                isPostNotifGranted = isPostNotifGranted,
+                isPhotosGranted = isPhotosGranted,
+                isAudioMediaGranted = isAudioMediaGranted,
+                isBluetoothGranted = isBluetoothGranted,
+                isUnrestrictedDataGranted = isUnrestrictedDataGranted,
+                onBatchRequest = { batchLauncher.launch(allStandardPermissions) },
+                onRequestCamera = { cameraLauncher.launch(Manifest.permission.CAMERA) },
+                onRequestMic = { micLauncher.launch(Manifest.permission.RECORD_AUDIO) },
+                onRequestLocation = {
+                    locationLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+                },
+                onRequestContacts = { contactsLauncher.launch(Manifest.permission.READ_CONTACTS) },
+                onRequestPostNotif = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notifLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                },
+                onRequestPhotos = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        photosLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_IMAGES, Manifest.permission.READ_MEDIA_VIDEO))
+                    } else {
+                        photosLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
+                    }
+                },
+                onRequestAudioMedia = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        audioMediaLauncher.launch(arrayOf(Manifest.permission.READ_MEDIA_AUDIO))
+                    } else {
+                        audioMediaLauncher.launch(arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE))
+                    }
+                },
+                onRequestBluetooth = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        bluetoothLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                    } else {
+                        bluetoothLauncher.launch(Manifest.permission.BLUETOOTH)
+                    }
+                },
+                onRefreshRequest = { refreshTrigger++ },
+            )
+        }
     }
 
     if (showManualPermissionsDialog) {
@@ -708,19 +718,19 @@ fun PermissionsTab(
             icon = { Text("ℹ️", fontSize = 28.sp) },
             title = {
                 Text(
-                    text = "Ограничения Android",
+                    text = stringResource(R.string.perms_dialog_restrictions_title),
                     fontWeight = FontWeight.Bold,
                 )
             },
             text = {
                 Text(
-                    text = "Обычные разрешения получены.\n\nИз-за ограничений безопасности Android системные разрешения (доступ ко всем файлам, чтение уведомлений, специальные возможности, поверх окон и др.) невозможно выдать пакетно без Root — их необходимо выдать по одному вручную в списке ниже.",
+                    text = stringResource(R.string.perms_dialog_restrictions_desc),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             },
             confirmButton = {
                 Button(onClick = { showManualPermissionsDialog = false }) {
-                    Text("Понятно")
+                    Text(stringResource(R.string.perms_dialog_btn_ok))
                 }
             },
         )

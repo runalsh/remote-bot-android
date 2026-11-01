@@ -114,6 +114,11 @@
 - **Shizuku API Support**: Execute elevated system commands without requiring traditional root access.
 - **App Management (`/apps`, `/app_info`)**: List installed packages, view permissions, launch apps, or pull APKs remotely.
 
+### 9. 🌐 Bilingual Support & Seamless Language Switcher
+- **Independent Language Settings**: Change app UI language and bot messaging language on the fly directly from the **Start** tab (`App & Bot Language`).
+- **Full Localization (English & Russian)**: Complete translation coverage across all screens, tabs, system permissions, diagnostics, and 54+ Telegram bot commands and interactive menus.
+- **Dynamic Localization Provider**: Uses `AppCompatDelegate` per-app language APIs and a modular `TelegramBotStrings` engine (`BotStringsEn` / `BotStringsRu`) with zero restart required.
+
 ---
 
 ## 📚 Project Documentation (`docs/`)

@@ -14,9 +14,8 @@ import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -27,10 +26,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.service.RemoteBotAccessibilityService
 import com.remotebot.app.service.RemoteBotNotificationListenerService
 import com.remotebot.app.service.RemoteBotService
@@ -78,7 +79,6 @@ fun DebugTab(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
     val haptic = LocalHapticFeedback.current
 
     val config by configRepo.config.collectAsState()
@@ -92,140 +92,160 @@ fun DebugTab(
     val isRootGranted by rootProvider.isRootGranted.collectAsState()
     val isRootSimulatedAbsent by rootProvider.isRootSimulatedAbsent.collectAsState()
 
-    Column(
+    LazyColumn(
         modifier =
             Modifier
                 .fillMaxSize()
-                .verticalScroll(scrollState)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
+        contentPadding = PaddingValues(vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        // Debug mode header
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+        item {
+            // Debug mode header
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
-                    modifier = Modifier.weight(1f),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
                 ) {
-                    Text("🛠️", fontSize = 24.sp)
-                    Column {
-                        Text(
-                            text = "Инженерное меню разработчика",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Text(
-                            text = "Phase 13: Диагностика, Doze, симуляция и тесты",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                Button(
-                    onClick = {
-                        coroutineScope.launch {
-                            configRepo.updateConfig { it.copy(isDebugModeEnabled = false) }
-                            onExitDebugMode()
-                            Toast.makeText(context, "Режим отладки выключен", Toast.LENGTH_SHORT).show()
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Text("🛠️", fontSize = 24.sp)
+                        Column {
+                            Text(
+                                text = stringResource(R.string.debug_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
+                                text = stringResource(R.string.debug_subtitle),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError,
-                        ),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                ) {
-                    Text("Выйти ✕", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                configRepo.updateConfig { it.copy(isDebugModeEnabled = false) }
+                                onExitDebugMode()
+                                Toast.makeText(context, context.getString(R.string.debug_dbg_off), Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError,
+                            ),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                    ) {
+                        Text(stringResource(R.string.debug_btn_exit), fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
 
-        // Block 1.5: Experimental Features Lab
-        DebugExperimentalFeaturesCard(
-            config = config,
-            configRepo = configRepo,
-        )
+        item {
+            // Block 1.5: Experimental Features Lab
+            DebugExperimentalFeaturesCard(
+                config = config,
+                configRepo = configRepo,
+            )
+        }
 
-        // Runtime analytics & metrics: Wakeups, Network connections by server, Auth errors
-        DebugDiagnosticsMetricsCard()
+        item {
+            // Runtime analytics & metrics: Wakeups, Network connections by server, Auth errors
+            DebugDiagnosticsMetricsCard()
+        }
 
-        // Block 0: System resource monitor (CPU, Memory, Network TX/RX, Disk I/O)
-        DebugResourcesProfilerCard(
-            context = context,
-            logger = logger,
-        )
+        item {
+            // Block 0: System resource monitor (CPU, Memory, Network TX/RX, Disk I/O)
+            DebugResourcesProfilerCard(
+                context = context,
+                logger = logger,
+            )
+        }
 
-        // Block 1: Notification Simulation Lab
-        DebugNotificationSimulationCard(
-            notificationRepo = notificationRepo,
-            logger = logger,
-        )
+        item {
+            // Block 1: Notification Simulation Lab
+            DebugNotificationSimulationCard(
+                notificationRepo = notificationRepo,
+                logger = logger,
+            )
+        }
 
-        // Block 2: Process & Lifecycle Inspector
-        DebugServiceAndDozeCard(
-            context = context,
-            isFgServiceRunning = isFgServiceRunning,
-            servicePid = servicePid,
-            serviceUptimeMillis = serviceUptimeMillis,
-            isNotifListenerConnected = isNotifListenerConnected,
-            eventsIntercepted = eventsIntercepted,
-            recentNotificationsCount = notificationRepo.recentNotificationsCount,
-            isAccessibilityRunning = isAccessibilityRunning,
-            logger = logger,
-        )
+        item {
+            // Block 2: Process & Lifecycle Inspector
+            DebugServiceAndDozeCard(
+                context = context,
+                isFgServiceRunning = isFgServiceRunning,
+                servicePid = servicePid,
+                serviceUptimeMillis = serviceUptimeMillis,
+                isNotifListenerConnected = isNotifListenerConnected,
+                eventsIntercepted = eventsIntercepted,
+                recentNotificationsCount = notificationRepo.recentNotificationsCount,
+                isAccessibilityRunning = isAccessibilityRunning,
+                logger = logger,
+            )
+        }
 
-        // Block 2.5: Push Gateway, FCM, HMS, and Telegram API servers dashboard
-        PushGatewayDashboardCard(
-            config = config,
-            poolManager = poolManager,
-            apiClient = apiClient,
-            logger = logger,
-        )
+        item {
+            // Block 2.5: Push Gateway, FCM, HMS, and Telegram API servers dashboard
+            PushGatewayDashboardCard(
+                config = config,
+                poolManager = poolManager,
+                apiClient = apiClient,
+                logger = logger,
+            )
+        }
 
-        // Block 3: Network & Proxy Sandbox
-        DebugNetworkInspectorCard(
-            config = config,
-            proxyRepo = proxyRepo,
-            apiClient = apiClient,
-            logger = logger,
-        )
+        item {
+            // Block 3: Network & Proxy Sandbox
+            DebugNetworkInspectorCard(
+                config = config,
+                proxyRepo = proxyRepo,
+                apiClient = apiClient,
+                logger = logger,
+            )
+        }
 
-        // Block 4: Storage & Cache Inspector
-        DebugStorageAndCacheCard(
-            notificationRepo = notificationRepo,
-            fileManagerRepo = fileManagerRepo,
-            logger = logger,
-            context = context,
-        )
+        item {
+            // Block 4: Storage & Cache Inspector
+            DebugStorageAndCacheCard(
+                notificationRepo = notificationRepo,
+                fileManagerRepo = fileManagerRepo,
+                logger = logger,
+                context = context,
+            )
+        }
 
-        // Block 5: Environment & State Controls
-        DebugEnvironmentControlsCard(
-            configRepo = configRepo,
-            proxyRepo = proxyRepo,
-            locationRepo = locationRepo,
-            rootProvider = rootProvider,
-            isRootSimulatedAbsent = isRootSimulatedAbsent,
-            logger = logger,
-        )
+        item {
+            // Block 5: Environment & State Controls
+            DebugEnvironmentControlsCard(
+                configRepo = configRepo,
+                proxyRepo = proxyRepo,
+                locationRepo = locationRepo,
+                rootProvider = rootProvider,
+                isRootSimulatedAbsent = isRootSimulatedAbsent,
+                logger = logger,
+            )
+        }
     }
 }
 
@@ -237,6 +257,7 @@ private fun DebugResourcesProfilerCard(
     context: Context,
     logger: AppLogger,
 ) {
+    val context = LocalContext.current
     var refreshKey by remember { mutableStateOf(0) }
 
     // Memory metrics
@@ -294,15 +315,15 @@ private fun DebugResourcesProfilerCard(
                         val stime = parts[14].toLongOrNull() ?: 0L
                         // Divide ticks by 100 Hz (standard sysconf clock tick on Linux)
                         val totalSec = (utime + stime) / 100.0
-                        String.format("%.1f сек CPU (u: %d, s: %d)", totalSec, utime, stime)
+                        String.format(context.getString(R.string.debug_cpu_time), totalSec, utime, stime)
                     } else {
-                        "Активен ($activeThreads потоков)"
+                        context.getString(R.string.debug_threads_active, activeThreads)
                     }
                 } else {
-                    "Активен ($activeThreads потоков)"
+                    context.getString(R.string.debug_threads_active, activeThreads)
                 }
             } catch (e: Exception) {
-                "Активен ($activeThreads потоков)"
+                context.getString(R.string.debug_threads_active, activeThreads)
             }
         }
 
@@ -319,10 +340,10 @@ private fun DebugResourcesProfilerCard(
         val mb = kb / 1024.0
         val gb = mb / 1024.0
         return when {
-            gb >= 1.0 -> String.format("%.2f ГБ", gb)
-            mb >= 1.0 -> String.format("%.2f МБ", mb)
-            kb >= 1.0 -> String.format("%.1f КБ", kb)
-            else -> "$bytes Б"
+            gb >= 1.0 -> String.format(context.getString(R.string.debug_fmt_gb), gb)
+            mb >= 1.0 -> String.format(context.getString(R.string.debug_fmt_mb), mb)
+            kb >= 1.0 -> String.format(context.getString(R.string.debug_fmt_kb), kb)
+            else -> context.getString(R.string.debug_fmt_bytes, bytes)
         }
     }
 
@@ -381,12 +402,12 @@ private fun DebugResourcesProfilerCard(
                     Text("📊", fontSize = 20.sp)
                     Column {
                         Text(
-                            text = "Профилировщик системных ресурсов",
+                            text = stringResource(R.string.debug_profiler_title),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                         )
                         Text(
-                            text = "CPU, Память (RAM), Сеть TX/RX, Хранилище I/O",
+                            text = stringResource(R.string.debug_profiler_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -398,12 +419,12 @@ private fun DebugResourcesProfilerCard(
                 IconButton(
                     onClick = {
                         refreshKey++
-                        logger.i("DebugResources", "Метрики ресурсов обновлены (key: $refreshKey)")
+                        logger.i("DebugResources", "Resource metrics refreshed (key: $refreshKey)")
                     },
                 ) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Обновить метрики",
+                        contentDescription = stringResource(R.string.debug_refresh_cd),
                         tint = MaterialTheme.colorScheme.primary,
                     )
                 }
@@ -413,64 +434,70 @@ private fun DebugResourcesProfilerCard(
 
             // Section 1: CPU and processor
             Text(
-                text = "⚙️ Процессор (CPU) и потоки",
+                text = stringResource(R.string.debug_cpu_section),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
-            MetricRow(title = "Ядра процессора (Cores)", value = "$availableCores ядер ($cpuArch)")
-            MetricRow(title = "Активные потоки JVM", value = "$activeThreads активных потоков")
-            MetricRow(title = "Потребление CPU процессом", value = processCpuTimeFormatted)
+            MetricRow(
+                title = stringResource(R.string.debug_cpu_cores),
+                value = stringResource(R.string.debug_cpu_cores_val, availableCores, cpuArch),
+            )
+            MetricRow(
+                title = stringResource(R.string.debug_jvm_threads),
+                value = stringResource(R.string.debug_jvm_threads_val, activeThreads),
+            )
+            MetricRow(title = stringResource(R.string.debug_cpu_usage), value = processCpuTimeFormatted)
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
             // Section 2: Memory (RAM)
             Text(
-                text = "🧠 Оперативная память (RAM Profiler)",
+                text = stringResource(R.string.debug_ram_section),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
             MetricRow(
-                title = "Total PSS процесса (Физ. RAM)",
-                value = "$pssMb МБ ($pssKb КБ)",
+                title = stringResource(R.string.debug_ram_pss),
+                value = stringResource(R.string.debug_fmt_pss, pssMb, pssKb),
             )
             MetricRow(
-                title = "Java/JVM Heap (Занято / Макс)",
-                value = "$usedJavaHeapMb МБ / $maxJavaHeapMb МБ",
+                title = stringResource(R.string.debug_ram_heap_java),
+                value = stringResource(R.string.debug_fmt_used_max, usedJavaHeapMb, maxJavaHeapMb),
             )
             MetricRow(
-                title = "Native C++ Heap (C/C++ аллокации)",
-                value = "$nativeHeapAllocMb МБ (размер $nativeHeapSizeMb МБ)",
+                title = stringResource(R.string.debug_ram_heap_native),
+                value = stringResource(R.string.debug_fmt_native_heap, nativeHeapAllocMb, nativeHeapSizeMb),
             )
             MetricRow(
-                title = "Общая RAM устройства",
-                value = "$usedRamMb МБ / $totalRamMb МБ (свободно $availRamMb МБ)",
+                title = stringResource(R.string.debug_ram_total_device),
+                value = stringResource(R.string.debug_fmt_ram_total, usedRamMb, totalRamMb, availRamMb),
             )
             MetricRow(
-                title = "Режим Low Memory в ОС",
-                value = if (memInfo.lowMemory) "⚠️ Да (ОС выгружает процессы)" else "✅ Нет (памяти достаточно)",
+                title = stringResource(R.string.debug_ram_low_mem),
+                value = if (memInfo.lowMemory) stringResource(R.string.debug_low_mem_yes) else stringResource(R.string.debug_low_mem_no),
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
 
             // Section 3: Network traffic (Upload / Download)
             Text(
-                text = "🌐 Сетевой трафик (Upload / Download)",
+                text = stringResource(R.string.debug_net_section),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
             MetricRow(
-                title = "Приложение Download (RX трафик)",
+                title = stringResource(R.string.debug_net_rx),
                 value = "⬇️ ${formatBytes(appRxBytes)}",
             )
             MetricRow(
-                title = "Приложение Upload (TX трафик)",
+                title = stringResource(R.string.debug_net_tx),
                 value = "⬆️ ${formatBytes(appTxBytes)}",
             )
             MetricRow(
-                title = "Всего по устройству (Все интерфейсы)",
+                title = stringResource(R.string.debug_net_total),
                 value = "RX: ${formatBytes(totalRxBytes)} | TX: ${formatBytes(totalTxBytes)}",
             )
 
@@ -478,26 +505,26 @@ private fun DebugResourcesProfilerCard(
 
             // Section 4: Storage, disk, and I/O
             Text(
-                text = "💾 Хранилище и запись на диск (Disk I/O)",
+                text = stringResource(R.string.debug_storage_section),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary,
             )
             MetricRow(
-                title = "Внутренние файлы (app/files)",
-                value = String.format("%.2f МБ", appInternalFilesMb),
+                title = stringResource(R.string.debug_storage_files),
+                value = String.format(context.getString(R.string.debug_fmt_mb), appInternalFilesMb),
             )
             MetricRow(
-                title = "Временный кэш (app/cache)",
-                value = String.format("%.2f МБ", appCacheMb),
+                title = stringResource(R.string.debug_storage_cache),
+                value = String.format(context.getString(R.string.debug_fmt_mb), appCacheMb),
             )
             MetricRow(
-                title = "База данных SQLite (Room)",
-                value = String.format("%.2f МБ", appDbMb),
+                title = stringResource(R.string.debug_storage_db),
+                value = String.format(context.getString(R.string.debug_fmt_mb), appDbMb),
             )
             MetricRow(
-                title = "Свободно на Flash/ROM диске",
-                value = String.format("%.2f ГБ / %.2f ГБ", diskFreeGb, diskTotalGb),
+                title = stringResource(R.string.debug_storage_free),
+                value = String.format(context.getString(R.string.debug_fmt_free_total), diskFreeGb, diskTotalGb),
             )
 
             // PSS memory consumption chart (Phase 13 addition)
@@ -507,7 +534,7 @@ private fun DebugResourcesProfilerCard(
                 val errorColor = MaterialTheme.colorScheme.error
                 Column(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = "📈 График PSS Memory (последние 60 сек, обновление каждые 5с)",
+                        text = stringResource(R.string.debug_pss_chart),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold,
                         color = graphColor,
@@ -580,17 +607,38 @@ private fun DebugResourcesProfilerCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Мин: ${String.format("%.0f МБ", memoryHistory.minOrNull() ?: 0)}",
+                            text =
+                                stringResource(
+                                    R.string.debug_min,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.minOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = "Макс: ${String.format("%.0f МБ", memoryHistory.maxOrNull() ?: 0)}",
+                            text =
+                                stringResource(
+                                    R.string.debug_max,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.maxOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Text(
-                            text = "Сейчас: ${String.format("%.0f МБ", memoryHistory.lastOrNull() ?: 0)}",
+                            text =
+                                stringResource(
+                                    R.string.debug_now,
+                                    String.format(
+                                        stringResource(R.string.debug_fmt_mb0f),
+                                        memoryHistory.lastOrNull() ?: 0,
+                                    ),
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -630,6 +678,7 @@ private fun MetricRow(
 // -------------------------------------------------------------
 // Block 1: Notification Simulation Lab
 // -------------------------------------------------------------
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun DebugNotificationSimulationCard(
     notificationRepo: NotificationRepository,
@@ -641,7 +690,7 @@ private fun DebugNotificationSimulationCard(
 
     var selectedPkg by remember { mutableStateOf("org.telegram.plus") }
     var title by remember { mutableStateOf("Alice Cooper") }
-    var text by remember { mutableStateOf("Привет! Это тестовое уведомление для проверки дедупа и ответа.") }
+    var text by remember { mutableStateOf(context.getString(R.string.debug_notif_sample)) }
     var isPostingToSystemBar by remember { mutableStateOf(false) }
     var hasRemoteInput by remember { mutableStateOf(false) }
     var isGroupSummary by remember { mutableStateOf(false) }
@@ -652,12 +701,12 @@ private fun DebugNotificationSimulationCard(
             "ru.multifactor.app" to "Multifactor",
             "com.lastpass.authenticator" to "LastPass Authenticator",
             "com.duosecurity.duomobile" to "Duo Mobile",
-            "ru.yandex.key" to "Яндекс Ключ",
+            "ru.yandex.key" to stringResource(R.string.debug_app_yandex),
             "com.azure.authenticator" to "Microsoft Authenticator",
             "org.telegram.plus" to "Telegram Plus",
             "org.telegram.messenger" to "Telegram",
             "com.whatsapp" to "WhatsApp",
-            "ru.sberbankmobile" to "Сбербанк",
+            "ru.sberbankmobile" to stringResource(R.string.debug_app_sber),
             "com.google.android.apps.messaging" to "Google Messages",
         )
 
@@ -682,37 +731,24 @@ private fun DebugNotificationSimulationCard(
             }
 
             Text(
-                text = "Генерация фиктивных push-уведомлений от приложений для проверки анти-эхо, правил фильтрации и инлайн-ответов:",
+                text = stringResource(R.string.debug_sim_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            Text("Быстрый выбор пакета:", style = MaterialTheme.typography.labelMedium)
-            Row(
+            Text(stringResource(R.string.debug_quick_pkg), style = MaterialTheme.typography.labelMedium)
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                presetApps.take(3).forEach { (pkg, name) ->
+                presetApps.forEach { (pkg, name) ->
                     FilterChip(
                         selected = selectedPkg == pkg,
                         onClick = { selectedPkg = pkg },
                         label = { Text(name, fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                presetApps.drop(3).forEach { (pkg, name) ->
-                    FilterChip(
-                        selected = selectedPkg == pkg,
-                        onClick = { selectedPkg = pkg },
-                        label = { Text(name, fontSize = 11.sp) },
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }
@@ -729,7 +765,7 @@ private fun DebugNotificationSimulationCard(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Заголовок (Title / Чат)") },
+                label = { Text(stringResource(R.string.debug_title_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -738,7 +774,7 @@ private fun DebugNotificationSimulationCard(
             OutlinedTextField(
                 value = text,
                 onValueChange = { text = it },
-                label = { Text("Текст уведомления") },
+                label = { Text(stringResource(R.string.debug_text_label)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
             )
@@ -749,7 +785,7 @@ private fun DebugNotificationSimulationCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "Постить в реальную шторку Android",
+                    text = stringResource(R.string.debug_post_shade),
                     style = MaterialTheme.typography.bodySmall,
                 )
                 Switch(
@@ -759,7 +795,7 @@ private fun DebugNotificationSimulationCard(
             }
 
             // Notification simulation flags (Phase 13 additions)
-            Text("Флаги симуляции:", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.debug_sim_flags), style = MaterialTheme.typography.labelMedium)
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -795,7 +831,7 @@ private fun DebugNotificationSimulationCard(
             OutlinedTextField(
                 value = notificationCategory,
                 onValueChange = { notificationCategory = it },
-                label = { Text("Категория (CATEGORY_*)") },
+                label = { Text(stringResource(R.string.debug_category_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -807,7 +843,7 @@ private fun DebugNotificationSimulationCard(
                         try {
                             if (isPostingToSystemBar) {
                                 notificationRepo.postNotification(title, text)
-                                logger.i("DebugLab", "Пост реального системного уведомления: $title - $text")
+                                logger.i("DebugLab", "Posting real system notification: $title - $text")
                             } else {
                                 val appName = presetApps.find { it.first == selectedPkg }?.second ?: selectedPkg
                                 val mockActions =
@@ -815,9 +851,9 @@ private fun DebugNotificationSimulationCard(
                                         "ru.multifactor.app" ->
                                             listOf(
                                                 com.remotebot.domain.model
-                                                    .NotificationActionButton(0, "Подтвердить"),
+                                                    .NotificationActionButton(0, context.getString(R.string.debug_btn_confirm)),
                                                 com.remotebot.domain.model
-                                                    .NotificationActionButton(1, "Отклонить"),
+                                                    .NotificationActionButton(1, context.getString(R.string.debug_btn_decline)),
                                             )
                                         "com.lastpass.authenticator" ->
                                             listOf(
@@ -836,9 +872,9 @@ private fun DebugNotificationSimulationCard(
                                         "ru.yandex.key" ->
                                             listOf(
                                                 com.remotebot.domain.model
-                                                    .NotificationActionButton(0, "Да, это я"),
+                                                    .NotificationActionButton(0, context.getString(R.string.debug_btn_yes_me)),
                                                 com.remotebot.domain.model
-                                                    .NotificationActionButton(1, "Не я"),
+                                                    .NotificationActionButton(1, context.getString(R.string.debug_btn_not_me)),
                                             )
                                         "com.azure.authenticator" ->
                                             listOf(
@@ -861,21 +897,21 @@ private fun DebugNotificationSimulationCard(
                                 )
                                 logger.i(
                                     "DebugLab",
-                                    "Инъекция симулированного пуша [$selectedPkg] flags(remoteInput=$hasRemoteInput, actions=${mockActions.size}): $title - $text",
+                                    "Injecting simulated push [$selectedPkg] flags(remoteInput=$hasRemoteInput, actions=${mockActions.size}): $title - $text",
                                 )
                             }
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                            Toast.makeText(context, "Уведомление сгенерировано! Проверьте вкладку логов/бот", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.debug_notif_generated), Toast.LENGTH_SHORT).show()
                         } catch (e: Exception) {
-                            logger.e("DebugLab", "Ошибка симуляции пуша: ${e.message}")
-                            Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                            logger.e("DebugLab", "Push simulation error: ${e.message}")
+                            Toast.makeText(context, context.getString(R.string.debug_error_fmt, e.message), Toast.LENGTH_LONG).show()
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
             ) {
-                Text("🚀 Сгенерировать и отправить в пайплайн")
+                Text(stringResource(R.string.debug_btn_generate))
             }
         }
     }
@@ -896,6 +932,7 @@ private fun DebugServiceAndDozeCard(
     isAccessibilityRunning: Boolean,
     logger: AppLogger,
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var dozeOutput by remember { mutableStateOf<String?>(null) }
 
@@ -924,42 +961,56 @@ private fun DebugServiceAndDozeCard(
             // Service statuses
             StatusRow(
                 label = "RemoteBotService (Foreground)",
-                status = if (isFgServiceRunning) "АКТИВЕН (remoteMessaging)" else "ОСТАНОВЛЕН",
+                status = if (isFgServiceRunning) stringResource(R.string.debug_fg_active) else stringResource(R.string.debug_stopped),
                 isOk = isFgServiceRunning,
             )
 
             if (isFgServiceRunning) {
                 MetricRow(
-                    title = "PID службы",
+                    title = stringResource(R.string.debug_svc_pid),
                     value = "$servicePid",
                 )
                 MetricRow(
-                    title = "Uptime службы",
-                    value = RemoteBotService.formatUptime(serviceUptimeMillis),
+                    title = stringResource(R.string.debug_svc_uptime),
+                    value = RemoteBotService.formatUptime(serviceUptimeMillis, context),
                 )
             }
 
             StatusRow(
                 label = "NotificationListenerService",
-                status = if (isNotifListenerConnected) "ПОДКЛЮЧЕН К СИСТЕМЕ" else "НЕ ПОДКЛЮЧЕН",
+                status =
+                    if (isNotifListenerConnected) {
+                        stringResource(
+                            R.string.debug_nls_connected,
+                        )
+                    } else {
+                        stringResource(R.string.debug_nls_disconnected)
+                    },
                 isOk = isNotifListenerConnected,
             )
 
             if (isNotifListenerConnected) {
-                val uptimeFormatted = RemoteBotService.formatUptime(serviceUptimeMillis)
+                val uptimeFormatted = RemoteBotService.formatUptime(serviceUptimeMillis, context)
                 MetricRow(
-                    title = "Перехвачено событий NLS",
+                    title = stringResource(R.string.debug_nls_events),
                     value = eventsIntercepted.toString(),
                 )
                 MetricRow(
-                    title = "В кэше recentNotifications",
-                    value = "$recentNotificationsCount записей",
+                    title = stringResource(R.string.debug_recent_cache),
+                    value = stringResource(R.string.debug_fmt_entries, recentNotificationsCount),
                 )
             }
 
             StatusRow(
                 label = "AccessibilityService",
-                status = if (isAccessibilityRunning) "АКТИВЕН В СИСТЕМЕ" else "ВЫКЛЮЧЕН",
+                status =
+                    if (isAccessibilityRunning) {
+                        stringResource(
+                            R.string.debug_a11y_active,
+                        )
+                    } else {
+                        stringResource(R.string.debug_a11y_disabled)
+                    },
                 isOk = isAccessibilityRunning,
             )
 
@@ -971,31 +1022,31 @@ private fun DebugServiceAndDozeCard(
                     onClick = {
                         RemoteBotService.stopService(context)
                         RemoteBotService.startService(context)
-                        logger.i("DebugLifecycle", "Выполнен принудительный рестарт RemoteBotService")
-                        Toast.makeText(context, "Служба перезапущена", Toast.LENGTH_SHORT).show()
+                        logger.i("DebugLifecycle", "Forced restart of RemoteBotService completed")
+                        Toast.makeText(context, context.getString(R.string.debug_svc_restarted), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🔄 Рестарт службы", fontSize = 12.sp)
+                    Text(stringResource(R.string.debug_btn_restart_service), fontSize = 12.sp)
                 }
 
                 FilledTonalButton(
                     onClick = {
                         System.gc()
-                        logger.i("DebugLifecycle", "Вызов System.gc() выполнен")
-                        Toast.makeText(context, "Вызван сборщик мусора System.gc()", Toast.LENGTH_SHORT).show()
+                        logger.i("DebugLifecycle", "System.gc() invoked")
+                        Toast.makeText(context, context.getString(R.string.debug_gc_invoked), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🧹 Сборщик GC", fontSize = 12.sp)
+                    Text(stringResource(R.string.debug_btn_gc), fontSize = 12.sp)
                 }
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            Text("Тестирование режима Deep Doze (Root):", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.debug_deep_doze), style = MaterialTheme.typography.labelMedium)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1085,6 +1136,7 @@ private fun DebugNetworkInspectorCard(
     apiClient: TelegramApiClient,
     logger: AppLogger,
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val proxyConfig by proxyRepo.proxyConfig.collectAsState()
 
@@ -1155,7 +1207,14 @@ private fun DebugNetworkInspectorCard(
                         },
                 ) {
                     Text(
-                        text = if (proxyConfig.type != ProxyType.NONE) "Proxy: ${proxyConfig.type.name}" else "Direct (Без прокси)",
+                        text =
+                            if (proxyConfig.type !=
+                                ProxyType.NONE
+                            ) {
+                                "Proxy: ${proxyConfig.type.name}"
+                            } else {
+                                stringResource(R.string.debug_direct_noproxy)
+                            },
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color =
@@ -1182,7 +1241,7 @@ private fun DebugNetworkInspectorCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Telegram Bot getMe()", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = tgTestResult ?: "Проверка через текущий активный стек Ktor/OkHttp",
+                        text = tgTestResult ?: stringResource(R.string.debug_tg_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1190,16 +1249,16 @@ private fun DebugNetworkInspectorCard(
                 Button(
                     onClick = {
                         isTestingTg = true
-                        tgTestResult = "Тестирование..."
+                        tgTestResult = context.getString(R.string.debug_testing)
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
                                 val t0 = System.currentTimeMillis()
                                 val user = apiClient.getMe()
                                 val rtt = System.currentTimeMillis() - t0
-                                tgTestResult = "✅ Успех: @${user.username} (RTT: ${rtt}ms)"
+                                tgTestResult = context.getString(R.string.debug_tg_ok, user.username ?: "bot", rtt)
                                 logger.i("NetworkDebug", "Telegram ping success in ${rtt}ms")
                             } catch (e: Exception) {
-                                tgTestResult = "❌ Ошибка: ${e.message}"
+                                tgTestResult = context.getString(R.string.debug_tg_err, e.message)
                                 logger.w("NetworkDebug", "Telegram ping failed: ${e.message}")
                             } finally {
                                 isTestingTg = false
@@ -1220,9 +1279,13 @@ private fun DebugNetworkInspectorCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Direct API Connect (Напрямую)", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = directTestResult ?: "Прямой TCP/TLS к $activeApiRoot (NO_PROXY)",
+                        stringResource(R.string.debug_direct_label),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = directTestResult ?: stringResource(R.string.debug_direct_hint, activeApiRoot),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1230,7 +1293,7 @@ private fun DebugNetworkInspectorCard(
                 OutlinedButton(
                     onClick = {
                         isTestingDirect = true
-                        directTestResult = "Прямое подключение..."
+                        directTestResult = context.getString(R.string.debug_direct_connecting)
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
                                 val uri = java.net.URI(activeApiRoot)
@@ -1261,10 +1324,10 @@ private fun DebugNetworkInspectorCard(
                                 socket.close()
 
                                 directTestResult = "✅ Direct: TLS $host:$port (${rtt}ms)"
-                                logger.i("NetworkDebug", "Прямое подключение к $host:$port успешно за ${rtt}ms")
+                                logger.i("NetworkDebug", "Direct connection to $host:$port succeeded in ${rtt}ms")
                             } catch (e: Exception) {
                                 directTestResult = "❌ Direct Fail: ${e.message}"
-                                logger.w("NetworkDebug", "Прямое подключение к $activeApiRoot не удалось: ${e.message}")
+                                logger.w("NetworkDebug", "Direct connection to $activeApiRoot failed: ${e.message}")
                             } finally {
                                 isTestingDirect = false
                             }
@@ -1291,7 +1354,9 @@ private fun DebugNetworkInspectorCard(
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
-                            text = proxyTestResult ?: "Проверка туннеля через ${proxyConfig.host}:${proxyConfig.port} к $activeApiRoot",
+                            text =
+                                proxyTestResult
+                                    ?: stringResource(R.string.debug_proxy_hint, proxyConfig.host, proxyConfig.port, activeApiRoot),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1299,7 +1364,7 @@ private fun DebugNetworkInspectorCard(
                     Button(
                         onClick = {
                             isTestingProxyEndpoint = true
-                            proxyTestResult = "Проверка через прокси..."
+                            proxyTestResult = context.getString(R.string.debug_proxy_checking)
                             coroutineScope.launch(Dispatchers.IO) {
                                 try {
                                     val uri = java.net.URI(activeApiRoot)
@@ -1371,14 +1436,14 @@ private fun DebugNetworkInspectorCard(
                                     val totalRtt = System.currentTimeMillis() - t0
                                     resp.close()
 
-                                    proxyTestResult = "✅ Proxy OK (HTTP ${resp.code}, RTT: ${totalRtt}ms, Прокси ping: ${proxyRtt}ms)"
+                                    proxyTestResult = context.getString(R.string.debug_proxy_ok, resp.code, totalRtt, proxyRtt)
                                     logger.i(
                                         "NetworkDebug",
-                                        "Коннект через ${proxyConfig.type} к $activeApiRoot успешен: code=${resp.code}, rtt=${totalRtt}ms",
+                                        "Connection via ${proxyConfig.type} to $activeApiRoot succeeded: code=${resp.code}, rtt=${totalRtt}ms",
                                     )
                                 } catch (e: Exception) {
                                     proxyTestResult = "❌ Proxy Fail: ${e.message}"
-                                    logger.w("NetworkDebug", "Ошибка коннекта через прокси к $activeApiRoot: ${e.message}")
+                                    logger.w("NetworkDebug", "Proxy connection error to $activeApiRoot: ${e.message}")
                                 } finally {
                                     isTestingProxyEndpoint = false
                                 }
@@ -1387,7 +1452,7 @@ private fun DebugNetworkInspectorCard(
                         enabled = !isTestingProxyEndpoint && proxyConfig.host.isNotBlank(),
                         shape = RoundedCornerShape(10.dp),
                     ) {
-                        Text(if (isTestingProxyEndpoint) "..." else "Прокси")
+                        Text(if (isTestingProxyEndpoint) "..." else stringResource(R.string.debug_btn_proxy))
                     }
                 }
             }
@@ -1401,7 +1466,7 @@ private fun DebugNetworkInspectorCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("DNS Leak / Resolve Check", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = dnsTestResult ?: "Резолвинг хоста эндпоинта через локальный DNS",
+                        text = dnsTestResult ?: stringResource(R.string.debug_dns_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1409,7 +1474,7 @@ private fun DebugNetworkInspectorCard(
                 OutlinedButton(
                     onClick = {
                         isTestingDns = true
-                        dnsTestResult = "Резолвинг..."
+                        dnsTestResult = context.getString(R.string.debug_resolving)
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
                                 val uri = java.net.URI(activeApiRoot)
@@ -1444,7 +1509,7 @@ private fun DebugNetworkInspectorCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Push Gateway Health Check", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = gatewayTestResult ?: "Проверка GET /health на шлюзе",
+                        text = gatewayTestResult ?: stringResource(R.string.debug_gw_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1453,11 +1518,11 @@ private fun DebugNetworkInspectorCard(
                     onClick = {
                         val gwUrl = config.pushGatewayUrl?.trim()
                         if (gwUrl.isNullOrBlank()) {
-                            gatewayTestResult = "⚠️ URL шлюза не задан в настройках"
+                            gatewayTestResult = context.getString(R.string.debug_gw_missing)
                             return@OutlinedButton
                         }
                         isTestingGateway = true
-                        gatewayTestResult = "Запрос к $gwUrl/health..."
+                        gatewayTestResult = context.getString(R.string.debug_gw_requesting, gwUrl)
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
                                 val healthUrl = if (gwUrl.endsWith("/")) "${gwUrl}health" else "$gwUrl/health"
@@ -1470,7 +1535,7 @@ private fun DebugNetworkInspectorCard(
                                 gatewayTestResult = "HTTP $code: $body"
                                 logger.i("NetworkDebug", "Gateway health: HTTP $code ($body)")
                             } catch (e: Exception) {
-                                gatewayTestResult = "❌ Сбой шлюза: ${e.message}"
+                                gatewayTestResult = context.getString(R.string.debug_gw_fail, e.message)
                                 logger.w("NetworkDebug", "Gateway health check failed: ${e.message}")
                             } finally {
                                 isTestingGateway = false
@@ -1480,7 +1545,7 @@ private fun DebugNetworkInspectorCard(
                     enabled = !isTestingGateway,
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text(if (isTestingGateway) "..." else "Шлюз")
+                    Text(if (isTestingGateway) "..." else stringResource(R.string.debug_btn_gateway))
                 }
             }
 
@@ -1493,7 +1558,7 @@ private fun DebugNetworkInspectorCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Wakeup Push Ping", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = wakeupTestResult ?: "Отправка тестового FCM/HMS пуша через шлюз",
+                        text = wakeupTestResult ?: stringResource(R.string.debug_wakeup_hint),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1504,19 +1569,19 @@ private fun DebugNetworkInspectorCard(
                         val secretKey = config.pushSecretKey?.trim()
                         val fcmToken = config.fcmAppId?.trim()
                         if (gwUrl.isNullOrBlank()) {
-                            wakeupTestResult = "⚠️ URL шлюза не задан"
+                            wakeupTestResult = context.getString(R.string.debug_gw_url_short)
                             return@OutlinedButton
                         }
                         if (secretKey.isNullOrBlank()) {
-                            wakeupTestResult = "⚠️ Secret Key не задан"
+                            wakeupTestResult = context.getString(R.string.debug_secret_missing)
                             return@OutlinedButton
                         }
                         if (fcmToken.isNullOrBlank()) {
-                            wakeupTestResult = "⚠️ FCM Token не задан"
+                            wakeupTestResult = context.getString(R.string.debug_token_missing)
                             return@OutlinedButton
                         }
                         isTestingWakeup = true
-                        wakeupTestResult = "Отправка Wakeup-пинка..."
+                        wakeupTestResult = context.getString(R.string.debug_wakeup_sending)
                         coroutineScope.launch(Dispatchers.IO) {
                             try {
                                 val wakeupUrl =
@@ -1538,10 +1603,17 @@ private fun DebugNetworkInspectorCard(
                                 conn.outputStream.write(payload.toByteArray())
                                 val code = conn.responseCode
                                 val body = if (code == 200) conn.inputStream.bufferedReader().readText() else "HTTP $code"
-                                wakeupTestResult = if (code in 200..299) "✅ Wakeup отправлен (HTTP $code)" else "❌ HTTP $code: $body"
+                                wakeupTestResult =
+                                    if (code in
+                                        200..299
+                                    ) {
+                                        context.getString(R.string.debug_wakeup_sent, code)
+                                    } else {
+                                        context.getString(R.string.debug_http_fail, code, body)
+                                    }
                                 logger.i("NetworkDebug", "Wakeup ping: $wakeupTestResult")
                             } catch (e: Exception) {
-                                wakeupTestResult = "❌ Сбой Wakeup: ${e.message}"
+                                wakeupTestResult = context.getString(R.string.debug_wakeup_fail, e.message)
                                 logger.w("NetworkDebug", "Wakeup ping failed: ${e.message}")
                             } finally {
                                 isTestingWakeup = false
@@ -1565,7 +1637,7 @@ private fun DebugNetworkInspectorCard(
                     Column(modifier = Modifier.weight(1f)) {
                         Text("WSS WebSocket Handshake", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                         Text(
-                            text = wssTestResult ?: "Проверка WebSocket рукопожатия через ${proxyConfig.host}:${proxyConfig.port}",
+                            text = wssTestResult ?: stringResource(R.string.debug_wss_hint, proxyConfig.host, proxyConfig.port),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1607,7 +1679,7 @@ private fun DebugNetworkInspectorCard(
                                         if (handshakeOk) {
                                             "✅ WSS OK (HTTP 101, RTT: ${totalRtt}ms, Ping: ${pingRtt}ms)"
                                         } else {
-                                            "⚠️ WSS не 101, но коннект OK (HTTP ${response.take(50)}, RTT: ${totalRtt}ms)"
+                                            context.getString(R.string.debug_wss_warn, response.take(50), totalRtt)
                                         }
                                     logger.i("NetworkDebug", "WSS handshake: $wssTestResult")
                                 } catch (e: Exception) {
@@ -1639,6 +1711,7 @@ private fun DebugStorageAndCacheCard(
     logger: AppLogger,
     context: Context,
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
     val echoCacheSize = TelegramEventForwarder.getEchoCacheSize()
@@ -1673,32 +1746,48 @@ private fun DebugStorageAndCacheCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Анти-эхо кэш (сообщения бота):", style = MaterialTheme.typography.bodySmall)
-                Text("$echoCacheSize записей", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.debug_echo_cache), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_entries, echoCacheSize),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Дедупликация уведомлений:", style = MaterialTheme.typography.bodySmall)
-                Text("$dedupCacheSize записей", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.debug_dedup_label), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_entries, dedupCacheSize),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Очередь неотправленных файлов:", style = MaterialTheme.typography.bodySmall)
-                Text("${unsentFiles.size} файлов", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.debug_unsent_label), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_files, unsentFiles.size),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("Файл журнала логов (диск):", style = MaterialTheme.typography.bodySmall)
-                Text("$logSizeKb КБ", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                Text(stringResource(R.string.debug_logfile_label), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    stringResource(R.string.debug_fmt_kb1, logSizeKb),
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
 
             Row(
@@ -1710,39 +1799,39 @@ private fun DebugStorageAndCacheCard(
                         coroutineScope.launch {
                             TelegramEventForwarder.clearAllCaches()
                             notificationRepo.clearRecentNotifications()
-                            logger.i("DebugStorage", "Кэш анти-эхо и дедупликации уведомлений успешно очищен")
-                            Toast.makeText(context, "Кэш уведомлений очищен", Toast.LENGTH_SHORT).show()
+                            logger.i("DebugStorage", "Anti-echo and notification dedup cache cleared successfully")
+                            Toast.makeText(context, context.getString(R.string.debug_notif_cache_cleared), Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🗑 Сброс дедупа", fontSize = 11.sp)
+                    Text(stringResource(R.string.debug_btn_reset_dedup), fontSize = 11.sp)
                 }
 
                 FilledTonalButton(
                     onClick = {
                         coroutineScope.launch {
                             fileManagerRepo.clearUnsentFiles()
-                            logger.i("DebugStorage", "Очередь неотправленных файлов очищена")
-                            Toast.makeText(context, "Очередь файлов сброшена", Toast.LENGTH_SHORT).show()
+                            logger.i("DebugStorage", "Unsent files queue cleared")
+                            Toast.makeText(context, context.getString(R.string.debug_files_queue_reset), Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🗑 Сброс файлов", fontSize = 11.sp)
+                    Text(stringResource(R.string.debug_btn_reset_files), fontSize = 11.sp)
                 }
 
                 FilledTonalButton(
                     onClick = {
                         logger.clear()
-                        Toast.makeText(context, "Логи на диске и в памяти очищены", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.debug_logs_cleared), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🗑 Сброс логов", fontSize = 11.sp)
+                    Text(stringResource(R.string.debug_btn_reset_logs), fontSize = 11.sp)
                 }
             }
 
@@ -1756,19 +1845,19 @@ private fun DebugStorageAndCacheCard(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = ClipData.newPlainText("RemoteBot_logs", formattedLogs)
                                 clipboard.setPrimaryClip(clip)
-                                logger.i("DebugExport", "Экспортировано ${formattedLogs.lines().size} логов в буфер обмена")
+                                logger.i("DebugExport", "Exported ${formattedLogs.lines().size} logs to clipboard")
                                 Toast
                                     .makeText(
                                         context,
-                                        "📋 Логи скопированы в буфер (${formattedLogs.lines().size} записей)",
+                                        context.getString(R.string.debug_logs_copied, formattedLogs.lines().size),
                                         Toast.LENGTH_LONG,
                                     ).show()
                             } else {
-                                Toast.makeText(context, "Логи пусты", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.debug_logs_empty), Toast.LENGTH_SHORT).show()
                             }
                         } catch (e: Exception) {
-                            logger.e("DebugExport", "Ошибка экспорта логов: ${e.message}")
-                            Toast.makeText(context, "Ошибка: ${e.message}", Toast.LENGTH_LONG).show()
+                            logger.e("DebugExport", "Log export error: ${e.message}")
+                            Toast.makeText(context, context.getString(R.string.debug_error_fmt, e.message), Toast.LENGTH_LONG).show()
                         }
                     }
                 },
@@ -1779,7 +1868,7 @@ private fun DebugStorageAndCacheCard(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     ),
             ) {
-                Text("📋 Копировать логи в буфер (последние 500)")
+                Text(stringResource(R.string.debug_btn_copy_logs))
             }
 
             // Export full system dump to file (Debug Dump)
@@ -1814,13 +1903,18 @@ private fun DebugStorageAndCacheCard(
 
                             dumpFile.writeText(dumpContent)
                             withContext(Dispatchers.Main) {
-                                logger.i("DebugExport", "Полный системный дамп сохранен: ${dumpFile.absolutePath}")
-                                Toast.makeText(context, "💾 Дамп сохранен: ${dumpFile.name}", Toast.LENGTH_LONG).show()
+                                logger.i("DebugExport", "Full system dump saved: ${dumpFile.absolutePath}")
+                                Toast
+                                    .makeText(
+                                        context,
+                                        context.getString(R.string.debug_dump_saved, dumpFile.name),
+                                        Toast.LENGTH_LONG,
+                                    ).show()
                             }
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
-                                logger.e("DebugExport", "Ошибка сохранения дампа: ${e.message}")
-                                Toast.makeText(context, "Ошибка дампа: ${e.message}", Toast.LENGTH_SHORT).show()
+                                logger.e("DebugExport", "Dump save error: ${e.message}")
+                                Toast.makeText(context, context.getString(R.string.debug_dump_error, e.message), Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -1828,7 +1922,7 @@ private fun DebugStorageAndCacheCard(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
             ) {
-                Text("📤 Экспорт полного системного дампа в файл")
+                Text(stringResource(R.string.debug_btn_export_dump))
             }
         }
     }
@@ -1880,9 +1974,13 @@ private fun DebugEnvironmentControlsCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Эмуляция «Root отсутствует»", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "Имитация устройства без Root для тестирования диалогов и блокировок",
+                        stringResource(R.string.debug_sim_root),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = stringResource(R.string.debug_sim_root_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -1895,7 +1993,7 @@ private fun DebugEnvironmentControlsCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-            Text("Генератор тестовых системных событий:", style = MaterialTheme.typography.labelMedium)
+            Text(stringResource(R.string.debug_events_gen), style = MaterialTheme.typography.labelMedium)
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1906,25 +2004,25 @@ private fun DebugEnvironmentControlsCard(
                         BatteryReceiver.emitSimulatedEvent(
                             BatteryEvent.LowBattery(level = 15, isCharging = false),
                         )
-                        logger.w("DebugEnv", "Эмулировано событие LowBattery 15%")
-                        Toast.makeText(context, "Эмулирован разряд батареи 15%", Toast.LENGTH_SHORT).show()
+                        logger.w("DebugEnv", "Emulated LowBattery 15% event")
+                        Toast.makeText(context, context.getString(R.string.debug_batt_emul), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("🪫 АКБ 15%", fontSize = 11.sp)
+                    Text(stringResource(R.string.debug_btn_batt), fontSize = 11.sp)
                 }
 
                 OutlinedButton(
                     onClick = {
                         locationRepo.simulateShakeEvent()
-                        logger.w("DebugEnv", "Эмулировано событие датчика тряски")
-                        Toast.makeText(context, "Эмулировано встряхивание устройства", Toast.LENGTH_SHORT).show()
+                        logger.w("DebugEnv", "Emulated shake sensor event")
+                        Toast.makeText(context, context.getString(R.string.debug_shake_emul), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
                 ) {
-                    Text("📳 Тряска", fontSize = 11.sp)
+                    Text(stringResource(R.string.debug_btn_shake), fontSize = 11.sp)
                 }
 
                 OutlinedButton(
@@ -1932,12 +2030,12 @@ private fun DebugEnvironmentControlsCard(
                         SmsReceiver.emitSimulatedSms(
                             IncomingSmsEvent(
                                 sender = "+79991234567",
-                                body = "Тестовое SMS от симулятора отладки",
+                                body = context.getString(R.string.debug_sms_body),
                                 timestampMs = System.currentTimeMillis(),
                             ),
                         )
-                        logger.i("DebugEnv", "Эмулировано входящее SMS")
-                        Toast.makeText(context, "Эмулировано входящее SMS", Toast.LENGTH_SHORT).show()
+                        logger.i("DebugEnv", context.getString(R.string.debug_sms_emul))
+                        Toast.makeText(context, context.getString(R.string.debug_sms_emul), Toast.LENGTH_SHORT).show()
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(10.dp),
@@ -1949,7 +2047,7 @@ private fun DebugEnvironmentControlsCard(
             // Controlled crash to verify crash-recovery / UncaughtExceptionHandler
             OutlinedButton(
                 onClick = {
-                    logger.w("DebugEnv", "Инициирован контролируемый краш приложения для проверки crash-recovery")
+                    logger.w("DebugEnv", "Controlled app crash initiated for crash-recovery check")
                     throw RuntimeException("Controlled Debug Crash for testing crash-recovery mechanism")
                 },
                 colors =
@@ -1960,7 +2058,7 @@ private fun DebugEnvironmentControlsCard(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("💥 Инициировать контролируемый сбой (Crash Recovery Test)", fontSize = 12.sp)
+                Text(stringResource(R.string.debug_btn_crash), fontSize = 12.sp)
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
@@ -1976,7 +2074,7 @@ private fun DebugEnvironmentControlsCard(
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("⚠️ Заводской сброс всех настроек (Factory Reset)")
+                Text(stringResource(R.string.debug_btn_factory))
             }
         }
     }
@@ -1984,8 +2082,8 @@ private fun DebugEnvironmentControlsCard(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Сброс всех настроек?") },
-            text = { Text("Все сохраненные токены, белые списки, правила уведомлений и прокси будут сброшены к начальным значениям.") },
+            title = { Text(stringResource(R.string.debug_reset_title)) },
+            text = { Text(stringResource(R.string.debug_reset_desc)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -1996,17 +2094,17 @@ private fun DebugEnvironmentControlsCard(
                                 com.remotebot.domain.model
                                     .ProxyConfig(),
                             )
-                            logger.w("DebugEnv", "Выполнен заводской сброс настроек приложения к дефолтным значениям")
-                            Toast.makeText(context, "Настройки сброшены", Toast.LENGTH_LONG).show()
+                            logger.w("DebugEnv", "Factory reset of app settings to defaults completed")
+                            Toast.makeText(context, context.getString(R.string.debug_settings_reset), Toast.LENGTH_LONG).show()
                         }
                     },
                 ) {
-                    Text("Сбросить", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.debug_btn_reset), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.debug_btn_cancel))
                 }
             },
         )
@@ -2057,12 +2155,12 @@ private fun DebugExperimentalFeaturesCard(
                 Text("🧪", fontSize = 20.sp)
                 Column {
                     Text(
-                        text = "Экспериментальные функции",
+                        text = stringResource(R.string.debug_exp_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Особые модули автоматизации и перехвата",
+                        text = stringResource(R.string.debug_exp_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2078,12 +2176,12 @@ private fun DebugExperimentalFeaturesCard(
             ) {
                 Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
                     Text(
-                        text = "🛡️ Перехват и подтверждение 2FA",
+                        text = stringResource(R.string.debug_2fa_title),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
-                        text = "Добавляет инлайн-кнопки («Подтвердить / Отклонить») в Telegram для пушей Multifactor, Duo Mobile, Яндекс Ключ и др.",
+                        text = stringResource(R.string.debug_2fa_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -2100,4 +2198,3 @@ private fun DebugExperimentalFeaturesCard(
         }
     }
 }
-

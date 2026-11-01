@@ -80,7 +80,7 @@ class DefaultCameraRepository(
                             val facing = characteristics.get(CameraCharacteristics.LENS_FACING)
                             facing == targetFacing
                         } ?: cameraManager.cameraIdList.firstOrNull()
-                            ?: return@withContext Result.failure(IllegalStateException("Камера не найдена на устройстве"))
+                            ?: return@withContext Result.failure(IllegalStateException("Camera not found on the device"))
 
                     handlerThread = HandlerThread("CameraBackground").apply { start() }
                     val handler = Handler(handlerThread.looper)
@@ -96,7 +96,7 @@ class DefaultCameraRepository(
 
                     logger?.d(
                         "CameraRepository",
-                        "Съемка фото: lens=${params.lens}, flash=${params.flash}, rotate=${params.rotationDegrees}, targetCamera=$cameraId",
+                        "Photo capture: lens=${params.lens}, flash=${params.flash}, rotate=${params.rotationDegrees}, targetCamera=$cameraId",
                     )
                     val openedCamera =
                         suspendCancellableCoroutine<CameraDevice> { cont ->
@@ -105,25 +105,25 @@ class DefaultCameraRepository(
                                     cameraId,
                                     object : CameraDevice.StateCallback() {
                                         override fun onOpened(camera: CameraDevice) {
-                                            logger?.d("CameraRepository", "CameraDevice открыта: id=${camera.id}")
+                                            logger?.d("CameraRepository", "CameraDevice opened: id=${camera.id}")
                                             if (cont.isActive) cont.resume(camera)
                                         }
 
                                         override fun onDisconnected(camera: CameraDevice) {
-                                            logger?.w("CameraRepository", "CameraDevice отключена: id=${camera.id}")
+                                            logger?.w("CameraRepository", "CameraDevice disconnected: id=${camera.id}")
                                             camera.close()
-                                            if (cont.isActive) cont.resumeWith(Result.failure(RuntimeException("Камера отключена")))
+                                            if (cont.isActive) cont.resumeWith(Result.failure(RuntimeException("Camera disconnected")))
                                         }
 
                                         override fun onError(
                                             camera: CameraDevice,
                                             error: Int,
                                         ) {
-                                            logger?.e("CameraRepository", "CameraDevice ошибка: id=${camera.id}, code=$error")
+                                            logger?.e("CameraRepository", "CameraDevice error: id=${camera.id}, code=$error")
                                             camera.close()
                                             if (cont.isActive) {
                                                 cont.resumeWith(
-                                                    Result.failure(RuntimeException("Ошибка открытия камеры: $error")),
+                                                    Result.failure(RuntimeException("Camera open error: $error")),
                                                 )
                                             }
                                         }
@@ -131,10 +131,10 @@ class DefaultCameraRepository(
                                     handler,
                                 )
                             } catch (e: SecurityException) {
-                                logger?.e("CameraRepository", "SecurityException при открытии камеры: ${e.message}")
+                                logger?.e("CameraRepository", "SecurityException while opening the camera: ${e.message}")
                                 if (cont.isActive) cont.resumeWith(Result.failure(e))
                             } catch (e: Exception) {
-                                logger?.e("CameraRepository", "Исключение при открытии камеры: ${e.message}")
+                                logger?.e("CameraRepository", "Exception while opening the camera: ${e.message}")
                                 if (cont.isActive) cont.resumeWith(Result.failure(e))
                             }
                         }
@@ -211,7 +211,11 @@ class DefaultCameraRepository(
                                     }
 
                                     override fun onConfigureFailed(captureSession: CameraCaptureSession) {
-                                        if (cont.isActive) cont.resumeWith(Result.failure(RuntimeException("Сбой настройки сессии камеры")))
+                                        if (cont.isActive) {
+                                            cont.resumeWith(
+                                                Result.failure(RuntimeException("Camera session configuration failure")),
+                                            )
+                                        }
                                     }
                                 },
                                 handler,
@@ -323,15 +327,15 @@ class DefaultCameraRepository(
                 motionScope.launch {
                     com.remotebot.core.common.logger.AppLogger.i(
                         "CameraRepository",
-                        "👁 Фоновый детектор движения запущен (порог: $clampedSensitivity%, интервал отправки: ${validCooldown}с)",
+                        "👁 Background motion detector started (threshold: $clampedSensitivity%, send interval: ${validCooldown}s)",
                     )
                     var lastLumaMap: IntArray? = null
                     var lastAlertTimestamp = 0L
-                    val sampleGrid = 16 // 16x16 сетка яркости
+                    val sampleGrid = 16 // 16x16 luminance grid
 
                     while (isActive) {
                         try {
-                            delay(2000L) // сканируем кадр каждые 2 секунды
+                            delay(2000L) // scan a frame every 2 seconds
                             if (!isActive) break
 
                             // Capture frame from camera
@@ -378,7 +382,7 @@ class DefaultCameraRepository(
                                                 lastAlertTimestamp = now
                                                 com.remotebot.core.common.logger.AppLogger.w(
                                                     "CameraRepository",
-                                                    "🚨 Движение обнаружено! Изменение: ${"%.1f".format(
+                                                    "🚨 Motion detected! Change: ${"%.1f".format(
                                                         avgDiffPercent,
                                                     )}% >= ${"%.1f".format(thresholdPercent)}%",
                                                 )
@@ -414,12 +418,12 @@ class DefaultCameraRepository(
                             break
                         } catch (e: Exception) {
                             com.remotebot.core.common.logger.AppLogger
-                                .e("CameraRepository", "Ошибка цикла детектора движения: ${e.message}")
+                                .e("CameraRepository", "Motion detector loop error: ${e.message}")
                             delay(3000L)
                         }
                     }
                     com.remotebot.core.common.logger.AppLogger
-                        .i("CameraRepository", "👁 Фоновый детектор движения остановлен")
+                        .i("CameraRepository", "👁 Background motion detector stopped")
                 }
         }
     }

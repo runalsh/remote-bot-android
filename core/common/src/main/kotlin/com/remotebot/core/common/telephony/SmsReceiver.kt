@@ -58,7 +58,7 @@ class SmsReceiver : BroadcastReceiver() {
 
         AppLogger.i(
             "SmsReceiver",
-            "📩 Входящее SMS от $sender (сим-слот: ${simSlot ?: "default"}, частей: ${messages.size}, длина: ${body.length}): ${body.take(
+            "📩 Incoming SMS from $sender (SIM slot: ${simSlot ?: "default"}, parts: ${messages.size}, length: ${body.length}): ${body.take(
                 60,
             )}",
         )
@@ -70,7 +70,7 @@ class SmsReceiver : BroadcastReceiver() {
         val smsEvents: SharedFlow<IncomingSmsEvent> = _smsEvents.asSharedFlow()
 
         fun emitSimulatedSms(event: IncomingSmsEvent) {
-            AppLogger.i("SmsReceiver", "🛠️ [Debug] Симуляция входящего SMS от ${event.sender}: ${event.body}")
+            AppLogger.i("SmsReceiver", "🛠️ [Debug] Simulating incoming SMS from ${event.sender}: ${event.body}")
             _smsEvents.tryEmit(event)
         }
     }

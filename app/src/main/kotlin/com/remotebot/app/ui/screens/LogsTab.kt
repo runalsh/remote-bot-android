@@ -21,11 +21,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.ui.theme.AppColors
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.LogLevel
@@ -57,7 +59,7 @@ fun LogsTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Логи (${filteredLogs.size}/${logs.size})",
+                text = stringResource(R.string.logs_title, filteredLogs.size, logs.size),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
@@ -76,9 +78,9 @@ fun LogsTab(
                                         }
                                     output.write(text.toByteArray(Charsets.UTF_8))
                                 }
-                                Toast.makeText(context, "Логи успешно сохранены в файл", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Logs saved to file successfully", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
-                                Toast.makeText(context, "Ошибка сохранения: ${e.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Save error: ${e.message}", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -90,7 +92,7 @@ fun LogsTab(
                             "\n",
                         ) { "[${dateFormat.format(Date(it.timestampMs))}] [${it.level}] [${it.tag}] ${it.message}" }
                     clipboard.setPrimaryClip(ClipData.newPlainText("RemoteBot Logs", text))
-                    Toast.makeText(context, "Скопировано ${filteredLogs.size} строк", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "Copied ${filteredLogs.size} lines", Toast.LENGTH_SHORT).show()
                 }) {
                     Text("📋")
                 }
@@ -105,7 +107,7 @@ fun LogsTab(
                             putExtra(Intent.EXTRA_SUBJECT, "RemoteBot Logs")
                             putExtra(Intent.EXTRA_TEXT, text)
                         }
-                    val shareIntent = Intent.createChooser(sendIntent, "Поделиться логами")
+                    val shareIntent = Intent.createChooser(sendIntent, "Share logs")
                     context.startActivity(shareIntent)
                 }) {
                     Text("📤")
@@ -117,7 +119,7 @@ fun LogsTab(
                     Text("💾")
                 }
                 IconButton(onClick = { logger.clear() }) {
-                    Icon(Icons.Default.Delete, contentDescription = "Очистить логи", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, contentDescription = "Clear logs", tint = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -140,7 +142,7 @@ fun LogsTab(
             },
             label = {
                 Text(
-                    text = "Все уровни (${logs.size})",
+                    text = "All levels (${logs.size})",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                     fontWeight = if (enabledLevelNames.size == LogLevel.entries.size) FontWeight.Bold else FontWeight.Normal,
@@ -269,7 +271,7 @@ fun LogsTab(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                text = "Лимит:",
+                text = "Limit:",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(end = 2.dp),
@@ -307,7 +309,7 @@ fun LogsTab(
         if (filteredLogs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(
-                    text = if (enabledLevelNames.isEmpty()) "Выберите хотя бы один уровень логирования" else "Нет событий с выбранными уровнями",
+                    text = if (enabledLevelNames.isEmpty()) "Select at least one logging level" else "No events with selected levels",
                     color = Color.Gray,
                 )
             }

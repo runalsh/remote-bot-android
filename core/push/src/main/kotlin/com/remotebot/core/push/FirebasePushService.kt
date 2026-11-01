@@ -20,7 +20,7 @@ class FirebasePushService : FirebaseMessagingService() {
     @Deprecated("Deprecated in FirebaseMessagingService")
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        logger.i("FCM", "Получен новый FCM push token: ${token.take(8)}...${token.takeLast(4)}")
+        logger.i("FCM", "New FCM push token received: ${token.take(8)}...${token.takeLast(4)}")
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
@@ -31,7 +31,7 @@ class FirebasePushService : FirebaseMessagingService() {
         val updateIdStr = data["update_id"]
         val updateJson = data["update_json"]
 
-        logger.i("FCM", "📥 Входящий FCM Data Push: action=$action, update_id=$updateIdStr, ключи: ${data.keys.joinToString(", ")}")
+        logger.i("FCM", "📥 Incoming FCM Data Push: action=$action, update_id=$updateIdStr, keys: ${data.keys.joinToString(", ")}")
         logger.d("FCM", "Payload data: $data")
         PushStatsTracker.recordDelivery()
         com.remotebot.core.common.diagnostics.AppDiagnosticsTracker.recordWakeup(
@@ -45,7 +45,7 @@ class FirebasePushService : FirebaseMessagingService() {
                         val update = json.decodeFromString<TgUpdate>(updateJson)
                         wakeupHandler.processPushUpdate(update)
                     } catch (e: Exception) {
-                        logger.e("FCM", "Сбой парсинга TgUpdate из push: ${e.localizedMessage}", e)
+                        logger.e("FCM", "Failed to parse TgUpdate from push: ${e.localizedMessage}", e)
                     }
                 }
             } else if (updateIdStr != null) {

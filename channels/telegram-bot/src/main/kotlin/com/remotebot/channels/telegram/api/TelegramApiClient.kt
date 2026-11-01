@@ -125,10 +125,10 @@ class TelegramApiClient(
                     serverType = com.remotebot.domain.model.ServerType.TELEGRAM_API,
                     outcome = outcome,
                 )
-                logger?.w("TelegramApi", "Сбой эндпоинта $root: ${e.message}. Пробуем следующий...")
+                logger?.w("TelegramApi", "Endpoint failure $root: ${e.message}. Trying the next one...")
             }
         }
-        throw lastException ?: RuntimeException("Все эндпоинты Telegram API недоступны")
+        throw lastException ?: RuntimeException("All Telegram API endpoints are unavailable")
     }
 
     suspend fun getUpdates(
@@ -342,7 +342,7 @@ class TelegramApiClient(
                     }.body<TgResponse<Unit>>()
             if (!response.ok) {
                 if (response.description?.contains("message is not modified", ignoreCase = true) == true) {
-                    logger?.d("TelegramApi", "editMessageText: сообщение не изменено")
+                    logger?.d("TelegramApi", "editMessageText: message not modified")
                     return true
                 }
                 logger?.e("TelegramApi", "editMessageText error: ${response.description} (code ${response.errorCode})")
@@ -350,7 +350,7 @@ class TelegramApiClient(
             response.ok
         } catch (e: Exception) {
             if (e.message?.contains("message is not modified", ignoreCase = true) == true) {
-                logger?.d("TelegramApi", "editMessageText: сообщение не изменено")
+                logger?.d("TelegramApi", "editMessageText: message not modified")
                 true
             } else {
                 logger?.e("TelegramApi", "editMessageText HTTP request failed: ${e.message}", e)
@@ -647,10 +647,10 @@ class TelegramApiClient(
         val response = httpClient.get("$baseUrl/getMe").body<TgResponse<com.remotebot.domain.model.TgUser>>()
         val user = response.result
         if (!response.ok || user == null) {
-            val desc = response.description ?: "Неверный токен"
+            val desc = response.description ?: "Invalid token"
             if (desc.equals("Not Found", ignoreCase = true)) {
                 throw RuntimeException(
-                    "Telegram API: Not Found (404). Проверьте токен бота (без слова 'bot') и поле 'Кастомный API Root' (оставьте пустым).",
+                    "Telegram API: Not Found (404). Check the bot token (without the 'bot' prefix) and the 'Custom API Root' field (leave it empty).",
                 )
             }
             throw RuntimeException("Telegram API: $desc (code ${response.errorCode ?: 400})")
@@ -686,7 +686,7 @@ class TelegramApiClient(
                     parameter("allowed_updates", "[\"message\", \"callback_query\"]")
                 }.body<TgResponse<Boolean>>()
         if (!response.ok) {
-            throw RuntimeException("Ошибка setWebhook: ${response.description ?: "Unknown error"}")
+            throw RuntimeException("setWebhook error: ${response.description ?: "Unknown error"}")
         }
         return response.ok
     }

@@ -17,10 +17,17 @@ class SystemControlCommandsHandler(
     context: Context,
     logger: AppLogger,
     rootStatusProvider: RootStatusProvider,
+    private val botConfigRepository: com.remotebot.domain.repository.BotConfigRepository? = null,
 ) : CommandHandler {
-    val infoHandler = SystemInfoCommandsHandler(context, logger, rootStatusProvider)
-    val radioHandler = DeviceRadioCommandsHandler(context, logger, rootStatusProvider)
-    val settingsHandler = SystemSettingsCommandsHandler(context, logger, rootStatusProvider, radioHandler)
+    private val strings
+        get() =
+            com.remotebot.channels.telegram.strings.TelegramBotStrings.get(
+                botConfigRepository?.config?.value?.botLanguage ?: com.remotebot.domain.model.BotLanguage.AUTO,
+            )
+
+    val infoHandler = SystemInfoCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)
+    val radioHandler = DeviceRadioCommandsHandler(context, logger, rootStatusProvider, botConfigRepository)
+    val settingsHandler = SystemSettingsCommandsHandler(context, logger, rootStatusProvider, radioHandler, botConfigRepository)
 
     override val commandNames: List<String> =
         (
@@ -35,7 +42,7 @@ class SystemControlCommandsHandler(
             cmd in infoHandler.commandNames -> infoHandler.execute(command)
             cmd in radioHandler.commandNames -> radioHandler.execute(command)
             cmd in settingsHandler.commandNames -> settingsHandler.execute(command)
-            else -> CommandResult.Error("Неизвестная команда системного контроля: $cmd")
+            else -> CommandResult.Error(strings.scUnknownCmd(cmd))
         }
     }
 }

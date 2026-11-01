@@ -12,9 +12,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.model.BotConfig
 import com.remotebot.domain.model.EndpointSelectionStrategy
@@ -52,12 +54,12 @@ fun PushServersPoolCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "🌐 Пул Push-серверов (${serversList.size})",
+                        text = stringResource(R.string.push_pool_servers_title, serversList.size),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Мульти-серверная балансировка и Failover шлюзов",
+                        text = stringResource(R.string.push_pool_servers_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -66,26 +68,30 @@ fun PushServersPoolCard(
                     val newServer =
                         PushServerConfig(
                             id = UUID.randomUUID().toString(),
-                            name = "Шлюз #${serversList.size + 1}",
+                            name = context.getString(R.string.push_pool_server_item_title, serversList.size + 1),
                             gatewayUrl = "",
                             secretKey = "",
                             provider = PushProvider.FCM,
                         )
                     serversList = serversList + newServer
                 }) {
-                    Icon(Icons.Default.Add, contentDescription = "Добавить сервер", tint = MaterialTheme.colorScheme.primary)
+                    Icon(
+                        Icons.Default.Add,
+                        contentDescription = stringResource(R.string.sms_trusted_numbers_add),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
                 }
             }
 
             if (serversList.isEmpty()) {
                 Text(
-                    text = "ℹ️ Пул пуст. Используется одиночный шлюз по умолчанию или локальный режим. Нажмите «+», чтобы добавить независимые сервера с индивидуальными доменами, ключами и JSON-конфигами.",
+                    text = stringResource(R.string.push_pool_empty_desc),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
                 Text(
-                    text = "Стратегия переключения серверов:",
+                    text = stringResource(R.string.push_pool_strategy_title),
                     style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Bold,
                 )
@@ -106,9 +112,9 @@ fun PushServersPoolCard(
                             label = {
                                 Text(
                                     when (st) {
-                                        EndpointSelectionStrategy.FAILOVER -> "Failover"
-                                        EndpointSelectionStrategy.ROUND_ROBIN -> "Round-Robin"
-                                        EndpointSelectionStrategy.LOWEST_LATENCY -> "Мин. пинг"
+                                        EndpointSelectionStrategy.FAILOVER -> stringResource(R.string.tg_strategy_failover)
+                                        EndpointSelectionStrategy.ROUND_ROBIN -> stringResource(R.string.tg_strategy_round_robin)
+                                        EndpointSelectionStrategy.LOWEST_LATENCY -> stringResource(R.string.tg_strategy_latency)
                                     },
                                     fontSize = 11.sp,
                                 )
@@ -146,13 +152,13 @@ fun PushServersPoolCard(
                                     pushServerSelectionStrategy = strategy,
                                 )
                             }
-                            logger.i("Push", "Обновлен пул Push-серверов: ${serversList.size} шт., стратегия: $strategy")
-                            Toast.makeText(context, "Пул Push-серверов сохранен", Toast.LENGTH_SHORT).show()
+                            logger.i("Push", "Push server pool updated: ${serversList.size} items, strategy: $strategy")
+                            Toast.makeText(context, context.getString(R.string.push_pool_servers_saved), Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Сохранить пул серверов")
+                    Text(stringResource(R.string.push_pool_save_btn))
                 }
             }
         }
@@ -182,10 +188,15 @@ private fun PushServerItemEditor(
                         } else {
                             onUpdate(server.copy(googleServicesJson = content))
                         }
-                        Toast.makeText(context, "JSON конфигурация загружена", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(R.string.push_pool_json_loaded), Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
-                    Toast.makeText(context, "Ошибка чтения файла: ${e.message}", Toast.LENGTH_SHORT).show()
+                    Toast
+                        .makeText(
+                            context,
+                            context.getString(R.string.push_pool_read_file_error, e.message ?: ""),
+                            Toast.LENGTH_SHORT,
+                        ).show()
                 }
             }
         }
@@ -202,16 +213,20 @@ private fun PushServerItemEditor(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "#${index + 1} ${server.name.ifBlank { "Сервер" }}",
+                    text = "#${index + 1} ${server.name.ifBlank { stringResource(R.string.push_pool_server_badge) }}",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TextButton(onClick = { expanded = !expanded }) {
-                        Text(if (expanded) "Свернуть" else "Настроить")
+                        Text(if (expanded) stringResource(R.string.push_pool_collapse) else stringResource(R.string.push_pool_configure))
                     }
                     IconButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Удалить", tint = MaterialTheme.colorScheme.error)
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.common_delete),
+                            tint = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
             }
@@ -219,7 +234,7 @@ private fun PushServerItemEditor(
             OutlinedTextField(
                 value = server.gatewayUrl,
                 onValueChange = { onUpdate(server.copy(gatewayUrl = it)) },
-                label = { Text("URL домена шлюза") },
+                label = { Text(stringResource(R.string.push_pool_domain_url)) },
                 placeholder = { Text("https://push-s${index + 1}.yourdomain.com", fontSize = 12.sp) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -229,7 +244,7 @@ private fun PushServerItemEditor(
                 OutlinedTextField(
                     value = server.name,
                     onValueChange = { onUpdate(server.copy(name = it)) },
-                    label = { Text("Название / Метка") },
+                    label = { Text(stringResource(R.string.push_pool_label)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
@@ -237,13 +252,17 @@ private fun PushServerItemEditor(
                 OutlinedTextField(
                     value = server.secretKey,
                     onValueChange = { onUpdate(server.copy(secretKey = it)) },
-                    label = { Text("Секретный ключ / Токен шлюза") },
-                    placeholder = { Text("Secret Key для вебхука", fontSize = 12.sp) },
+                    label = { Text(stringResource(R.string.push_pool_secret)) },
+                    placeholder = { Text(stringResource(R.string.push_pool_secret_placeholder), fontSize = 12.sp) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                 )
 
-                Text("Тип провайдера для этого сервера:", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                Text(
+                    stringResource(R.string.push_pool_provider_type),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(PushProvider.FCM to "Google FCM", PushProvider.HMS to "Huawei HMS").forEach { (prov, title) ->
                         FilterChip(
@@ -266,12 +285,13 @@ private fun PushServerItemEditor(
                             !server.googleServicesJson.isNullOrBlank()
                         }
                     Text(
-                        text = if (hasJson) "✅ Конфиг JSON загружен" else "⚠️ JSON не загружен",
+                        text =
+                            if (hasJson) stringResource(R.string.push_json_loaded) else stringResource(R.string.push_json_not_loaded),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (hasJson) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                     )
                     OutlinedButton(onClick = { filePickerLauncher.launch(arrayOf("application/json", "*/*")) }) {
-                        Text("Выбрать .json", fontSize = 12.sp)
+                        Text(stringResource(R.string.push_pool_choose_json), fontSize = 12.sp)
                     }
                 }
             }

@@ -85,10 +85,10 @@ class BatteryReceiver : BroadcastReceiver() {
 
         val plugTypeStr =
             when (plugged) {
-                BatteryManager.BATTERY_PLUGGED_AC -> "Сеть 220V (AC)"
-                BatteryManager.BATTERY_PLUGGED_USB -> "USB порт"
-                BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Беспроводная зарядка"
-                else -> if (isCharging) "Зарядное устройство" else "Не подключено"
+                BatteryManager.BATTERY_PLUGGED_AC -> "AC (220V)"
+                BatteryManager.BATTERY_PLUGGED_USB -> "USB port"
+                BatteryManager.BATTERY_PLUGGED_WIRELESS -> "Wireless charging"
+                else -> if (isCharging) "Charger" else "Not connected"
             }
 
         synchronized(lock) {
@@ -112,7 +112,7 @@ class BatteryReceiver : BroadcastReceiver() {
                 lastChargingState = isCharging
                 lastPlugType = plugged
                 if (isCharging) {
-                    lastNotifiedLowLevel = null // Сброс отслеживания разряда при начале зарядки
+                    lastNotifiedLowLevel = null // Reset low-battery tracking when charging starts
                 }
                 AppLogger.i("BatteryReceiver", "Charging state changed: isCharging=$isCharging, level=$batteryPct%, plug=$plugTypeStr")
                 _batteryEvents.tryEmit(

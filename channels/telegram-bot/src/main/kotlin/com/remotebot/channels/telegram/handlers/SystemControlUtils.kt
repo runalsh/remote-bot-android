@@ -2,6 +2,9 @@ package com.remotebot.channels.telegram.handlers
 
 import android.content.Context
 import android.os.PowerManager
+import com.remotebot.channels.telegram.strings.BotStrings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.InlineKeyboardButton
 import com.remotebot.domain.model.InlineKeyboardMarkup
 import com.remotebot.domain.provider.RootStatusProvider
@@ -23,19 +26,22 @@ internal object SystemControlUtils {
         isCurrentlyOn: Boolean,
         requiresRoot: Boolean = false,
         hasRoot: Boolean = false,
+        strings: BotStrings = TelegramBotStrings.get(BotLanguage.AUTO),
     ): InlineKeyboardMarkup {
         val toggleBtnText =
             when {
-                requiresRoot && !hasRoot -> if (isCurrentlyOn) "🔒 Выключить (Root)" else "🔒 Включить (Root)"
-                requiresRoot && hasRoot -> if (isCurrentlyOn) "🔴 Выключить ⚡" else "🟢 Включить ⚡"
-                else -> if (isCurrentlyOn) "🔴 Выключить" else "🟢 Включить"
+                requiresRoot && !hasRoot ->
+                    if (isCurrentlyOn) strings.scuBtnDisableRoot() else strings.scuBtnEnableRoot()
+                requiresRoot && hasRoot ->
+                    if (isCurrentlyOn) strings.scuBtnDisableBolt() else strings.scuBtnEnableBolt()
+                else -> if (isCurrentlyOn) strings.scuBtnDisable() else strings.scuBtnEnable()
             }
 
         return InlineKeyboardMarkup(
             listOf(
                 listOf(
                     InlineKeyboardButton(toggleBtnText, "$cmd toggle"),
-                    InlineKeyboardButton("🎛 Все тумблеры", "/toggles"),
+                    InlineKeyboardButton(strings.scuBtnAllToggles(), "/toggles"),
                 ),
             ),
         )

@@ -48,13 +48,13 @@ class DefaultCommandDispatcher(
                 .lowercase()
                 .removePrefix("/")
                 .substringBefore("@")
-        val handler = handlers[cmdName] ?: return CommandResult.Error("Неизвестная команда: ${command.name}. Введите /help")
+        val handler = handlers[cmdName] ?: return CommandResult.Error("Unknown command: ${command.name}. Type /help")
 
         // 3. Execution
         return try {
             handler.execute(command)
         } catch (e: Exception) {
-            CommandResult.Error("Ошибка исполнения ${command.name}: ${e.localizedMessage}")
+            CommandResult.Error("Execution error ${command.name}: ${e.localizedMessage}")
         }
     }
 }

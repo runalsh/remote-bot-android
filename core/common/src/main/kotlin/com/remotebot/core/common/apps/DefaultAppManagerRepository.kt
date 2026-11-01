@@ -213,7 +213,7 @@ class DefaultAppManagerRepository(
                     if (result.isSuccess) return@runCatching
                 }
 
-                throw IllegalStateException("Не удалось запустить приложение: $packageName (нет Launch Intent)")
+                throw IllegalStateException("Failed to launch the app: $packageName (no Launch Intent)")
             }
         }
 
@@ -222,14 +222,14 @@ class DefaultAppManagerRepository(
             runCatching {
                 val apkFile = File(apkPath)
                 if (!apkFile.exists()) {
-                    throw IllegalStateException("APK файл не найден: $apkPath")
+                    throw IllegalStateException("APK file not found: $apkPath")
                 }
 
                 if (!rootStatusProvider.isRootGrantedSync() &&
                     com.topjohnwu.superuser.Shell
                         .isAppGrantedRoot() != true
                 ) {
-                    throw IllegalStateException("Тихая установка APK требует Root-прав.")
+                    throw IllegalStateException("Silent APK installation requires Root.")
                 }
 
                 // Copy to temporary system directory /data/local/tmp/,
@@ -257,7 +257,7 @@ class DefaultAppManagerRepository(
                     lastOutput = outStr
                     if (result.isSuccess && (outStr.contains("Success", ignoreCase = true) || outStr.isBlank())) {
                         installSuccess = true
-                        AppLogger.i("DefaultAppManagerRepository", "Команда '$cmd' выполнена успешно: $outStr")
+                        AppLogger.i("DefaultAppManagerRepository", "Command '$cmd' executed successfully: $outStr")
                         break
                     }
                     if (outStr.contains("Success", ignoreCase = true)) {
@@ -270,8 +270,8 @@ class DefaultAppManagerRepository(
                 Shell.cmd("rm -f \"$tmpApkPath\"").exec()
 
                 if (!installSuccess) {
-                    val errDetails = if (lastOutput.isNotBlank()) lastOutput else "Процесс завершился с ошибкой (код не 0)"
-                    throw IllegalStateException("Ошибка установки APK ($errDetails)")
+                    val errDetails = if (lastOutput.isNotBlank()) lastOutput else "The process exited with an error (non-zero code)"
+                    throw IllegalStateException("APK installation error ($errDetails)")
                 }
                 AppLogger.i("DefaultAppManagerRepository", "Successfully installed APK: $apkPath")
             }
@@ -329,20 +329,20 @@ class DefaultAppManagerRepository(
     ): Result<Unit> =
         withContext(Dispatchers.IO) {
             runCatching {
-                AppLogger.w("DefaultAppManagerRepository", "⚠️ Запрос завершения процесса: PID=$pid, package=$packageName")
+                AppLogger.w("DefaultAppManagerRepository", "⚠️ Process termination request: PID=$pid, package=$packageName")
                 if (packageName != null) {
                     if (rootStatusProvider.isRootGrantedSync()) {
                         val res = Shell.cmd("am force-stop $packageName").exec()
-                        AppLogger.i("DefaultAppManagerRepository", "Завершено через am force-stop $packageName: success=${res.isSuccess}")
+                        AppLogger.i("DefaultAppManagerRepository", "Terminated via am force-stop $packageName: success=${res.isSuccess}")
                     } else {
                         val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
                         am.killBackgroundProcesses(packageName)
-                        AppLogger.i("DefaultAppManagerRepository", "Завершен фоновый процесс через ActivityManager: $packageName")
+                        AppLogger.i("DefaultAppManagerRepository", "Background process killed via ActivityManager: $packageName")
                     }
                 }
                 if (pid != null && rootStatusProvider.isRootGrantedSync()) {
                     val res = Shell.cmd("kill -9 $pid").exec()
-                    AppLogger.i("DefaultAppManagerRepository", "Выполнен kill -9 $pid: success=${res.isSuccess}")
+                    AppLogger.i("DefaultAppManagerRepository", "kill -9 $pid executed: success=${res.isSuccess}")
                 }
             }
         }

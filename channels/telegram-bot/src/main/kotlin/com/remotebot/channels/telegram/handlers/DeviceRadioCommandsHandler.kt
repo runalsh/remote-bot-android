@@ -10,11 +10,14 @@ import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
+import com.remotebot.channels.telegram.strings.TelegramBotStrings
 import com.remotebot.core.common.logger.AppLogger
 import com.remotebot.domain.dispatcher.CommandHandler
+import com.remotebot.domain.model.BotLanguage
 import com.remotebot.domain.model.CommandResult
 import com.remotebot.domain.model.IncomingCommand
 import com.remotebot.domain.provider.RootStatusProvider
+import com.remotebot.domain.repository.BotConfigRepository
 import com.topjohnwu.superuser.Shell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,7 +26,11 @@ class DeviceRadioCommandsHandler(
     private val context: Context,
     private val logger: AppLogger,
     private val rootStatusProvider: RootStatusProvider,
+    private val botConfigRepository: BotConfigRepository? = null,
 ) : CommandHandler {
+    private val strings
+        get() = TelegramBotStrings.get(botConfigRepository?.config?.value?.botLanguage ?: BotLanguage.AUTO)
+
     override val commandNames: List<String> =
         listOf(
             "wifi",
@@ -52,7 +59,7 @@ class DeviceRadioCommandsHandler(
             "hotspot", "tethering" -> handleHotspot(command.args)
             "mobile_data", "data" -> handleMobileData(command.args)
             "gps", "location_mode" -> handleGps(command.args)
-            else -> CommandResult.Error("Неизвестная радио/периферийная команда: $cmd")
+            else -> CommandResult.Error(strings.radioUnknownCmd(cmd))
         }
     }
 
@@ -65,30 +72,30 @@ class DeviceRadioCommandsHandler(
         withContext(Dispatchers.IO) {
             val wifiManager =
                 context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
-                    ?: return@withContext CommandResult.Error("Wi-Fi адаптер не найден на устройстве.")
+                    ?: return@withContext CommandResult.Error(strings.radioWifiNotFound())
 
             val action = args.firstOrNull()?.lowercase() ?: "status"
 
             when (action) {
                 "status" -> {
                     val isEnabled = isWifiEnabled()
-                    val statusEmoji = if (isEnabled) "🟢 Включен" else "🔴 Выключен"
+                    val statusEmoji = if (isEnabled) strings.radioStateOnG() else strings.radioStateOffR()
                     val wifiInfo = wifiManager.connectionInfo
-                    val ssid = wifiInfo?.ssid?.trim('"')?.takeIf { it != "<unknown ssid>" } ?: "Не подключен"
+                    val ssid = wifiInfo?.ssid?.trim('"')?.takeIf { it != "<unknown ssid>" } ?: strings.radioNotConnected()
                     val rssi = wifiInfo?.rssi ?: 0
                     val linkSpeed = "${wifiInfo?.linkSpeed ?: 0} Mbps"
                     val ip = SystemControlUtils.formatIp(wifiInfo?.ipAddress ?: 0)
 
                     val text =
-                        """
-                        📶 <b>Статус Wi-Fi:</b> $statusEmoji
-                        • Сеть (SSID): <code>$ssid</code>
-                        • Сигнал (RSSI): <code>$rssi dBm</code>
-                        • Скорость соединения: <code>$linkSpeed</code>
-                        • Локальный IP: <code>$ip</code>
-                        """.trimIndent()
+                        strings.radioWifiStatus(statusEmoji, ssid, rssi, linkSpeed, ip)
 
-                    val keyboard = SystemControlUtils.makeSingleToggleKeyboard("/wifi", isEnabled, hasRoot = isRootGranted())
+                    val keyboard =
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/wifi",
+                            isEnabled,
+                            hasRoot = isRootGranted(),
+                            strings = strings,
+                        )
                     CommandResult.Text(text, keyboard)
                 }
 
@@ -96,12 +103,12 @@ class DeviceRadioCommandsHandler(
                     val success = setWifiState(wifiManager, enable = true)
                     if (success) {
                         CommandResult.Text(
-                            "✅ <b>Wi-Fi успешно включен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", true, hasRoot = isRootGranted()),
+                            strings.radioWifiOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", true, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
                         CommandResult.Error(
-                            "⚠️ Не удалось включить Wi-Fi.\nНа Android 10+ для прямого управления требуются Root-права (libsu).",
+                            strings.radioWifiOnFailLong(),
                         )
                     }
                 }
@@ -110,12 +117,12 @@ class DeviceRadioCommandsHandler(
                     val success = setWifiState(wifiManager, enable = false)
                     if (success) {
                         CommandResult.Text(
-                            "🔴 <b>Wi-Fi успешно выключен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", false, hasRoot = isRootGranted()),
+                            strings.radioWifiOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", false, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
                         CommandResult.Error(
-                            "⚠️ Не удалось выключить Wi-Fi.\nНа Android 10+ для прямого управления требуются Root-права (libsu).",
+                            strings.radioWifiOffFailLong(),
                         )
                     }
                 }
@@ -125,19 +132,19 @@ class DeviceRadioCommandsHandler(
                     val target = !current
                     val success = setWifiState(wifiManager, enable = target)
                     if (success) {
-                        val label = if (target) "включен" else "выключен"
+                        val label = if (target) strings.radioWordOn() else strings.radioWordOff()
                         CommandResult.Text(
-                            "🔄 <b>Wi-Fi переключен: $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", target, hasRoot = isRootGranted()),
+                            strings.radioWifiToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard("/wifi", target, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
                         CommandResult.Error(
-                            "⚠️ Не удалось переключить Wi-Fi.\nНа Android 10+ для прямого управления требуются Root-права (libsu).",
+                            strings.radioWifiToggleFailLong(),
                         )
                     }
                 }
 
-                else -> CommandResult.Error("Неверный параметр. Используйте: <code>/wifi [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioInvalidParam("/wifi [on|off|toggle|status]"))
             }
         }
 
@@ -154,7 +161,7 @@ class DeviceRadioCommandsHandler(
             val cmd = if (enable) "cmd wifi set-wifi-enabled enabled || svc wifi enable" else "cmd wifi set-wifi-enabled disabled || svc wifi disable"
             val res = Shell.cmd(cmd).exec()
             if (res.isSuccess) {
-                logger.i("SystemControl", "Wi-Fi изменен через Root shell: enable=$enable")
+                logger.i("SystemControl", "Wi-Fi changed via Root shell: enable=$enable")
                 return true
             }
         } catch (_: Exception) {
@@ -187,7 +194,7 @@ class DeviceRadioCommandsHandler(
                     BluetoothAdapter.getDefaultAdapter()
 
             if (btAdapter == null) {
-                return@withContext CommandResult.Error("Bluetooth адаптер не найден на устройстве.")
+                return@withContext CommandResult.Error(strings.radioBtNotFound())
             }
 
             val action = args.firstOrNull()?.lowercase() ?: "status"
@@ -195,12 +202,12 @@ class DeviceRadioCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isBluetoothEnabled()
-                    val statusEmoji = if (isEnabled) "🟢 Включен" else "🔴 Выключен"
+                    val statusEmoji = if (isEnabled) strings.radioStateOnG() else strings.radioStateOffR()
                     val name =
                         try {
                             btAdapter.name ?: "N/A"
                         } catch (_: SecurityException) {
-                            "Нет разрешения"
+                            strings.radioNoPerm()
                         }
                     val bondedCount =
                         try {
@@ -210,15 +217,11 @@ class DeviceRadioCommandsHandler(
                         }
 
                     val text =
-                        """
-                        🦷 <b>Статус Bluetooth:</b> $statusEmoji
-                        • Имя адаптера: <code>$name</code>
-                        • Сопряженных устройств: <code>$bondedCount</code>
-                        """.trimIndent()
+                        strings.radioBtStatus(statusEmoji, name, bondedCount)
 
                     CommandResult.Text(
                         text,
-                        SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", isEnabled, hasRoot = isRootGranted()),
+                        SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", isEnabled, hasRoot = isRootGranted(), strings = strings),
                     )
                 }
 
@@ -226,11 +229,11 @@ class DeviceRadioCommandsHandler(
                     val success = setBluetoothState(btAdapter, enable = true)
                     if (success) {
                         CommandResult.Text(
-                            "✅ <b>Bluetooth успешно включен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", true, hasRoot = isRootGranted()),
+                            strings.radioBtOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", true, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
-                        CommandResult.Error("⚠️ Не удалось включить Bluetooth (требуются Root права или разрешение).")
+                        CommandResult.Error(strings.radioBtOnFail())
                     }
                 }
 
@@ -238,11 +241,11 @@ class DeviceRadioCommandsHandler(
                     val success = setBluetoothState(btAdapter, enable = false)
                     if (success) {
                         CommandResult.Text(
-                            "🔴 <b>Bluetooth успешно выключен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", false, hasRoot = isRootGranted()),
+                            strings.radioBtOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", false, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
-                        CommandResult.Error("⚠️ Не удалось выключить Bluetooth.")
+                        CommandResult.Error(strings.radioBtOffFail())
                     }
                 }
 
@@ -251,17 +254,17 @@ class DeviceRadioCommandsHandler(
                     val target = !current
                     val success = setBluetoothState(btAdapter, enable = target)
                     if (success) {
-                        val label = if (target) "включен" else "выключен"
+                        val label = if (target) strings.radioWordOn() else strings.radioWordOff()
                         CommandResult.Text(
-                            "🔄 <b>Bluetooth переключен: $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", target, hasRoot = isRootGranted()),
+                            strings.radioBtToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard("/bluetooth", target, hasRoot = isRootGranted(), strings = strings),
                         )
                     } else {
-                        CommandResult.Error("⚠️ Не удалось переключить Bluetooth.")
+                        CommandResult.Error(strings.radioBtToggleFail())
                     }
                 }
 
-                else -> CommandResult.Error("Неверный параметр. Используйте: <code>/bluetooth [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioInvalidParam("/bluetooth [on|off|toggle|status]"))
             }
         }
 
@@ -284,7 +287,7 @@ class DeviceRadioCommandsHandler(
             val cmd = if (enable) "cmd bluetooth_manager enable || svc bluetooth enable" else "cmd bluetooth_manager disable || svc bluetooth disable"
             val res = Shell.cmd(cmd).exec()
             if (res.isSuccess) {
-                logger.i("SystemControl", "Bluetooth изменен через Root shell: enable=$enable")
+                logger.i("SystemControl", "Bluetooth changed via Root shell: enable=$enable")
                 return true
             }
         } catch (_: Exception) {
@@ -308,57 +311,67 @@ class DeviceRadioCommandsHandler(
         withContext(Dispatchers.IO) {
             val cameraManager =
                 context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
-                    ?: return@withContext CommandResult.Error("Сервис камеры недоступен.")
+                    ?: return@withContext CommandResult.Error(strings.radioCamServiceUnavailable())
 
             val cameraId =
                 findTorchCameraId(cameraManager)
-                    ?: return@withContext CommandResult.Error("Камера со вспышкой не найдена.")
+                    ?: return@withContext CommandResult.Error(strings.radioNoFlashCamera())
 
             val action = args.firstOrNull()?.lowercase() ?: "status"
 
             try {
                 when (action) {
                     "status" -> {
-                        val label = if (isTorchOn) "🟢 Включен" else "⚪ Выключен"
+                        val label = if (isTorchOn) strings.radioStateOnG() else strings.radioStateOffW()
                         CommandResult.Text(
-                            "🔦 <b>Фонарик:</b> $label",
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", isTorchOn, hasRoot = isRootGranted()),
+                            strings.radioTorchState(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/flashlight",
+                                isTorchOn,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     }
                     "on", "1" -> {
                         cameraManager.setTorchMode(cameraId, true)
                         isTorchOn = true
-                        logger.i("SystemControl", "Фонарик включен (камера ID: $cameraId)")
+                        logger.i("SystemControl", "Flashlight turned on (camera ID: $cameraId)")
                         CommandResult.Text(
-                            "🔦 <b>Фонарик включен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", true, hasRoot = isRootGranted()),
+                            strings.radioTorchOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", true, hasRoot = isRootGranted(), strings = strings),
                         )
                     }
                     "off", "0" -> {
                         cameraManager.setTorchMode(cameraId, false)
                         isTorchOn = false
-                        logger.i("SystemControl", "Фонарик выключен (камера ID: $cameraId)")
+                        logger.i("SystemControl", "Flashlight turned off (camera ID: $cameraId)")
                         CommandResult.Text(
-                            "💡 <b>Фонарик выключен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", false, hasRoot = isRootGranted()),
+                            strings.radioTorchOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", false, hasRoot = isRootGranted(), strings = strings),
                         )
                     }
                     "toggle" -> {
                         val target = !isTorchOn
                         cameraManager.setTorchMode(cameraId, target)
                         isTorchOn = target
-                        val label = if (target) "включен 🔦" else "выключен 💡"
-                        logger.i("SystemControl", "Фонарик переключен: $label")
+                        val label = if (target) strings.radioWordOn() + " 🔦" else strings.radioWordOff() + " 💡"
+                        logger.i("SystemControl", "Flashlight toggled: $label")
                         CommandResult.Text(
-                            "🔄 <b>Фонарик $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/flashlight", target, hasRoot = isRootGranted()),
+                            strings.radioTorchToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/flashlight",
+                                target,
+                                hasRoot = isRootGranted(),
+                                strings = strings,
+                            ),
                         )
                     }
-                    else -> CommandResult.Error("Используйте: <code>/flashlight [on|off|toggle|status]</code>")
+                    else -> CommandResult.Error(strings.radioUsage("/flashlight [on|off|toggle|status]"))
                 }
             } catch (e: Exception) {
-                logger.e("SystemControl", "Ошибка переключения фонарика: ${e.localizedMessage}", e)
-                CommandResult.Error("Сбой управления фонариком: ${e.localizedMessage}")
+                logger.e("SystemControl", "Flashlight toggle error: ${e.localizedMessage}", e)
+                CommandResult.Error(strings.radioTorchFail(e.localizedMessage ?: ""))
             }
         }
 
@@ -391,65 +404,89 @@ class DeviceRadioCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isAirplaneModeOn()
-                    val statusEmoji = if (isEnabled) "✈️ Включен" else "⚪ Выключен"
-                    val rootNote = if (hasRoot) "🟢 Root активен" else "🔒 Требуются Root-права для изменения"
+                    val statusEmoji = if (isEnabled) strings.radioStateAirplaneOn() else strings.radioStateOffW()
+                    val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
-                        "✈️ <b>Режим полета:</b> $statusEmoji\n<i>$rootNote</i>",
-                        SystemControlUtils.makeSingleToggleKeyboard("/airplane", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        strings.radioAirplaneStatus(statusEmoji, rootNote),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/airplane",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для режима полета требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootAirplane(),
                         )
                     }
                     val success = setAirplaneMode(true)
                     if (success) {
                         CommandResult.Text(
-                            "✈️ <b>Режим полета включен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", true, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioAirplaneOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения режима полета через Root shell.")
+                        CommandResult.Error(strings.radioAirplaneRootFail())
                     }
                 }
                 "off", "0" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для режима полета требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootAirplane(),
                         )
                     }
                     val success = setAirplaneMode(false)
                     if (success) {
                         CommandResult.Text(
-                            "🌐 <b>Режим полета выключен!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", false, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioAirplaneOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения режима полета через Root shell.")
+                        CommandResult.Error(strings.radioAirplaneRootFail())
                     }
                 }
                 "toggle" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для режима полета требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootAirplane(),
                         )
                     }
                     val current = isAirplaneModeOn()
                     val target = !current
                     val success = setAirplaneMode(target)
                     if (success) {
-                        val label = if (target) "включен ✈️" else "выключен 🌐"
+                        val label = if (target) strings.radioWordOn() + " ✈️" else strings.radioWordOff() + " 🌐"
                         CommandResult.Text(
-                            "🔄 <b>Режим полета $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/airplane", target, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioAirplaneToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/airplane",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения режима полета через Root shell.")
+                        CommandResult.Error(strings.radioAirplaneRootFail())
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/airplane [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/airplane [on|off|toggle|status]"))
             }
         }
 
@@ -461,10 +498,10 @@ class DeviceRadioCommandsHandler(
         val cmd = "cmd connectivity airplane-mode ${if (enable) "enable" else "disable"} || (settings put global airplane_mode_on $valStr && am broadcast -a android.intent.action.AIRPLANE_MODE --ez state $boolStr)"
         return try {
             val res = Shell.cmd(cmd).exec()
-            logger.i("SystemControl", "Режим полета изменен: enable=$enable, success=${res.isSuccess}")
+            logger.i("SystemControl", "Airplane mode changed: enable=$enable, success=${res.isSuccess}")
             res.isSuccess
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setAirplaneMode: ${e.localizedMessage}")
+            logger.w("SystemControl", "setAirplaneMode failed: ${e.localizedMessage}")
             false
         }
     }
@@ -480,65 +517,89 @@ class DeviceRadioCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isHotspotEnabled()
-                    val statusEmoji = if (isEnabled) "📡 Включена" else "⚪ Выключена"
-                    val rootNote = if (hasRoot) "🟢 Root активен" else "🔒 Требуются Root-права для изменения"
+                    val statusEmoji = if (isEnabled) strings.radioStateHotspotOn() else strings.radioStateHotspotOff()
+                    val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
-                        "📡 <b>Точка доступа (Wi-Fi Hotspot):</b> $statusEmoji\n<i>$rootNote</i>",
-                        SystemControlUtils.makeSingleToggleKeyboard("/hotspot", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        strings.radioHotspotStatus(statusEmoji, rootNote),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/hotspot",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для точки доступа требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootHotspot(),
                         )
                     }
                     val success = setHotspot(true)
                     if (success) {
                         CommandResult.Text(
-                            "📡 <b>Точка доступа включена!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", true, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioHotspotOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка запуска точки доступа.")
+                        CommandResult.Error(strings.radioHotspotStartFail())
                     }
                 }
                 "off", "0" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для точки доступа требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootHotspot(),
                         )
                     }
                     val success = setHotspot(false)
                     if (success) {
                         CommandResult.Text(
-                            "⚪ <b>Точка доступа выключена!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", false, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioHotspotOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка остановки точки доступа.")
+                        CommandResult.Error(strings.radioHotspotStopFail())
                     }
                 }
                 "toggle" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для точки доступа требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootHotspot(),
                         )
                     }
                     val current = isHotspotEnabled()
                     val target = !current
                     val success = setHotspot(target)
                     if (success) {
-                        val label = if (target) "включена 📡" else "выключена ⚪"
+                        val label = if (target) strings.radioWordOnF() + " 📡" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
-                            "🔄 <b>Точка доступа $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/hotspot", target, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioHotspotToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/hotspot",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения точки доступа.")
+                        CommandResult.Error(strings.radioHotspotToggleFail())
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/hotspot [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/hotspot [on|off|toggle|status]"))
             }
         }
 
@@ -559,10 +620,10 @@ class DeviceRadioCommandsHandler(
             }
         return try {
             val res = Shell.cmd(cmd).exec()
-            logger.i("SystemControl", "Hotspot изменен: enable=$enable, success=${res.isSuccess}")
+            logger.i("SystemControl", "Hotspot changed: enable=$enable, success=${res.isSuccess}")
             res.isSuccess
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setHotspot: ${e.localizedMessage}")
+            logger.w("SystemControl", "setHotspot failed: ${e.localizedMessage}")
             false
         }
     }
@@ -578,65 +639,89 @@ class DeviceRadioCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isMobileDataEnabled()
-                    val statusEmoji = if (isEnabled) "🟢 Включена" else "🔴 Выключена"
-                    val rootNote = if (hasRoot) "🟢 Root активен" else "🔒 Требуются Root-права для изменения"
+                    val statusEmoji = if (isEnabled) strings.radioStateDataOn() else strings.radioStateDataOff()
+                    val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
-                        "📶 <b>Мобильная передача данных:</b> $statusEmoji\n<i>$rootNote</i>",
-                        SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        strings.radioDataStatus(statusEmoji, rootNote),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/mobile_data",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для переключения мобильных данных требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootData(),
                         )
                     }
                     val success = setMobileData(true)
                     if (success) {
                         CommandResult.Text(
-                            "🟢 <b>Мобильные данные включены!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", true, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioDataOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка включения мобильных данных.")
+                        CommandResult.Error(strings.radioDataOnFail())
                     }
                 }
                 "off", "0" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для переключения мобильных данных требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootData(),
                         )
                     }
                     val success = setMobileData(false)
                     if (success) {
                         CommandResult.Text(
-                            "🔴 <b>Мобильные данные выключены!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", false, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioDataOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка выключения мобильных данных.")
+                        CommandResult.Error(strings.radioDataOffFail())
                     }
                 }
                 "toggle" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для переключения мобильных данных требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootData(),
                         )
                     }
                     val current = isMobileDataEnabled()
                     val target = !current
                     val success = setMobileData(target)
                     if (success) {
-                        val label = if (target) "включена 🟢" else "выключена 🔴"
+                        val label = if (target) strings.radioWordOnF() + " 🟢" else strings.radioWordOffF() + " 🔴"
                         CommandResult.Text(
-                            "🔄 <b>Мобильная передача данных $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/mobile_data", target, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioDataToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/mobile_data",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения мобильных данных.")
+                        CommandResult.Error(strings.radioDataToggleFail())
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/mobile_data [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/mobile_data [on|off|toggle|status]"))
             }
         }
 
@@ -646,10 +731,10 @@ class DeviceRadioCommandsHandler(
         val cmd = if (enable) "svc data enable || cmd phone data enable" else "svc data disable || cmd phone data disable"
         return try {
             val res = Shell.cmd(cmd).exec()
-            logger.i("SystemControl", "Mobile data изменен: enable=$enable, success=${res.isSuccess}")
+            logger.i("SystemControl", "Mobile data changed: enable=$enable, success=${res.isSuccess}")
             res.isSuccess
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setMobileData: ${e.localizedMessage}")
+            logger.w("SystemControl", "setMobileData failed: ${e.localizedMessage}")
             false
         }
     }
@@ -665,65 +750,89 @@ class DeviceRadioCommandsHandler(
             when (action) {
                 "status" -> {
                     val isEnabled = isGpsEnabled()
-                    val statusEmoji = if (isEnabled) "📍 Включена" else "⚪ Выключена"
-                    val rootNote = if (hasRoot) "🟢 Root активен" else "🔒 Требуются Root-права для изменения"
+                    val statusEmoji = if (isEnabled) strings.radioStateGpsOn() else strings.radioStateHotspotOff()
+                    val rootNote = if (hasRoot) strings.radioRootActive() else strings.radioRootNote()
                     CommandResult.Text(
-                        "📍 <b>Геолокация (GPS):</b> $statusEmoji\n<i>$rootNote</i>",
-                        SystemControlUtils.makeSingleToggleKeyboard("/gps", isEnabled, requiresRoot = true, hasRoot = hasRoot),
+                        strings.radioGpsStatus(statusEmoji, rootNote),
+                        SystemControlUtils.makeSingleToggleKeyboard(
+                            "/gps",
+                            isEnabled,
+                            requiresRoot = true,
+                            hasRoot = hasRoot,
+                            strings = strings,
+                        ),
                     )
                 }
                 "on", "1" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления GPS требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootGps(),
                         )
                     }
                     val success = setGps(true)
                     if (success) {
                         CommandResult.Text(
-                            "📍 <b>Геолокация включена!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", true, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioGpsOnOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                true,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка включения GPS.")
+                        CommandResult.Error(strings.radioGpsOnFail())
                     }
                 }
                 "off", "0" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления GPS требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootGps(),
                         )
                     }
                     val success = setGps(false)
                     if (success) {
                         CommandResult.Text(
-                            "⚪ <b>Геолокация выключена!</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", false, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioGpsOffOk(),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                false,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка выключения GPS.")
+                        CommandResult.Error(strings.radioGpsOffFail())
                     }
                 }
                 "toggle" -> {
                     if (!hasRoot) {
                         return@withContext CommandResult.Error(
-                            "⚠️ Для управления GPS требуются Root-права (Superuser)!\nПредоставьте Root в приложении на вкладке Диагностика.",
+                            strings.radioNeedRootGps(),
                         )
                     }
                     val current = isGpsEnabled()
                     val target = !current
                     val success = setGps(target)
                     if (success) {
-                        val label = if (target) "включена 📍" else "выключена ⚪"
+                        val label = if (target) strings.radioWordOnF() + " 📍" else strings.radioWordOffF() + " ⚪"
                         CommandResult.Text(
-                            "🔄 <b>Геолокация $label</b>",
-                            SystemControlUtils.makeSingleToggleKeyboard("/gps", target, requiresRoot = true, hasRoot = hasRoot),
+                            strings.radioGpsToggled(label),
+                            SystemControlUtils.makeSingleToggleKeyboard(
+                                "/gps",
+                                target,
+                                requiresRoot = true,
+                                hasRoot = hasRoot,
+                                strings = strings,
+                            ),
                         )
                     } else {
-                        CommandResult.Error("❌ Ошибка переключения GPS.")
+                        CommandResult.Error(strings.radioGpsToggleFail())
                     }
                 }
-                else -> CommandResult.Error("Используйте: <code>/gps [on|off|toggle|status]</code>")
+                else -> CommandResult.Error(strings.radioUsage("/gps [on|off|toggle|status]"))
             }
         }
 
@@ -745,10 +854,10 @@ class DeviceRadioCommandsHandler(
             }
         return try {
             val res = Shell.cmd(cmd).exec()
-            logger.i("SystemControl", "GPS изменен: enable=$enable, success=${res.isSuccess}")
+            logger.i("SystemControl", "GPS changed: enable=$enable, success=${res.isSuccess}")
             res.isSuccess
         } catch (e: Exception) {
-            logger.w("SystemControl", "Сбой setGps: ${e.localizedMessage}")
+            logger.w("SystemControl", "setGps failed: ${e.localizedMessage}")
             false
         }
     }

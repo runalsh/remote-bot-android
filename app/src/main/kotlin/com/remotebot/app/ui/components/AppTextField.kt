@@ -57,7 +57,7 @@ fun AppTextField(
                     IconButton(onClick = { onValueChange("") }) {
                         Icon(
                             imageVector = Icons.Default.Clear,
-                            contentDescription = "Очистить",
+                            contentDescription = "Clear",
                         )
                     }
                 }

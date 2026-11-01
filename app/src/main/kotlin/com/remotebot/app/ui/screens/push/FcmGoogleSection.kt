@@ -1,5 +1,6 @@
 package com.remotebot.app.ui.screens.push
 
+import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
@@ -12,17 +13,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.remotebot.app.R
 import com.remotebot.app.ui.components.StatusMessageText
 import com.remotebot.app.ui.theme.AppColors
 import com.remotebot.core.push.DynamicFirebaseManager
 import com.remotebot.domain.repository.BotConfigRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun FcmGoogleSection(
@@ -51,12 +53,12 @@ fun FcmGoogleSection(
                 Spacer(modifier = Modifier.width(8.dp))
                 Column {
                     Text(
-                        text = "Google Firebase (FCM)",
+                        text = stringResource(R.string.push_fcm_card_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
-                        text = "Динамическая загрузка google-services.json",
+                        text = stringResource(R.string.push_fcm_card_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -71,7 +73,7 @@ fun FcmGoogleSection(
                     onClick = { googlePickerLauncher.launch(arrayOf("application/json", "text/*", "*/*")) },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("📁 Выбрать файл")
+                    Text(stringResource(R.string.push_fcm_choose_file))
                 }
 
                 OutlinedButton(
@@ -83,21 +85,31 @@ fun FcmGoogleSection(
                                 val text = clip.getItemAt(0).text?.toString() ?: ""
                                 if (text.isNotBlank()) {
                                     onGoogleJsonTextChange(text)
-                                    Toast.makeText(context, "Вставлено из буфера (${text.length} симв.)", Toast.LENGTH_SHORT).show()
+                                    Toast
+                                        .makeText(
+                                            context,
+                                            context.getString(R.string.push_paste_clipboard_toast, text.length),
+                                            Toast.LENGTH_SHORT,
+                                        ).show()
                                 }
                             }
                         } catch (e: Exception) {
-                            Toast.makeText(context, "Ошибка буфера: ${e.message}", Toast.LENGTH_SHORT).show()
+                            Toast
+                                .makeText(
+                                    context,
+                                    context.getString(R.string.push_clipboard_error_toast, e.message ?: ""),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
                         }
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("📋 Из буфера")
+                    Text(stringResource(R.string.push_fcm_from_clipboard))
                 }
 
                 if (googleJsonText.isNotBlank()) {
                     IconButton(onClick = { onGoogleJsonTextChange("") }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Очистить")
+                        Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete))
                     }
                 }
             }
@@ -112,14 +124,14 @@ fun FcmGoogleSection(
             OutlinedTextField(
                 value = googleJsonText,
                 onValueChange = onGoogleJsonTextChange,
-                label = { Text("Содержимое google-services.json") },
+                label = { Text(stringResource(R.string.push_fcm_json_label)) },
                 placeholder = { Text("{\n  \"project_info\": {\n    \"project_id\": \"my-app\", ...\n  }\n}") },
                 isError = googleValidationError != null,
                 supportingText = {
                     if (googleValidationError != null) {
                         Text("❌ $googleValidationError", color = MaterialTheme.colorScheme.error)
                     } else if (googleJsonText.isNotBlank()) {
-                        Text("✅ JSON валиден и готов к инициализации", color = AppColors.success)
+                        Text(stringResource(R.string.push_fcm_json_valid), color = AppColors.success)
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
@@ -131,7 +143,7 @@ fun FcmGoogleSection(
             Button(
                 onClick = {
                     if (googleJsonText.isBlank()) {
-                        onFcmStatusMessageChange("Вставьте google-services JSON перед инициализацией")
+                        onFcmStatusMessageChange(context.getString(R.string.push_fcm_need_json))
                         onIsFcmSuccessChange(false)
                         return@Button
                     }
@@ -140,7 +152,12 @@ fun FcmGoogleSection(
                         val parseResult = DynamicFirebaseManager.parseGoogleServicesJson(googleJsonText)
                         if (parseResult.isFailure) {
                             onIsFcmProcessingChange(false)
-                            onFcmStatusMessageChange("Ошибка парсинга: ${parseResult.exceptionOrNull()?.localizedMessage}")
+                            onFcmStatusMessageChange(
+                                context.getString(
+                                    R.string.push_fcm_parse_error,
+                                    parseResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsFcmSuccessChange(false)
                             return@launch
                         }
@@ -149,7 +166,12 @@ fun FcmGoogleSection(
                         val initResult = DynamicFirebaseManager.initialize(context, parsed)
                         if (initResult.isFailure) {
                             onIsFcmProcessingChange(false)
-                            onFcmStatusMessageChange("Ошибка инициализации Firebase: ${initResult.exceptionOrNull()?.localizedMessage}")
+                            onFcmStatusMessageChange(
+                                context.getString(
+                                    R.string.push_fcm_init_error,
+                                    initResult.exceptionOrNull()?.localizedMessage ?: "",
+                                ),
+                            )
                             onIsFcmSuccessChange(false)
                             return@launch
                         }
@@ -170,11 +192,11 @@ fun FcmGoogleSection(
                             val token = tokenResult.getOrThrow()
                             onFcmTokenChange(token)
                             onIsFcmSuccessChange(true)
-                            onFcmStatusMessageChange("✅ Firebase инициализирован! Токен получен.")
-                            Toast.makeText(context, "Firebase инициализирован!", Toast.LENGTH_SHORT).show()
+                            onFcmStatusMessageChange(context.getString(R.string.push_fcm_initialized_token))
+                            Toast.makeText(context, context.getString(R.string.push_fcm_init_success), Toast.LENGTH_SHORT).show()
                         } else {
                             onIsFcmSuccessChange(false)
-                            val errorMsg = tokenResult.exceptionOrNull()?.localizedMessage ?: "Сбой получения токена"
+                            val errorMsg = tokenResult.exceptionOrNull()?.localizedMessage ?: context.getString(R.string.push_token_error)
                             onFcmStatusMessageChange("❌ $errorMsg")
                         }
                     }
@@ -190,9 +212,9 @@ fun FcmGoogleSection(
                         color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Инициализация...")
+                    Text(stringResource(R.string.push_fcm_btn_initializing))
                 } else {
-                    Text("⚡ Применить и инициализировать FCM")
+                    Text(stringResource(R.string.push_fcm_btn_init))
                 }
             }
 
@@ -224,7 +246,7 @@ fun FcmGoogleSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
                         Text(
-                            text = "Статус Google FCM:",
+                            text = stringResource(R.string.push_fcm_status_title),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                         )
@@ -244,13 +266,13 @@ fun FcmGoogleSection(
                             Text(
                                 text =
                                     if (!isGmsAvailable) {
-                                        "🔴 Нет Google Play Services"
+                                        stringResource(R.string.push_status_no_gms)
                                     } else if (isInit && !fcmToken.isNullOrBlank()) {
-                                        "🟢 Активен"
+                                        stringResource(R.string.push_status_active_dot)
                                     } else if (isInit) {
-                                        "🟡 Ожидание токена"
+                                        stringResource(R.string.push_status_waiting_token)
                                     } else {
-                                        "⚪ Не инициализирован"
+                                        stringResource(R.string.push_status_not_init)
                                     },
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
                                 style = MaterialTheme.typography.labelSmall,
@@ -270,7 +292,11 @@ fun FcmGoogleSection(
                     if (!isGmsAvailable) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "⚠️ Внимание: ${DynamicFirebaseManager.getGooglePlayServicesStatus(context)}. Для работы FCM требуется Google Play Services.",
+                            text =
+                                stringResource(
+                                    R.string.push_fcm_gms_warning,
+                                    DynamicFirebaseManager.getGooglePlayServicesStatus(context),
+                                ),
                             fontSize = 11.sp,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -280,7 +306,7 @@ fun FcmGoogleSection(
 
                     if (!fcmToken.isNullOrBlank()) {
                         Text(
-                            "Токен FCM устройства (${fcmToken.length} симв.):",
+                            stringResource(R.string.push_fcm_token_label, fcmToken.length),
                             style = MaterialTheme.typography.labelSmall,
                             color = AppColors.success,
                             fontWeight = FontWeight.Bold,
@@ -291,9 +317,21 @@ fun FcmGoogleSection(
                             style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                             maxLines = 3,
                         )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        OutlinedButton(
+                            onClick = {
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                val clip = ClipData.newPlainText("FCM Device Token", fcmToken)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, context.getString(R.string.push_fcm_token_copied), Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(stringResource(R.string.push_fcm_copy_token))
+                        }
                     } else {
                         Text(
-                            "⚪ FCM не инициализирован. Загрузите файл google-services.json выше.",
+                            stringResource(R.string.push_fcm_not_init_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -302,5 +340,4 @@ fun FcmGoogleSection(
             }
         }
     }
-
 }
